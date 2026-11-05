@@ -58,8 +58,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     eas: {
       projectId: 'your-eas-project-id',
     },
-    apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://10.5.114.133:5000/api/v1',
-    socketUrl: process.env.EXPO_PUBLIC_SOCKET_URL || 'http://10.5.114.133:5000',
+    apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://project1-api.vercel.app/api/v1',
+    socketUrl: process.env.EXPO_PUBLIC_SOCKET_URL || 'https://project1-api.vercel.app',
     googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
     googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '',
     googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',

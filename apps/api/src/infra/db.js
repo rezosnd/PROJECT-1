@@ -5,13 +5,19 @@ import { logger } from './logger.js';
 
 const { Pool } = pg;
 
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
 export const pool = new Pool({
   connectionString: config.DATABASE_URL,
-  min: config.DATABASE_POOL_MIN,
-  max: config.DATABASE_POOL_MAX,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  ssl: config.DATABASE_URL?.includes('neon.tech') ? { rejectUnauthorized: false } : undefined,
+  // Serverless: keep pool tiny — each invocation is short-lived
+  min: isServerless ? 0 : config.DATABASE_POOL_MIN,
+  max: isServerless ? Math.min(config.DATABASE_POOL_MAX, 3) : config.DATABASE_POOL_MAX,
+  idleTimeoutMillis: isServerless ? 5000 : 30000,
+  connectionTimeoutMillis: isServerless ? 8000 : 5000,
+  ssl:
+    config.DATABASE_URL?.includes('neon.tech') || config.DATABASE_URL?.includes('sslmode=')
+      ? { rejectUnauthorized: false }
+      : undefined,
 });
 
 pool.on('error', (err) => {

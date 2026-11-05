@@ -37,7 +37,7 @@ function resolveApiOrigin(): string {
   const apiUrl =
     extra.apiUrl ||
     process.env.EXPO_PUBLIC_API_URL ||
-    'http://10.5.114.133:5000/api/v1';
+    'https://project1-api.vercel.app/api/v1';
   return String(apiUrl).replace(/\/api\/v1\/?$/, '');
 }
 

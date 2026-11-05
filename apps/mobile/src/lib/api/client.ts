@@ -3,7 +3,8 @@ import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '../sto
 import Constants from 'expo-constants';
 import { generateUUID } from '../utils/uuid';
 
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8080/api/v1';
+const API_BASE_URL =
+  Constants.expoConfig?.extra?.apiUrl || 'https://project1-api.vercel.app/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

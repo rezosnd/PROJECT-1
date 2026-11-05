@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { getAccessToken } from '../auth/token-store';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://project1-api.vercel.app';
 
 class SocketManager {
   private socket: Socket | null = null;

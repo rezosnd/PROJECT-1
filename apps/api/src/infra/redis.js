@@ -46,10 +46,19 @@ redis.on('close', () => {
   isConnected = false;
 });
 
-// Attempt initial connection without blocking process boot
-if (config.NODE_ENV !== 'test') {
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const redisLooksLocal =
+  !config.REDIS_URL ||
+  /localhost|127\.0\.0\.1/.test(config.REDIS_URL);
+
+// Attempt initial connection without blocking process boot.
+// On Vercel without a real Redis URL, skip connect — rate limit falls back to memory.
+if (config.NODE_ENV !== 'test' && !(isServerless && redisLooksLocal)) {
   redis.connect().catch((err) => {
-    logger.warn({ err: err.message }, '[Redis] Initial connection deferred, API operating in resilient fallback mode');
+    logger.warn(
+      { err: err.message },
+      '[Redis] Initial connection deferred, API operating in resilient fallback mode'
+    );
   });
 }
 

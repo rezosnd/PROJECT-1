@@ -2,7 +2,8 @@ import { io, Socket } from 'socket.io-client';
 import { getAccessToken } from '../storage/secure-store';
 import Constants from 'expo-constants';
 
-const SOCKET_URL = Constants.expoConfig?.extra?.socketUrl || 'http://10.5.114.133:5000';
+const SOCKET_URL =
+  Constants.expoConfig?.extra?.socketUrl || 'https://project1-api.vercel.app';
 
 class SocketClient {
   private socket: Socket | null = null;

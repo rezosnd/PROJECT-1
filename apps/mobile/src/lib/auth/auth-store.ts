@@ -55,7 +55,8 @@ export interface AuthState {
   logout: () => Promise<void>;
 }
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://10.5.114.133:5000/api/v1';
+const API_URL =
+  Constants.expoConfig?.extra?.apiUrl || 'https://project1-api.vercel.app/api/v1';
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
