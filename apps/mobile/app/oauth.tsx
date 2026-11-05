@@ -13,7 +13,6 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../src/lib/auth/auth-store';
 import { BRAND } from '../src/lib/brand';
-import { typography } from '../src/theme/tokens';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -27,13 +26,13 @@ function firstParam(v: string | string[] | undefined): string | null {
 }
 
 /**
- * Deep-link handoff: exp://…/--/oauth?ticket=…
- * Missing this route caused Expo Go's blue "Something went wrong" screen.
+ * Deep-link handoff: exp://HOST:PORT/--/oauth?ticket=…
+ * Kept crash-safe so Expo Go never falls to the blue error screen.
  */
 export default function OAuthHandoffScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ ticket?: string; id_token?: string }>();
-  const { loginWithGoogleIdToken } = useAuthStore();
+  const loginWithGoogleIdToken = useAuthStore((s) => s.loginWithGoogleIdToken);
   const [status, setStatus] = useState('Signing you in…');
   const [error, setError] = useState<string | null>(null);
   const ran = useRef(false);
@@ -137,7 +136,6 @@ const styles = StyleSheet.create({
   logo: { width: '100%', height: 56, marginBottom: 8 },
   title: {
     marginTop: 8,
-    fontFamily: typography.fontFamilies.display,
     fontSize: 18,
     fontWeight: '800',
     color: '#0A0A0A',

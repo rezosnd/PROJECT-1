@@ -107,21 +107,27 @@ export function buildMobileDeepLinks({ returnUrl, scheme, ticket }) {
   const q = `ticket=${encodeURIComponent(ticket)}`;
   const links = [];
   const ret = String(returnUrl || '').trim();
+
+  // Primary: exact Expo AuthSession return URL (exp://IP:PORT/--/oauth)
+  // Never use bare exp://oauth — that crashes Expo Go with the blue error screen.
   if (ret) {
     links.push(ret + (ret.includes('?') ? '&' : '?') + q);
   }
-  const sch = String(scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
-  links.push(`${sch}://oauth?${q}`);
-  links.push(`exp://oauth?${q}`);
 
-  // Android Intent for Expo Go when returnUrl is exp://host/--/path
+  // Expo Go intent — only when we know the Metro host from returnUrl
   const m = ret.match(/^exp:\/\/([^/?#]+)(\/[^?#]*)?/i);
   if (m) {
     const host = m[1];
-    const path = m[2] || '/';
+    const path = (m[2] && m[2] !== '/') ? m[2] : '/--/oauth';
     links.push(
       `intent://${host}${path}?${q}#Intent;scheme=exp;package=host.exp.exponent;end`
     );
+  }
+
+  // Standalone / custom scheme fallback (dev client or production build)
+  const sch = String(scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
+  if (!ret || !ret.startsWith('exp://')) {
+    links.push(`${sch}://oauth?${q}`);
   }
 
   return [...new Set(links.filter(Boolean))];

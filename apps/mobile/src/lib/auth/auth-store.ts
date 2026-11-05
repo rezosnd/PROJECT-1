@@ -80,21 +80,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loginWithGoogleIdToken: async (idToken: string, requestedRole: UserRole = 'PATIENT', hospitalId?: string) => {
-    set({ isLoading: true });
-    try {
-      // Bridge page uses WEB Google client — verify against web audience
-      const res = await axios.post(`${API_URL}/auth/google`, {
-        idToken,
-        clientType: 'web',
-        requestedRole,
-        hospitalId,
-      });
-      const { user, accessToken, refreshToken } = res.data.data;
-      await get().setUser(user, accessToken, refreshToken);
-    } catch (err) {
-      set({ isLoading: false });
-      throw err;
-    }
+    // Do NOT flip global isLoading — RootLayout used to unmount the navigator
+    // when isLoading became true, which crashed Expo Go after OAuth deep-link.
+    const res = await axios.post(`${API_URL}/auth/google`, {
+      idToken,
+      clientType: 'web',
+      requestedRole,
+      hospitalId,
+    });
+    const { user, accessToken, refreshToken } = res.data.data;
+    await get().setUser(user, accessToken, refreshToken);
   },
 
   signInWithGoogle: async () => {

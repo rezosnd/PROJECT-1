@@ -82,8 +82,9 @@ export default function LoginScreen() {
   }, [returnUrl]);
 
   useEffect(() => {
-    logout();
-  }, []);
+    // Clear any stale session so OAuth handoff starts clean — do not block UI.
+    void logout();
+  }, [logout]);
 
   const completeWithToken = async (idToken: string) => {
     if (finishingRef.current) return;

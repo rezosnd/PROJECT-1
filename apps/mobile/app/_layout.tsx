@@ -24,10 +24,22 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
   const [isBiometricVerified, setIsBiometricVerified] = useState(true);
+  // Only block the first boot. Never unmount the Stack during Google login —
+  // that race caused Expo Go's blue "Something went wrong" after OAuth handoff.
+  const [booted, setBooted] = useState(false);
 
-  // Initialize session on boot
   useEffect(() => {
-    checkSession();
+    let alive = true;
+    (async () => {
+      try {
+        await checkSession();
+      } finally {
+        if (alive) setBooted(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // Biometric App Lock Listener on Resume
@@ -51,7 +63,7 @@ export default function RootLayout() {
 
   // Route Protection & Navigation Guard
   useEffect(() => {
-    if (isLoading) return;
+    if (!booted || isLoading) return;
 
     const inAuthGroup =
       segments[0] === 'login' || segments[0] === 'splash' || segments[0] === 'oauth';
@@ -65,14 +77,14 @@ export default function RootLayout() {
     } else if (isAuthenticated && needsProfile && !onOnboarding) {
       router.replace('/onboarding');
     } else if (isAuthenticated && !needsProfile && (inAuthGroup || onOnboarding)) {
-      // Stay on oauth briefly until it navigates; otherwise go home
+      // Stay on oauth until it navigates itself
       if (segments[0] !== 'oauth') {
         router.replace('/(tabs)');
       }
     }
-  }, [isAuthenticated, isLoading, segments, user]);
+  }, [booted, isAuthenticated, isLoading, segments, user]);
 
-  if (isLoading || !isBiometricVerified) {
+  if (!booted || !isBiometricVerified) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator size="large" color={colors.navy} />

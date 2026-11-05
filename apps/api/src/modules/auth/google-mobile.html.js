@@ -293,6 +293,7 @@ export function renderGoogleMobileCallbackHtml({
 
       title.textContent = 'Success';
       msg.textContent = 'Opening GetMyHospital…';
+      // Only the primary Expo return URL — bare exp://oauth crashes Expo Go.
       openBtn.href = links[0];
       openBtn.style.display = 'block';
       hint.style.display = 'block';
@@ -301,19 +302,13 @@ export function renderGoogleMobileCallbackHtml({
         altBtn.style.display = 'block';
       }
 
-      var i = 0;
-      function tryNext() {
-        if (i >= links.length) return;
-        var url = links[i++];
-        openBtn.href = url;
-        try { window.location.href = url; } catch (e) {}
-        setTimeout(tryNext, 500);
+      try { window.location.replace(links[0]); } catch (e) {
+        try { window.location.href = links[0]; } catch (e2) {}
       }
-      tryNext();
       setTimeout(function () {
         title.textContent = 'Almost done';
-        msg.textContent = 'Tap the button to return to Expo Go / GetMyHospital.';
-      }, 1200);
+        msg.textContent = 'Tap Open GetMyHospital, then Continue to Expo Go.';
+      }, 900);
     })();
   </script>
 </body>
