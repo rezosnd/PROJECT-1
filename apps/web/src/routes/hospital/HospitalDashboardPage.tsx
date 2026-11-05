@@ -20,11 +20,12 @@ import { StaffPreRegForm } from '../../features/admin/StaffPreRegForm';
 type HospitalTab = 'wards' | 'queue' | 'equipment' | 'forecast' | 'staff';
 
 export const HospitalDashboardPage: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const defaultHospitalId =
     import.meta.env.VITE_USE_MOCKS === 'true' ? 'hosp-001' : '3256d42a-2dfe-4e1f-9d9d-867997d53d2a';
   const hospitalId = user?.hospitalId || defaultHospitalId;
+  const sessionReady = Boolean(isAuthenticated && !isLoading && hospitalId);
   const tabFromUrl = (searchParams.get('tab') as HospitalTab) || 'wards';
   const [activeTab, setActiveTab] = useState<HospitalTab>(tabFromUrl);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -42,39 +43,43 @@ export const HospitalDashboardPage: React.FC = () => {
   };
 
   const { data: beds = [], isLive, lastUpdated, pulseWard, refetch: refreshBeds } =
-    useLiveBeds(hospitalId);
+    useLiveBeds(sessionReady ? hospitalId : undefined);
   const updatedAgo = useElapsedTime(lastUpdated);
 
   const { data: hospital } = useQuery({
     queryKey: ['hospital', hospitalId],
     queryFn: () => hospitalsApi.getHospitalById(hospitalId),
     staleTime: 60_000,
+    enabled: sessionReady,
   });
 
   const { data: queue = [], refetch: refetchQueue } = useQuery({
     queryKey: ['hospital-queue', hospitalId],
     queryFn: () => bedsApi.getHospitalQueue(hospitalId),
     staleTime: 0,
-    refetchInterval: 750,
-    refetchOnWindowFocus: true,
-    refetchIntervalInBackground: true,
+    refetchInterval: sessionReady ? 750 : false,
+    refetchOnWindowFocus: sessionReady,
+    refetchIntervalInBackground: sessionReady,
+    enabled: sessionReady,
   });
 
   const { data: equipment = [], refetch: refetchEquipment } = useQuery({
     queryKey: ['hospital-equipment', hospitalId],
     queryFn: () => equipmentApi.getHospitalEquipment(hospitalId),
     staleTime: 5_000,
-    refetchInterval: 5_000,
+    refetchInterval: sessionReady ? 5_000 : false,
+    enabled: sessionReady,
   });
 
   const { data: forecastData } = useQuery({
     queryKey: ['forecast', hospitalId, 'ICU'],
     queryFn: () => forecastApi.getWardForecast(hospitalId, 'ICU'),
     staleTime: 30_000,
+    enabled: sessionReady,
   });
 
   useEffect(() => {
-    if (!hospitalId) return;
+    if (!sessionReady || !hospitalId) return;
     const unsub = socketManager.on('request:update', (payload) => {
       if (!payload || payload.hospitalId === hospitalId) {
         refetchQueue();
@@ -82,7 +87,7 @@ export const HospitalDashboardPage: React.FC = () => {
       }
     });
     return unsub;
-  }, [hospitalId, refetchQueue, refreshBeds]);
+  }, [sessionReady, hospitalId, refetchQueue, refreshBeds]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

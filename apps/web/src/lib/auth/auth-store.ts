@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiClient } from '../api/client';
+import { refreshAccessToken } from './refresh-session';
 import {
   setAccessToken,
   setRefreshToken,
@@ -45,6 +46,8 @@ interface AuthState {
   checkSession: () => Promise<void>;
   logout: () => Promise<void>;
 }
+
+let sessionCheckPromise: Promise<void> | null = null;
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -112,43 +115,48 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   checkSession: async () => {
-    try {
-      if (!getAccessToken()) {
-        const refresh = getRefreshToken();
-        if (!refresh) {
-          set({ user: null, isAuthenticated: false, isLoading: false });
-          return;
-        }
-        try {
-          const refreshRes = await apiClient.post('/auth/refresh', { refreshToken: refresh });
-          const token = refreshRes.data?.data?.accessToken;
-          const nextRefresh = refreshRes.data?.data?.refreshToken;
-          if (token) setTokens(token, nextRefresh || refresh);
-          else {
+    // Deduplicate StrictMode / multi-mount boots onto one session restore.
+    if (sessionCheckPromise) {
+      await sessionCheckPromise;
+      return;
+    }
+
+    sessionCheckPromise = (async () => {
+      try {
+        if (!getAccessToken()) {
+          const refresh = getRefreshToken();
+          if (!refresh) {
             set({ user: null, isAuthenticated: false, isLoading: false });
             return;
           }
-        } catch {
-          clearTokens();
-          set({ user: null, isAuthenticated: false, isLoading: false });
-          return;
+          try {
+            await refreshAccessToken();
+          } catch {
+            if (!getAccessToken()) clearTokens();
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            return;
+          }
         }
-      }
 
-      if (getAccessToken()) {
-        const meRes = await apiClient.get('/auth/users/me');
-        const user = meRes.data?.data?.user || meRes.data?.data;
-        if (user?.id) {
-          set({ user, isAuthenticated: true, isLoading: false });
-          return;
+        if (getAccessToken()) {
+          const meRes = await apiClient.get('/auth/users/me');
+          const user = meRes.data?.data?.user || meRes.data?.data;
+          if (user?.id) {
+            set({ user, isAuthenticated: true, isLoading: false });
+            return;
+          }
         }
-      }
 
-      set({ user: null, isAuthenticated: false, isLoading: false });
-    } catch {
-      clearTokens();
-      set({ user: null, isAuthenticated: false, isLoading: false });
-    }
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      } catch {
+        if (!getAccessToken()) clearTokens();
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      }
+    })().finally(() => {
+      sessionCheckPromise = null;
+    });
+
+    await sessionCheckPromise;
   },
 
   logout: async () => {
