@@ -27,9 +27,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#F4F7F2',
+      backgroundColor: '#0B3D1A',
     },
     package: 'com.getmyhospital.app',
+    versionCode: 1,
     permissions: [
       'ACCESS_COARSE_LOCATION',
       'ACCESS_FINE_LOCATION',
