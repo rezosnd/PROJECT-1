@@ -7,9 +7,6 @@ import { WardAdjustCard } from '../../features/hospital/WardAdjustCard';
 import { RequestQueueTable } from '../../features/hospital/RequestQueueTable';
 import { EquipmentManagerTable } from '../../features/hospital/EquipmentManagerTable';
 import { ShortcutsModal } from '../../features/hospital/ShortcutsModal';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Tabs } from '../../components/ui/Tabs';
 import { StatusDot } from '../../components/ui/StatusDot';
 import { Activity, RefreshCw, HelpCircle, BedDouble, Stethoscope, Clock, UserPlus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -25,7 +22,8 @@ type HospitalTab = 'wards' | 'queue' | 'equipment' | 'forecast' | 'staff';
 export const HospitalDashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const defaultHospitalId = import.meta.env.VITE_USE_MOCKS === 'true' ? 'hosp-001' : '3256d42a-2dfe-4e1f-9d9d-867997d53d2a';
+  const defaultHospitalId =
+    import.meta.env.VITE_USE_MOCKS === 'true' ? 'hosp-001' : '3256d42a-2dfe-4e1f-9d9d-867997d53d2a';
   const hospitalId = user?.hospitalId || defaultHospitalId;
   const tabFromUrl = (searchParams.get('tab') as HospitalTab) || 'wards';
   const [activeTab, setActiveTab] = useState<HospitalTab>(tabFromUrl);
@@ -43,39 +41,34 @@ export const HospitalDashboardPage: React.FC = () => {
     else setSearchParams({ tab });
   };
 
-  // Live beds hook with tenant isolation
-  const { data: beds = [], isLive, lastUpdated, pulseWard, refetch: refreshBeds } = useLiveBeds(hospitalId);
+  const { data: beds = [], isLive, lastUpdated, pulseWard, refetch: refreshBeds } =
+    useLiveBeds(hospitalId);
   const updatedAgo = useElapsedTime(lastUpdated);
 
-  // Hospital details query
   const { data: hospital } = useQuery({
     queryKey: ['hospital', hospitalId],
     queryFn: () => hospitalsApi.getHospitalById(hospitalId),
     staleTime: 60_000,
   });
 
-  // Bed Request Queue query
   const { data: queue = [], refetch: refetchQueue } = useQuery({
     queryKey: ['hospital-queue', hospitalId],
     queryFn: () => bedsApi.getHospitalQueue(hospitalId),
     staleTime: 10_000,
   });
 
-  // Equipment query
   const { data: equipment = [], refetch: refetchEquipment } = useQuery({
     queryKey: ['hospital-equipment', hospitalId],
     queryFn: () => equipmentApi.getHospitalEquipment(hospitalId),
     staleTime: 10_000,
   });
 
-  // Ward forecast query
   const { data: forecastData } = useQuery({
     queryKey: ['forecast', hospitalId, 'ICU'],
     queryFn: () => forecastApi.getWardForecast(hospitalId, 'ICU'),
     staleTime: 30_000,
   });
 
-  // Real-time synchronization: listen for new patient bed requests and admissions
   useEffect(() => {
     if (!hospitalId) return;
     const unsub = socketManager.on('request:update', (payload) => {
@@ -87,7 +80,6 @@ export const HospitalDashboardPage: React.FC = () => {
     return unsub;
   }, [hospitalId, refetchQueue, refreshBeds]);
 
-  // Global keyboard shortcut listener for '?'
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
@@ -102,150 +94,163 @@ export const HospitalDashboardPage: React.FC = () => {
 
   const totalBeds = beds.reduce((sum, b) => sum + (b.total || 0), 0);
   const totalOccupied = beds.reduce((sum, b) => sum + (b.occupied || 0), 0);
-  const totalFree = beds.reduce((sum, b) => sum + Math.max(0, b.total - (b.occupied + b.reserved + b.cleaning + b.maintenance)), 0);
+  const totalFree = beds.reduce(
+    (sum, b) =>
+      sum + Math.max(0, b.total - (b.occupied + b.reserved + b.cleaning + b.maintenance)),
+    0
+  );
   const occupancyRate = totalBeds > 0 ? Math.round((totalOccupied / totalBeds) * 100) : 0;
+  const pendingQueue = queue.filter((r: any) => r.status === 'PENDING').length;
+  const expectedFree3h = forecastData?.horizons?.h3?.expectedFree ?? 0;
+
+  const tabs: { id: HospitalTab; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { id: 'wards', label: 'Wards', icon: <BedDouble className="w-3.5 h-3.5" /> },
+    {
+      id: 'queue',
+      label: 'Queue',
+      icon: <Clock className="w-3.5 h-3.5" />,
+      badge: pendingQueue || undefined,
+    },
+    { id: 'equipment', label: 'Equipment', icon: <Stethoscope className="w-3.5 h-3.5" /> },
+    { id: 'forecast', label: 'Forecast', icon: <Activity className="w-3.5 h-3.5" /> },
+    ...(canManageStaff
+      ? [{ id: 'staff' as const, label: 'Staff', icon: <UserPlus className="w-3.5 h-3.5" /> }]
+      : []),
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Top Hospital Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-hairline shadow-sm">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold font-heading text-ink">
-              {hospital?.name || 'Hospital Operations Dashboard'}
-            </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue/10 text-blue font-mono font-medium">
-              ID: {hospitalId}
-            </span>
-          </div>
-          <p className="text-sm text-muted mt-1 flex items-center gap-2">
-            <span>{hospital?.address || 'Bhubaneswar, Odisha'}</span>
-            <span>•</span>
-            <span className="flex items-center gap-1.5">
-              <StatusDot color={isLive ? 'green' : 'orange'} size="sm" pulse={isLive} />
-              {isLive ? 'Real-time telemetry connected' : 'Connecting to live updates...'}
-            </span>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <span className="text-xs text-muted block">Live Sync</span>
-            <span className="text-xs font-mono font-medium text-ink flex items-center gap-1">
-              <Clock className="w-3 h-3 text-muted" /> {updatedAgo}
-            </span>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refreshBeds()}
-            leftIcon={<RefreshCw className="w-4 h-4" />}
-            title="Force refresh data"
-          >
-            Refresh
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowShortcuts(true)}
-            leftIcon={<HelpCircle className="w-4 h-4" />}
-          >
-            Shortcuts (?)
-          </Button>
-        </div>
-      </div>
-
-      {/* Quick Summary Metrics — plain language for staff */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 bg-white">
-          <div className="text-xs font-medium text-muted uppercase tracking-wider">Total Beds</div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold font-heading text-ink">{totalBeds}</span>
-            <BedDouble className="w-5 h-5 text-muted opacity-50" />
-          </div>
-          <div className="mt-1 text-xs text-muted">All configured beds in this hospital</div>
-        </Card>
-
-        <Card className="p-4 bg-white">
-          <div className="text-xs font-medium text-muted uppercase tracking-wider">Patients in Beds</div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold font-heading text-navy">{totalOccupied}</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-ink">
-              {occupancyRate}% full
-            </span>
-          </div>
-          <div className="mt-1 text-xs text-muted">Currently occupied by patients</div>
-        </Card>
-
-        <Card className="p-4 bg-white border-green/20">
-          <div className="text-xs font-medium text-muted uppercase tracking-wider">Beds Free Now</div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold font-heading text-green">{totalFree}</span>
-            <StatusDot color="green" size="sm" />
-          </div>
-          <div className="mt-1 text-xs text-muted">
-            {totalFree > 0 ? 'Ready for new patients right now' : 'No free beds — triage queue carefully'}
-          </div>
-        </Card>
-
-        <Card className="p-4 bg-white">
-          <div className="text-xs font-medium text-muted uppercase tracking-wider">Freeing in ~3 Hours</div>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-bold font-heading text-teal">
-              +{forecastData?.horizons?.h3?.expectedFree ?? 4}
-            </span>
-            <Activity className="w-5 h-5 text-teal opacity-50" />
-          </div>
-          <div className="mt-1 text-xs text-muted">Expected discharges opening beds</div>
-        </Card>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex border-b border-hairline">
-        <Tabs
-          tabs={[
-            { id: 'wards', label: 'Wards & Bed Adjustments', icon: <BedDouble className="w-4 h-4" /> },
-            { id: 'queue', label: 'Bed Request Queue (15m Holds)', icon: <Clock className="w-4 h-4" /> },
-            { id: 'equipment', label: 'Equipment & Diagnostics', icon: <Stethoscope className="w-4 h-4" /> },
-            { id: 'forecast', label: 'Expected Discharges & Surge', icon: <Activity className="w-4 h-4" /> },
-            ...(canManageStaff
-              ? [{ id: 'staff', label: 'Staff & Admins', icon: <UserPlus className="w-4 h-4" /> }]
-              : []),
-          ]}
-          activeTab={activeTab}
-          onChange={(tab) => changeTab(tab as HospitalTab)}
-        />
-      </div>
-
-      {/* Tab Contents */}
-      {activeTab === 'wards' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold font-heading text-ink">Ward Bed Counters</h2>
-              <p className="text-xs text-muted">
-                Changes update in-memory telemetry immediately and sync with central registry.
+    <div className="max-w-6xl mx-auto pb-10 text-left space-y-6">
+      {/* Command header */}
+      <section className="rounded-[28px] overflow-hidden border border-[var(--color-brand-forest)]/20 shadow-soft">
+        <div className="bg-[var(--color-brand-forest)] text-white px-5 sm:px-7 py-6 sm:py-7">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-brand-lime)]">
+                Hospital operations
+              </p>
+              <h1 className="mt-2 font-display text-2xl sm:text-3xl font-extrabold tracking-tight truncate">
+                {hospital?.name || 'Ward command'}
+              </h1>
+              <p className="mt-2 text-sm text-white/70 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="truncate max-w-[280px]">
+                  {hospital?.address || 'Bhubaneswar, Odisha'}
+                </span>
+                <span className="text-white/30">·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <StatusDot color={isLive ? 'green' : 'orange'} size="sm" pulse={isLive} />
+                  {isLive ? 'Live' : 'Syncing…'}
+                </span>
+                <span className="text-white/30">·</span>
+                <span className="font-mono text-xs text-white/60">{updatedAgo}</span>
               </p>
             </div>
-            <div className="text-xs text-muted flex items-center gap-3">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-green" /> Free (derived)
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => refreshBeds()}
+                className="h-10 px-3.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold inline-flex items-center gap-1.5 transition"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowShortcuts(true)}
+                className="h-10 px-3.5 rounded-xl bg-[var(--color-brand-lime)] text-[var(--color-brand-forest)] text-xs font-bold inline-flex items-center gap-1.5 hover:brightness-105 transition"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                Shortcuts
+              </button>
+            </div>
+          </div>
+
+          {/* Metric strip */}
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl overflow-hidden bg-white/10 border border-white/10">
+            {[
+              { label: 'Total beds', value: String(totalBeds), hint: 'Configured' },
+              { label: 'Occupied', value: String(totalOccupied), hint: `${occupancyRate}% full` },
+              {
+                label: 'Free now',
+                value: String(totalFree),
+                hint: totalFree > 0 ? 'Ready' : 'Full',
+                accent: true,
+              },
+              { label: '~3h free', value: `+${expectedFree3h}`, hint: 'Expected' },
+            ].map((m) => (
+              <div key={m.label} className="bg-[var(--color-brand-forest)]/80 px-4 py-3.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/50">{m.label}</p>
+                <p
+                  className={`mt-1 font-display text-2xl font-extrabold ${
+                    m.accent ? 'text-[var(--color-brand-lime)]' : 'text-white'
+                  }`}
+                >
+                  {m.value}
+                </p>
+                <p className="text-[11px] text-white/45 mt-0.5">{m.hint}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Tabs */}
+      <nav className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1" aria-label="Hospital sections">
+        {tabs.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => changeTab(tab.id)}
+              className={`relative shrink-0 h-10 px-3.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition ${
+                active
+                  ? 'bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)]'
+                  : 'bg-white text-muted border border-hairline hover:text-ink'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {typeof tab.badge === 'number' && tab.badge > 0 && (
+                <span
+                  className={`ml-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold inline-flex items-center justify-center ${
+                    active
+                      ? 'bg-[var(--color-brand-lime)] text-[var(--color-brand-forest)]'
+                      : 'bg-red text-white'
+                  }`}
+                >
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {activeTab === 'wards' && (
+        <section className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-bold text-ink">Ward bed counters</h2>
+              <p className="text-xs text-muted mt-0.5">Adjust occupancy — live to the city grid.</p>
+            </div>
+            <div className="flex flex-wrap gap-3 text-[11px] font-semibold text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green" /> Free
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-navy" /> Occupied
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[var(--color-brand-forest)]" /> Occupied
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange" /> Reserved / Cleaning
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-orange" /> Hold / clean
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {beds.length === 0 ? (
-              <div className="col-span-full py-12 text-center text-muted bg-white rounded-2xl border border-dashed border-hairline">
-                No ward telemetry records found for this hospital.
+              <div className="col-span-full py-16 text-center text-muted border border-dashed border-hairline rounded-2xl bg-white">
+                No ward telemetry for this hospital yet.
               </div>
             ) : (
               beds.map((ward) => (
@@ -260,18 +265,16 @@ export const HospitalDashboardPage: React.FC = () => {
               ))
             )}
           </div>
-        </div>
+        </section>
       )}
 
       {activeTab === 'queue' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold font-heading text-ink">Incoming Bed Reservation Requests</h2>
-              <p className="text-xs text-muted">
-                Patient reservations hold a 15-minute freeze on inventory before automatically expiring.
-              </p>
-            </div>
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-display text-lg font-bold text-ink">Bed request queue</h2>
+            <p className="text-xs text-muted mt-0.5">
+              15-minute holds — approve, reject, or admit before expiry.
+            </p>
           </div>
           <RequestQueueTable
             requests={queue}
@@ -280,95 +283,73 @@ export const HospitalDashboardPage: React.FC = () => {
               refreshBeds();
             }}
           />
-        </div>
+        </section>
       )}
 
       {activeTab === 'equipment' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold font-heading text-ink">Diagnostic & Critical Equipment</h2>
-              <p className="text-xs text-muted">
-                Manage operational readiness of key equipment (MRI, CT, Ventilator, Dialysis, Incubator, OT).
-              </p>
-            </div>
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-display text-lg font-bold text-ink">Critical equipment</h2>
+            <p className="text-xs text-muted mt-0.5">
+              MRI, CT, ventilators, dialysis, incubators, OT readiness.
+            </p>
           </div>
           <EquipmentManagerTable
             hospitalId={hospitalId}
             equipment={equipment}
             onUpdated={() => refetchEquipment()}
           />
-        </div>
+        </section>
       )}
 
       {activeTab === 'forecast' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold font-heading text-ink">Discharge Forecaster & Inflow Rate</h2>
-              <p className="text-xs text-muted">
-                Poisson arrival prediction model for next 1h, 3h, and 6h intervals.
-              </p>
-            </div>
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-display text-lg font-bold text-ink">Expected discharges</h2>
+            <p className="text-xs text-muted mt-0.5">Beds likely to free in the next windows.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-5 bg-white border border-hairline">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Next 1 Hour (+1h)</span>
-              <div className="mt-3">
-                <span className="text-3xl font-bold font-heading text-ink">
-                  +{forecastData?.horizons?.h1?.expectedFree ?? 2}
-                </span>
-                <span className="text-sm text-muted ml-2">beds expected free</span>
-              </div>
-              <div className="mt-3 text-xs text-muted bg-slate-50 p-2.5 rounded-lg border border-hairline">
-                Confidence: <strong className="text-ink">{forecastData?.horizons?.h1?.confidence ?? 'HIGH'}</strong> based on scheduled morning rounds.
-              </div>
-            </Card>
-
-            <Card className="p-5 bg-white border border-hairline">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Next 3 Hours (+3h)</span>
-              <div className="mt-3">
-                <span className="text-3xl font-bold font-heading text-ink">
-                  +{forecastData?.horizons?.h3?.expectedFree ?? 5}
-                </span>
-                <span className="text-sm text-muted ml-2">beds expected free</span>
-              </div>
-              <div className="mt-3 text-xs text-muted bg-slate-50 p-2.5 rounded-lg border border-hairline">
-                Confidence: <strong className="text-ink">{forecastData?.horizons?.h3?.confidence ?? 'MEDIUM'}</strong> factoring post-op stepdowns.
-              </div>
-            </Card>
-
-            <Card className="p-5 bg-white border border-hairline">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Next 6 Hours (+6h)</span>
-              <div className="mt-3">
-                <span className="text-3xl font-bold font-heading text-ink">
-                  +{forecastData?.horizons?.h6?.expectedFree ?? 9}
-                </span>
-                <span className="text-sm text-muted ml-2">beds expected free</span>
-              </div>
-              <div className="mt-3 text-xs text-muted bg-slate-50 p-2.5 rounded-lg border border-hairline">
-                Confidence: <strong className="text-ink">{forecastData?.horizons?.h6?.confidence ?? 'LOW'}</strong> evening discharge wave.
-              </div>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {(
+              [
+                { key: 'h1', label: 'Next 1 hour', fallback: 2 },
+                { key: 'h3', label: 'Next 3 hours', fallback: 5 },
+                { key: 'h6', label: 'Next 6 hours', fallback: 9 },
+              ] as const
+            ).map(({ key, label, fallback }) => {
+              const h = forecastData?.horizons?.[key];
+              return (
+                <div
+                  key={key}
+                  className="rounded-2xl border border-hairline bg-white p-5 hover:border-[var(--color-brand-forest)]/25 transition"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{label}</p>
+                  <p className="mt-3 font-display text-3xl font-extrabold text-ink">
+                    +{h?.expectedFree ?? fallback}
+                    <span className="text-sm font-semibold text-muted ml-1.5">beds</span>
+                  </p>
+                  <p className="mt-3 text-[11px] text-muted">
+                    Confidence{' '}
+                    <span className="font-bold text-ink">{h?.confidence ?? 'MEDIUM'}</span>
+                  </p>
+                </div>
+              );
+            })}
           </div>
 
-          <Card className="p-5 bg-white">
-            <h3 className="text-sm font-bold text-ink mb-2">Clinical Triage Note</h3>
-            <p className="text-sm text-muted leading-relaxed">
-              Discharge prediction is derived from historical admission duration distributions and daily physician rounding windows.
-              In emergencies where critical bed demand surges, contact the City Health Command Center or divert triage via GetMyHospital dispatch.
-            </p>
-          </Card>
-        </div>
+          <p className="text-xs text-muted leading-relaxed max-w-2xl">
+            Forecasts use historical length-of-stay and rounding windows. During surge, escalate to
+            City Command or divert via GetMyHospital dispatch.
+          </p>
+        </section>
       )}
 
       {activeTab === 'staff' && canManageStaff && (
-        <div className="space-y-4">
+        <section className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold font-heading text-ink">Hospital staff & admin access</h2>
-            <p className="text-xs text-muted">
-              Pre-register Gmail accounts for ward staff or hospital admins. They receive the role on first Google sign-in (web).
+            <h2 className="font-display text-lg font-bold text-ink">Staff & admin access</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Pre-register Gmail accounts — role applies on first Google sign-in.
             </p>
           </div>
           <StaffPreRegForm
@@ -378,10 +359,9 @@ export const HospitalDashboardPage: React.FC = () => {
                 : [{ id: hospitalId, name: 'Your hospital' } as any]
             }
           />
-        </div>
+        </section>
       )}
 
-      {/* Keyboard Shortcuts Dialog */}
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );

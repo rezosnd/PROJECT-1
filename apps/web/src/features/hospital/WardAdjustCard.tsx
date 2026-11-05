@@ -75,22 +75,22 @@ export const WardAdjustCard: React.FC<WardAdjustCardProps> = ({
   const freeStatus = localWard.free > 2 ? 'green' : localWard.free > 0 ? 'orange' : 'red';
 
   return (
-    <Card variant="surface" className="text-left border border-hairline/80 shadow-soft relative overflow-hidden">
-      {/* Ward Header */}
+    <Card variant="surface" className="text-left border border-hairline bg-white shadow-soft relative overflow-hidden hover:border-[var(--color-brand-forest)]/25 transition-colors">
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-display font-bold text-lg text-ink">
-              {localWard.wardType} Ward
+              {localWard.wardType}
             </h3>
             <Chip variant={freeStatus} dot pulse={isPulsing}>
               <span className={isPulsing ? 'animate-number-pulse font-bold' : ''}>
-                {localWard.free} Free
+                {localWard.free} free
               </span>
             </Chip>
           </div>
           <p className="text-xs text-muted mt-0.5">
-            Total Capacity: {localWard.total} beds • Ventilator units: {localWard.hasVentilatorBeds}
+            {localWard.total} beds
+            {localWard.hasVentilatorBeds ? ` · ${localWard.hasVentilatorBeds} vent` : ''}
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export const WardAdjustCard: React.FC<WardAdjustCardProps> = ({
                 type="button"
                 onClick={() => handleAdjust(item.key, 1)}
                 disabled={isUpdating}
-                className="flex-1 h-9 rounded-pill bg-ink text-white font-bold flex items-center justify-center shadow-xs hover:bg-ink-light active:scale-95 disabled:opacity-40 disabled:pointer-events-none transition-all"
+                className="flex-1 h-9 rounded-pill bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)] font-bold flex items-center justify-center shadow-xs hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:pointer-events-none transition-all"
                 aria-label={`Increase ${item.label}`}
               >
                 <Plus className="w-3.5 h-3.5" />

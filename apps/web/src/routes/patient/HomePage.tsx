@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Button } from '../../components/ui/Button';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { abhaApi } from '../../lib/api/abha.api';
 import { TOP_DOCTORS, Doctor } from '../../lib/doctors-data';
 import { DoctorDetailModal } from '../../features/patient/DoctorDetailModal';
+import { BRAND } from '../../lib/brand';
 import {
   Search,
   MapPin,
@@ -23,10 +23,10 @@ import {
 } from 'lucide-react';
 
 const QUICK_TAGS = [
-  { id: 'stroke', label: 'Stroke (ICU)', icon: Brain, severity: 5 },
-  { id: 'heart-attack', label: 'Cardiac (CCU)', icon: Heart, severity: 5 },
-  { id: 'premature-baby', label: 'NICU Incubator', icon: Baby, severity: 5 },
-  { id: 'trauma', label: 'Trauma OT', icon: Activity, severity: 5 },
+  { id: 'stroke', label: 'Stroke / ICU', icon: Brain, severity: 5 },
+  { id: 'heart-attack', label: 'Cardiac', icon: Heart, severity: 5 },
+  { id: 'premature-baby', label: 'NICU', icon: Baby, severity: 5 },
+  { id: 'trauma', label: 'Trauma', icon: Activity, severity: 5 },
 ];
 
 export const HomePage: React.FC = () => {
@@ -47,6 +47,7 @@ export const HomePage: React.FC = () => {
 
   const avatar = abhaProfile?.photoUrl || user?.abhaPhotoUrl || user?.pictureUrl;
   const displayName = abhaProfile?.name || user?.name || 'Patient';
+  const firstName = displayName.split(' ')[0];
 
   const launchSearch = (condition = selectedTag, severity = 4, q?: string) => {
     const params = new URLSearchParams({
@@ -59,56 +60,55 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="ll-app-screen space-y-5 pb-8 text-left">
-      {/* App-style top identity — phone-first */}
-      <div className="flex items-center justify-between gap-3 pt-1 lg:pt-0">
+    <div className="ll-app-screen pb-10 text-left">
+      {/* Identity row */}
+      <header className="flex items-end justify-between gap-4 pt-1">
         <Link to="/profile" className="flex items-center gap-3 min-w-0 group">
           {avatar ? (
-            <img src={avatar} alt="" className="w-12 h-12 rounded-2xl object-cover border border-slate-200 shadow-sm" />
+            <img
+              src={avatar}
+              alt=""
+              className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm"
+            />
           ) : (
-            <div className="w-12 h-12 rounded-2xl bg-ink text-white font-display font-bold flex items-center justify-center text-lg">
+            <div className="w-11 h-11 rounded-full bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)] font-display font-bold flex items-center justify-center text-base">
               {displayName.slice(0, 1).toUpperCase()}
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-slate-500 truncate">
+            <p className="text-[11px] font-medium text-muted tracking-wide">
               {abhaProfile
-                ? t('home.abhaReady', 'ABHA ready · tap for card & QR')
-                : t('home.subtitle', 'Real-time critical care inventory')}
+                ? t('home.abhaReady', 'ABHA linked')
+                : t('home.greeting', 'Good to see you')}
             </p>
-            <h1 className="font-display text-[22px] leading-tight font-extrabold text-ink truncate group-hover:underline">
-              {displayName}
+            <h1 className="font-display text-[21px] leading-tight font-extrabold text-ink truncate group-hover:text-[var(--color-brand-forest)] transition-colors">
+              {firstName}
             </h1>
           </div>
         </Link>
         <a
           href="tel:112"
-          className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-[#FEE2E2] text-[#DC2626] text-xs font-bold shrink-0 border border-[#FECACA]"
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[11px] font-bold text-[#B91C1C] border border-[#FECACA] bg-[#FEF2F2] shrink-0"
         >
           <Phone className="w-3.5 h-3.5" />
           112
         </a>
-      </div>
+      </header>
 
-      {/* Live grid pill */}
-      <div className="flex flex-wrap items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white border border-hairline shadow-soft">
-        <span className="w-2.5 h-2.5 rounded-full bg-green animate-pulse" />
-        <p className="text-xs font-semibold text-ink">
-          Bhubaneswar Grid: <span className="font-extrabold">34 ICU beds free</span>
+      {/* Find beds — one job */}
+      <section className="mt-7">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-brand-forest)]">
+          {BRAND.name}
         </p>
-        <span className="inline-flex items-center gap-1 ml-auto text-[11px] font-bold text-blue bg-blue-light px-2 py-1 rounded-xl">
-          <MapPin className="w-3 h-3" /> GPS
-        </span>
-      </div>
-
-      {/* Search card — one job */}
-      <section className="ll-card p-5 sm:p-6 space-y-4">
-        <h2 className="font-display text-2xl font-extrabold text-ink tracking-tight">
-          Find free beds now
+        <h2 className="mt-2 font-display text-[28px] sm:text-[32px] font-extrabold text-ink tracking-tight leading-[1.1] max-w-md">
+          Find a free bed near you
         </h2>
+        <p className="mt-2 text-sm text-muted max-w-md leading-relaxed">
+          Search by condition or hospital. We’ll match live ward capacity around your location.
+        </p>
 
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+        <div className="mt-5 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -117,12 +117,12 @@ export const HomePage: React.FC = () => {
                 launchSearch(selectedTag, 4, searchText.trim() || selectedTag);
               }
             }}
-            placeholder="Search condition, doctor, or hospital..."
-            className="ll-search pl-10 h-12"
+            placeholder="Condition, hospital, or doctor"
+            className="w-full h-14 rounded-2xl bg-white border border-hairline pl-11 pr-4 text-sm text-ink placeholder:text-muted/70 shadow-soft focus:outline-none focus:border-[var(--color-brand-forest)]/40 focus:ring-2 focus:ring-[var(--color-brand-lime)]/30"
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {QUICK_TAGS.map((tag) => {
             const Icon = tag.icon;
             const active = selectedTag === tag.id;
@@ -132,116 +132,112 @@ export const HomePage: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setSelectedTag(tag.id);
-                  launchSearch(tag.id, tag.severity);
+                  setSearchText(tag.label);
                 }}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold border transition ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold border transition ${
                   active
-                    ? 'bg-ink text-white border-ink'
-                    : 'bg-card-soft text-ink border-hairline hover:border-ink/30'
+                    ? 'bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)] border-[var(--color-brand-forest)]'
+                    : 'bg-transparent text-ink/70 border-hairline hover:border-ink/30 hover:text-ink'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3 h-3" strokeWidth={2.4} />
                 {tag.label}
               </button>
             );
           })}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 pt-1">
-          <Button
+        <div className="mt-4 flex flex-col sm:flex-row gap-2.5">
+          <button
             type="button"
-            size="lg"
-            className="flex-1"
             onClick={() => launchSearch(selectedTag, 4, searchText.trim() || selectedTag)}
-            rightIcon={<ArrowRight className="w-4 h-4" />}
+            className="flex-1 h-12 rounded-2xl bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)] text-sm font-bold inline-flex items-center justify-center gap-2 hover:brightness-110 transition shadow-soft"
           >
             Search beds
-          </Button>
+            <ArrowRight className="w-4 h-4" />
+          </button>
           <button
             type="button"
             onClick={() => detectLocation()}
             disabled={isDetecting}
-            className="h-12 px-4 rounded-2xl border border-hairline bg-white text-xs font-bold text-ink hover:bg-card-soft transition inline-flex items-center justify-center gap-2"
+            className="h-12 px-4 rounded-2xl border border-hairline bg-white text-xs font-bold text-ink hover:bg-card-soft transition inline-flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            <MapPin className="w-4 h-4 text-blue" />
-            {isDetecting ? 'Detecting…' : 'Use my location'}
+            <MapPin className="w-4 h-4 text-[var(--color-brand-forest)]" />
+            {isDetecting ? 'Locating…' : 'Use my location'}
           </button>
         </div>
 
-        <p className="text-[11px] text-muted truncate flex items-center gap-1">
-          <MapPin className="w-3 h-3 shrink-0" />
-          {addressLabel || 'Using Bhubaneswar default location'}
+        <p className="mt-3 text-[11px] text-muted flex items-center gap-1.5">
+          <MapPin className="w-3 h-3 shrink-0 opacity-70" />
+          <span className="truncate">{addressLabel || 'Bhubaneswar (default)'}</span>
         </p>
       </section>
 
-      {/* ABHA nudge */}
+      {/* ABHA — quiet nudge */}
       {!abhaProfile && (
         <button
           type="button"
           onClick={() => navigate('/abha')}
-          className="w-full ll-card p-4 flex items-center gap-3 text-left hover:shadow-float transition"
+          className="mt-8 w-full flex items-center gap-3 py-3 text-left border-y border-hairline hover:bg-white/60 transition"
         >
-          <div className="w-10 h-10 rounded-2xl bg-card-mint text-teal flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
+          <ShieldCheck className="w-5 h-5 text-[var(--color-brand-forest)] shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-ink">Link ABHA for faster intake</p>
-            <p className="text-xs text-muted">Photo, QR & details save once — always available</p>
+            <p className="text-sm font-bold text-ink">Link ABHA once</p>
+            <p className="text-xs text-muted">Faster hospital intake with photo & QR</p>
           </div>
           <ChevronRight className="w-4 h-4 text-muted" />
         </button>
       )}
 
-      {/* Top doctors — same simple cards as mobile */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display text-lg font-bold text-ink">Top doctors nearby</h3>
+      {/* Doctors */}
+      <section className="mt-9">
+        <div className="flex items-baseline justify-between gap-3 mb-4">
+          <h3 className="font-display text-lg font-bold text-ink">Doctors nearby</h3>
           <button
             type="button"
             onClick={() => navigate('/doctors')}
-            className="text-xs font-bold text-blue inline-flex items-center gap-1"
+            className="text-xs font-bold text-[var(--color-brand-forest)] inline-flex items-center gap-0.5"
           >
-            See all <ChevronRight className="w-3.5 h-3.5" />
+            View all <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="space-y-3">
-          {TOP_DOCTORS.slice(0, 4).map((doc, index) => (
-            <button
-              key={doc.id}
-              type="button"
-              onClick={() => setSelectedDoctor(doc)}
-              className={`w-full text-left rounded-[22px] p-4 flex gap-3 border border-transparent shadow-soft transition hover:-translate-y-0.5 ${
-                index % 2 === 0 ? 'bg-[#E8F8C8]' : 'bg-[#FFE9A8]'
-              }`}
-            >
-              <img
-                src={doc.avatarUrl}
-                alt={doc.name}
-                className="w-16 h-16 rounded-2xl object-cover border border-black/5 shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-display font-bold text-ink truncate">{doc.name}</p>
-                    <p className="text-xs text-ink/70 truncate">{doc.specialty}</p>
-                    <p className="text-[11px] text-ink/50 truncate">{doc.hospitalName}</p>
+        <ul className="divide-y divide-hairline border-t border-b border-hairline">
+          {TOP_DOCTORS.slice(0, 4).map((doc) => (
+            <li key={doc.id}>
+              <button
+                type="button"
+                onClick={() => setSelectedDoctor(doc)}
+                className="w-full py-4 flex gap-3.5 text-left hover:bg-white/70 transition"
+              >
+                <img
+                  src={doc.avatarUrl}
+                  alt=""
+                  className="w-14 h-14 rounded-xl object-cover shrink-0 bg-card-soft"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-display font-bold text-ink truncate">{doc.name}</p>
+                      <p className="text-xs text-muted truncate mt-0.5">{doc.specialty}</p>
+                      <p className="text-[11px] text-muted/80 truncate mt-0.5">{doc.hospitalName}</p>
+                    </div>
+                    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-ink shrink-0">
+                      <Star className="w-3.5 h-3.5 fill-[var(--color-brand-lime)] text-[var(--color-brand-forest)]" />
+                      {doc.rating.toFixed(1)}
+                    </span>
                   </div>
-                  <span className="inline-flex items-center gap-0.5 text-xs font-bold text-ink shrink-0">
-                    <Star className="w-3.5 h-3.5 fill-ink" />
-                    {doc.rating.toFixed(1)}
-                  </span>
+                  <div className="mt-2.5 flex items-center justify-between">
+                    <span className="text-sm font-extrabold text-ink">₹{doc.fee.toFixed(0)}</span>
+                    <span className="text-[11px] font-bold text-[var(--color-brand-forest)] underline-offset-2 group-hover:underline">
+                      Book →
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-sm font-extrabold text-ink">₹ {doc.fee.toFixed(0)}</span>
-                  <span className="text-[11px] font-bold bg-ink text-white px-3 py-1.5 rounded-xl">
-                    Book
-                  </span>
-                </div>
-              </div>
-            </button>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
 
       <DoctorDetailModal
