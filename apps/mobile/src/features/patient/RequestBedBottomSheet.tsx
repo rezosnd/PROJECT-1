@@ -10,13 +10,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '../../components/ui/Button';
 import { bedsApi } from '../../lib/api/beds.api';
 import { forecastApi } from '../../lib/api/forecast.api';
 import { useLiveBeds } from '../../hooks/useLiveBeds';
 import { offlineManager } from '../../lib/offline/offline-manager';
-import { colors, radius, typography } from '../../theme/tokens';
-import { ShieldCheck, Clock, X, BedDouble } from 'lucide-react-native';
+import { typography } from '../../theme/tokens';
+import { ShieldCheck, Clock, X, BedDouble, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 export interface RequestBedBottomSheetProps {
@@ -32,9 +31,9 @@ const WARD_OPTIONS = ['ICU', 'NICU', 'PICU', 'HDU', 'CCU', 'EMERGENCY', 'GENERAL
 
 function plainChance(p: number) {
   const pct = Math.round((p || 0) * 100);
-  if (pct >= 70) return { pct, label: 'Likely free', tone: colors.green };
-  if (pct >= 40) return { pct, label: 'Possible', tone: colors.orange };
-  return { pct, label: 'Unlikely', tone: colors.red };
+  if (pct >= 70) return { pct, label: 'Likely free', tone: '#065F46' };
+  if (pct >= 40) return { pct, label: 'Possible', tone: '#B45309' };
+  return { pct, label: 'Unlikely', tone: '#B91C1C' };
 }
 
 export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
@@ -59,8 +58,7 @@ export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
 
   const availableWards = useMemo(() => {
     const fromLive = beds.map((b) => b.wardType);
-    const merged = [...new Set([...fromLive, ...WARD_OPTIONS])];
-    return merged;
+    return [...new Set([...fromLive, ...WARD_OPTIONS])];
   }, [beds]);
 
   const selectedWard = useMemo(
@@ -84,7 +82,6 @@ export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
     const idempotencyKey = offlineManager.createIdempotencyKey();
 
     try {
@@ -96,7 +93,6 @@ export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
         shareAbha,
         idempotencyKey,
       });
-
       setIsSubmitting(false);
       onSuccess(res.id);
     } catch {
@@ -120,30 +116,29 @@ export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
 
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>Request Emergency Bed</Text>
+              <Text style={styles.kicker}>Bed reservation</Text>
+              <Text style={styles.title}>Hold a bed</Text>
               <Text style={styles.subtitle} numberOfLines={1}>
                 {hospitalName}
               </Text>
             </View>
             <Pressable onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={colors.ink} />
+              <X size={18} color="#111111" />
             </Pressable>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <View style={styles.noticeBox}>
-              <Clock size={16} color={colors.blue} style={styles.noticeIcon} />
-              <Text style={styles.noticeText}>
-                Submitting places a verified <Text style={styles.bold}>15-minute hold</Text> on this bed.
-                A confirmation email is sent to your registered inbox.
+            <View style={styles.holdBanner}>
+              <Clock size={16} color="#111111" />
+              <Text style={styles.holdBannerText}>
+                Places a <Text style={styles.bold}>15-minute verified hold</Text>. Confirmation email follows.
               </Text>
             </View>
 
-            {/* Live free + chance */}
             <View style={styles.liveCard}>
               <View style={styles.liveTop}>
                 <View style={styles.liveIconBox}>
-                  <BedDouble size={18} color={colors.navy} />
+                  <BedDouble size={18} color="#111111" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.liveLabel}>
@@ -152,40 +147,36 @@ export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
                   <Text
                     style={[
                       styles.liveFree,
-                      { color: freeNow > 2 ? colors.green : freeNow > 0 ? colors.orange : colors.red },
+                      { color: freeNow > 2 ? '#065F46' : freeNow > 0 ? '#B45309' : '#B91C1C' },
                     ]}
                   >
                     {freeNow > 0
-                      ? `${freeNow} bed${freeNow === 1 ? '' : 's'} free right now`
+                      ? `${freeNow} bed${freeNow === 1 ? '' : 's'} free now`
                       : 'No beds free right now'}
                   </Text>
                 </View>
-              </View>
-              <View style={styles.chanceRow}>
-                <Text style={[styles.chancePct, { color: chance3h.tone }]}>{chance3h.pct}%</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.chanceLabel, { color: chance3h.tone }]}>{chance3h.label}</Text>
-                  <Text style={styles.chanceHint}>
-                    Easy read: about {chance3h.pct}% chance a {wardType} bed is free in ~3 hours.
-                  </Text>
+                <View style={styles.chanceBadge}>
+                  <Text style={[styles.chancePct, { color: chance3h.tone }]}>{chance3h.pct}%</Text>
+                  <Text style={styles.chanceTiny}>{chance3h.label}</Text>
                 </View>
               </View>
             </View>
 
-            <Text style={styles.sectionLabel}>Bed type</Text>
+            <Text style={styles.sectionLabel}>Ward</Text>
             <View style={styles.chipRow}>
               {availableWards.map((w) => {
                 const ward = beds.find((b) => b.wardType === w);
                 const free = ward?.free;
+                const active = wardType === w;
                 return (
                   <Pressable
                     key={w}
                     onPress={() => setWardType(w)}
-                    style={[styles.chip, wardType === w && styles.chipActive]}
+                    style={[styles.chip, active && styles.chipActive]}
                   >
-                    <Text style={[styles.chipText, wardType === w && styles.chipTextActive]}>{w}</Text>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{w}</Text>
                     {typeof free === 'number' ? (
-                      <Text style={[styles.chipFree, wardType === w && styles.chipTextActive]}>
+                      <Text style={[styles.chipFree, active && styles.chipTextActive]}>
                         {free} free
                       </Text>
                     ) : null}
@@ -194,63 +185,83 @@ export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
               })}
             </View>
 
-            <Text style={styles.sectionLabel}>How urgent?</Text>
+            <Text style={styles.sectionLabel}>Urgency</Text>
             <View style={styles.chipRow}>
               {[
-                { val: 'IMMEDIATE', label: 'Immediate (<15m)' },
-                { val: 'HIGH', label: 'High (<1h)' },
+                { val: 'IMMEDIATE', label: 'Immediate' },
+                { val: 'HIGH', label: 'High' },
                 { val: 'MODERATE', label: 'Moderate' },
-              ].map((u) => (
-                <Pressable
-                  key={u.val}
-                  onPress={() => setUrgency(u.val as any)}
-                  style={[styles.chip, urgency === u.val && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, urgency === u.val && styles.chipTextActive]}>
-                    {u.label}
-                  </Text>
-                </Pressable>
-              ))}
+              ].map((u) => {
+                const active = urgency === u.val;
+                return (
+                  <Pressable
+                    key={u.val}
+                    onPress={() => setUrgency(u.val as any)}
+                    style={[styles.chip, active && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{u.label}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
-            <Text style={styles.sectionLabel}>Brief symptoms / notes</Text>
+            <Text style={styles.sectionLabel}>Notes for triage</Text>
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder="e.g. Slurred speech, sudden left-sided weakness..."
-              placeholderTextColor={colors.muted}
+              placeholder="Brief symptoms for admitting staff…"
+              placeholderTextColor="#64748B"
               style={styles.textArea}
               multiline
               numberOfLines={3}
             />
 
-            <View style={styles.toggleRow}>
+            <View style={styles.toggleCard}>
               <View style={styles.toggleTextContainer}>
                 <View style={styles.abhaHeader}>
-                  <ShieldCheck size={16} color={colors.navy} />
+                  <ShieldCheck size={16} color="#0B3D1A" />
                   <Text style={styles.toggleTitle}>Share linked ABHA</Text>
                 </View>
                 <Text style={styles.toggleSubtitle}>
-                  Sends your verified digital health ID to admitting staff.
+                  Send verified health ID to hospital staff
                 </Text>
               </View>
               <Switch
                 value={shareAbha}
                 onValueChange={setShareAbha}
-                trackColor={{ false: colors.cardSoft, true: colors.navy }}
+                trackColor={{ false: '#CBD5E1', true: '#0B3D1A' }}
                 thumbColor="#FFFFFF"
               />
             </View>
 
             {freeNow <= 0 ? (
               <Text style={styles.fullHint}>
-                No {wardType} beds free right now — you can still request; hospital may approve from expected discharges.
+                No {wardType} free now — you can still request; hospital may approve from expected discharges.
               </Text>
             ) : null}
 
-            <Button onPress={handleSubmit} isLoading={isSubmitting} style={styles.submitBtn}>
-              {freeNow > 0 ? `Hold ${wardType} bed (15 min)` : `Request ${wardType} anyway`}
-            </Button>
+            <Pressable
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+              style={({ pressed }) => [
+                styles.submitBtn,
+                (pressed || isSubmitting) && { opacity: 0.9 },
+              ]}
+            >
+              <View style={styles.submitThumb}>
+                <Check size={20} color="#111111" strokeWidth={3} />
+              </View>
+              <Text style={styles.submitText}>
+                {isSubmitting
+                  ? 'Booking…'
+                  : freeNow > 0
+                    ? `Hold ${wardType} · 15 min`
+                    : `Request ${wardType}`}
+              </Text>
+              <View style={styles.submitTarget}>
+                <Check size={18} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+            </Pressable>
           </ScrollView>
         </Pressable>
       </Pressable>
@@ -261,188 +272,178 @@ export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.sheet,
-    borderTopRightRadius: radius.sheet,
+    backgroundColor: '#FEE244',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
     paddingHorizontal: 20,
     paddingBottom: 36,
-    maxHeight: '90%',
+    maxHeight: '92%',
   },
   handle: {
-    width: 36,
+    width: 44,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.hairline,
+    backgroundColor: 'rgba(0,0,0,0.22)',
     alignSelf: 'center',
     marginVertical: 12,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 14,
     gap: 8,
+  },
+  kicker: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    color: '#3F3F46',
   },
   title: {
     fontFamily: typography.fontFamilies.headingBold,
-    fontSize: typography.sizes.h3,
-    color: colors.ink,
-  },
-  subtitle: {
-    fontFamily: typography.fontFamilies.body,
-    fontSize: typography.sizes.caption,
-    color: colors.muted,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#111111',
+    letterSpacing: -0.5,
     marginTop: 2,
   },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3F3F46',
+    marginTop: 4,
+  },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.cardSoft,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noticeBox: {
+  holdBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.blueLight,
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.75)',
     padding: 12,
-    borderRadius: radius.md,
+    borderRadius: 18,
     marginBottom: 12,
   },
-  noticeIcon: {
-    marginRight: 8,
-  },
-  noticeText: {
+  holdBannerText: {
     flex: 1,
-    fontFamily: typography.fontFamilies.body,
-    fontSize: typography.sizes.caption,
-    color: colors.navy,
-    lineHeight: 16,
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#111111',
+    fontWeight: '600',
   },
-  bold: {
-    fontFamily: typography.fontFamilies.bodyBold,
-  },
+  bold: { fontWeight: '800' },
   liveCard: {
-    backgroundColor: colors.cardSoft,
-    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 22,
     padding: 14,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.hairline,
   },
   liveTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 12,
   },
   liveIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEE244',
     alignItems: 'center',
     justifyContent: 'center',
   },
   liveLabel: {
-    fontFamily: typography.fontFamilies.bodyMedium,
     fontSize: 11,
-    color: colors.muted,
+    fontWeight: '700',
+    color: '#64748B',
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   liveFree: {
     fontFamily: typography.fontFamilies.headingBold,
-    fontSize: typography.sizes.body,
+    fontSize: 16,
+    fontWeight: '800',
     marginTop: 2,
   },
-  chanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.hairline,
+  chanceBadge: {
+    alignItems: 'flex-end',
   },
   chancePct: {
-    fontFamily: typography.fontFamilies.headingBold,
-    fontSize: 28,
-    minWidth: 64,
+    fontSize: 22,
+    fontWeight: '900',
   },
-  chanceLabel: {
-    fontFamily: typography.fontFamilies.bodyBold,
-    fontSize: typography.sizes.bodySmall,
-  },
-  chanceHint: {
-    fontFamily: typography.fontFamilies.body,
-    fontSize: typography.sizes.caption,
-    color: colors.muted,
-    marginTop: 2,
-    lineHeight: 16,
+  chanceTiny: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
   },
   sectionLabel: {
-    fontFamily: typography.fontFamilies.bodyBold,
-    fontSize: typography.sizes.bodySmall,
-    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111111',
     marginBottom: 8,
-    marginTop: 4,
+    marginTop: 2,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.cardSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.72)',
     alignItems: 'center',
+    minWidth: 72,
   },
   chipActive: {
-    backgroundColor: colors.ink,
+    backgroundColor: '#111111',
   },
   chipText: {
-    fontFamily: typography.fontFamilies.bodyBold,
-    fontSize: typography.sizes.caption,
-    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#111111',
   },
   chipFree: {
-    fontFamily: typography.fontFamilies.body,
     fontSize: 10,
-    color: colors.muted,
+    fontWeight: '600',
+    color: '#52525B',
     marginTop: 2,
   },
   chipTextActive: {
     color: '#FFFFFF',
   },
   textArea: {
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    padding: 12,
-    fontFamily: typography.fontFamilies.body,
-    fontSize: typography.sizes.bodySmall,
-    color: colors.ink,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 18,
+    padding: 14,
+    fontSize: 13,
+    color: '#111111',
     textAlignVertical: 'top',
-    height: 72,
-    marginBottom: 16,
+    height: 78,
+    marginBottom: 14,
   },
-  toggleRow: {
+  toggleCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.hairline,
-    marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 14,
   },
   toggleTextContainer: {
     flex: 1,
@@ -455,23 +456,53 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   toggleTitle: {
-    fontFamily: typography.fontFamilies.bodyBold,
-    fontSize: typography.sizes.bodySmall,
-    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111111',
   },
   toggleSubtitle: {
-    fontFamily: typography.fontFamilies.body,
-    fontSize: typography.sizes.caption,
-    color: colors.muted,
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
   },
   fullHint: {
-    fontFamily: typography.fontFamilies.body,
-    fontSize: typography.sizes.caption,
-    color: colors.muted,
-    marginBottom: 10,
-    lineHeight: 18,
+    fontSize: 12,
+    color: '#3F3F46',
+    marginBottom: 12,
+    lineHeight: 17,
+    fontWeight: '600',
   },
   submitBtn: {
-    marginBottom: 10,
+    height: 60,
+    borderRadius: 999,
+    backgroundColor: '#111111',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    marginBottom: 8,
+  },
+  submitThumb: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitText: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  submitTarget: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#262933',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -2,7 +2,7 @@
   "common": {
     "emergencyCall": "Call 112",
     "emergencyNotice": "In an emergency call 112",
-    "notMedicalDevice": "LifeLink is a distributed systems prototype for KIIT. Not a certified medical device.",
+    "notMedicalDevice": "GetMyHospital is a care-matching prototype. Not a certified medical device.",
     "loading": "Loading live telemetry...",
     "retry": "Try again",
     "cancel": "Cancel",
@@ -21,7 +21,7 @@
     "welcomeBack": "Welcome back",
     "subtitle": "Sign in with your Google account to access live bed reservations and ABHA integration.",
     "continueGoogle": "Continue with Google",
-    "terms": "By signing in, you agree to LifeLink's Prototype Guidelines. Zero PII or phone numbers stored.",
+    "terms": "By signing in, you agree to GetMyHospital guidelines. No passwords stored — Google sign-in only.",
     "privacy": "Privacy Policy",
     "signOut": "Sign Out"
   },
@@ -121,7 +121,7 @@
     "abhaSection": "Ayushman Bharat Health Account (ABHA)",
     "abhaLinked": "ABHA linked",
     "abhaMissing": "Tap photo → Link ABHA + QR",
-    "signOut": "Sign Out of LifeLink"
+    "signOut": "Sign out of GetMyHospital"
   },
   "requestBed": {
     "title": "Request Emergency Bed",

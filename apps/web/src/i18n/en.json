@@ -86,7 +86,7 @@
     "title": "Ayushman Bharat Health Account (ABDM)",
     "subtitle": "Connect your ABHA identity for zero-paperwork hospital triage and seamless bed reservations.",
     "consentTitle": "Patient Consent for ABDM Data Exchange",
-    "consentBody": "I authorize LifeLink CityHealth to interact with the ABDM National Gateway to verify my digital health identifier. Aadhaar numbers and OTPs are processed in-memory and are never stored on disk.",
+    "consentBody": "I authorize GetMyHospital to interact with the ABDM National Gateway to verify my digital health identifier. Aadhaar numbers and OTPs are processed in-memory and are never stored on disk.",
     "grantConsent": "I Consent to Link ABHA",
     "createTab": "Create New ABHA",
     "linkTab": "Link Existing ABHA",

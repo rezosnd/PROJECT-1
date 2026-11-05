@@ -18,7 +18,7 @@ export function buildAbhaQrPayload({
     yob: yearOfBirth || '',
     gender: gender || '',
     mobile: mobile || '',
-    source: 'LifeLink',
+    source: 'GetMyHospital',
   });
 }
 

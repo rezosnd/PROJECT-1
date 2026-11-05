@@ -19,8 +19,7 @@ import * as Linking from 'expo-linking';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../src/lib/auth/auth-store';
-import { typography } from '../src/theme/tokens';
-import { ArrowLeft, ShieldCheck, Lock } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
@@ -32,7 +31,7 @@ const API_URL =
 
 function GoogleIcon() {
   return (
-    <Svg width="18" height="18" viewBox="0 0 24 24">
+    <Svg width="20" height="20" viewBox="0 0 24 24">
       <Path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
       <Path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
       <Path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
@@ -83,7 +82,6 @@ export default function LoginScreen() {
   const returnUrl = useMemo(() => Linking.createURL('oauth'), []);
 
   useEffect(() => {
-    // Clear any stale session so OAuth handoff starts clean — do not block UI.
     void logout();
   }, [logout]);
 
@@ -121,7 +119,7 @@ export default function LoginScreen() {
       const idToken = await resolveIdTokenFromAuthUrl(url);
       if (!idToken) {
         setIsLoading(false);
-        Alert.alert('Almost there', 'No sign-in ticket returned. Close the browser and tap Continue again.');
+        Alert.alert('Almost there', 'No sign-in ticket returned. Close the browser and try again.');
         return;
       }
       await completeWithToken(idToken);
@@ -155,7 +153,6 @@ export default function LoginScreen() {
     }
   };
 
-  /** Poll while browser is open — works when Open GetMyHospital deep link is blocked. */
   const startHandoffPoll = (handoff: string) => {
     pollStopRef.current?.();
     let stopped = false;
@@ -177,9 +174,7 @@ export default function LoginScreen() {
           return;
         }
       } catch (_) {}
-      if (!stopped && !finishingRef.current) {
-        setTimeout(tick, 1200);
-      }
+      if (!stopped && !finishingRef.current) setTimeout(tick, 1200);
     };
     setTimeout(tick, 1500);
   };
@@ -196,11 +191,8 @@ export default function LoginScreen() {
     });
     const appSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        // User switched back from browser — keep polling / check deep link
         const handoff = activeHandoffRef.current;
-        if (handoff && !finishingRef.current) {
-          startHandoffPoll(handoff);
-        }
+        if (handoff && !finishingRef.current) startHandoffPoll(handoff);
         Linking.getInitialURL().then((url) => {
           if (url && (extractParam(url, 'ticket') || extractParam(url, 'id_token'))) {
             void completeWithAuthUrl(url);
@@ -243,7 +235,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // Dismiss / cancel: still try handoff poll once more (Google may have finished)
       if (result.type === 'cancel' || result.type === 'dismiss') {
         try {
           const res = await axios.get(
@@ -260,10 +251,6 @@ export default function LoginScreen() {
       }
 
       await RNLinking.openURL(startUrl);
-      Alert.alert(
-        'Finish in browser',
-        'After Google Success, switch back to Expo Go — sign-in completes automatically. You can also tap Open GetMyHospital.'
-      );
       setIsLoading(false);
     } catch (err: any) {
       pollStopRef.current?.();
@@ -279,34 +266,18 @@ export default function LoginScreen() {
           <ArrowLeft size={20} color="#0F172A" />
         </Pressable>
 
-        <View style={styles.heroCard}>
+        <View style={styles.centerBlock}>
           <Image
             source={require('../assets/logo.png')}
-            style={styles.heroLogo}
+            style={styles.logo}
             resizeMode="contain"
             accessibilityLabel={BRAND.name}
           />
-          <Text style={styles.brandSub}>{BRAND.tagline}</Text>
-          <Text style={styles.heroLine}>
-            Secure patient access for real-time ICU beds, ABHA linkage, and hospital triage.
-          </Text>
-        </View>
-
-        <Text style={styles.title}>Sign in</Text>
-        <Text style={styles.subtitle}>
-          Use your Google account. After Success, the app opens with a short secure ticket.
-        </Text>
-
-        <View style={styles.card}>
-          <View style={styles.lockRow}>
-            <Lock size={14} color="#059669" />
-            <Text style={styles.lockText}>Encrypted session · ABDM-ready</Text>
-          </View>
 
           <Pressable
             onPress={handleGoogleSignIn}
             disabled={isLoading}
-            style={({ pressed }) => [styles.googleButton, (pressed || isLoading) && { opacity: 0.9 }]}
+            style={({ pressed }) => [styles.googleButton, (pressed || isLoading) && { opacity: 0.92 }]}
             accessibilityRole="button"
             accessibilityLabel="Continue with Google"
           >
@@ -321,22 +292,6 @@ export default function LoginScreen() {
               </>
             )}
           </Pressable>
-
-          <Text style={styles.helper}>
-            After Google Success, switch back to Expo Go — sign-in finishes automatically even if Open GetMyHospital does nothing.
-          </Text>
-        </View>
-
-        <View style={styles.setupBox}>
-          <Text style={styles.setupTitle}>Button does nothing?</Text>
-          <Text style={styles.setupHint}>
-            That is normal in Chrome Custom Tabs. Close the browser or tap Done, return to Expo Go, and wait a second — login completes via secure poll.
-          </Text>
-        </View>
-
-        <View style={styles.footer}>
-          <ShieldCheck size={14} color="#3F7A1E" />
-          <Text style={styles.footerText}>{BRAND.name} · Google OAuth · Expo Go</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -344,12 +299,12 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8FAFC' },
+  safe: { flex: 1, backgroundColor: '#F4F7F2' },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 8 : 24,
-    paddingBottom: 24,
+    paddingHorizontal: 28,
+    paddingTop: Platform.OS === 'ios' ? 8 : 20,
+    paddingBottom: 28,
   },
   backButton: {
     width: 44,
@@ -361,95 +316,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroCard: {
-    marginTop: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 22,
+  centerBlock: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 36,
+    paddingBottom: 48,
   },
-  heroLogo: {
-    width: '100%',
-    height: 64,
-    backgroundColor: 'transparent',
+  logo: {
+    width: '78%',
+    maxWidth: 280,
+    height: 88,
   },
-  brandSub: {
-    marginTop: 12,
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#0B3D1A',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  heroLine: {
-    marginTop: 12,
-    fontSize: 13,
-    lineHeight: 19,
-    color: '#64748B',
-  },
-  title: {
-    marginTop: 22,
-    fontFamily: typography.fontFamilies.display,
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    marginTop: 6,
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#64748B',
-  },
-  card: {
-    marginTop: 18,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 18,
-  },
-  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
-  lockText: { fontSize: 12, fontWeight: '700', color: '#059669' },
   googleButton: {
-    height: 54,
+    width: '100%',
+    maxWidth: 340,
+    height: 56,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
   gIcon: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  googleButtonText: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
-  helper: { marginTop: 12, fontSize: 12, lineHeight: 17, color: '#94A3B8', textAlign: 'center' },
-  setupBox: {
-    marginTop: 14,
-    padding: 14,
-    borderRadius: 18,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.2,
   },
-  setupTitle: { fontSize: 12, fontWeight: '800', color: '#1E3A8A', marginBottom: 6 },
-  setupHint: { fontSize: 11, lineHeight: 16, color: '#1E40AF' },
-  footer: {
-    marginTop: 'auto',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingTop: 16,
-  },
-  footerText: { fontSize: 11, color: '#64748B', fontWeight: '600' },
 });

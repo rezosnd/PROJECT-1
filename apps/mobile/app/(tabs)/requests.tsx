@@ -86,8 +86,13 @@ function statusLabel(status: string) {
   }
 }
 
-function isBooked(status: string) {
-  return status === 'APPROVED' || status === 'ADMITTED';
+/** Confirmed booking — patient should navigate to hospital */
+function canGoToHospital(status: string) {
+  return status === 'APPROVED';
+}
+
+function isAdmitted(status: string) {
+  return status === 'ADMITTED';
 }
 
 function isLeft(status: string) {
@@ -113,7 +118,8 @@ function RequestCard({
   onOpenDetail: () => void;
   onCall: () => void;
 }) {
-  const booked = isBooked(req.status);
+  const showGo = canGoToHospital(req.status);
+  const admitted = isAdmitted(req.status);
   const holding = isHoldActive(req.status);
   const left = isLeft(req.status);
 
@@ -143,12 +149,12 @@ function RequestCard({
         <View
           style={[
             styles.statusPill,
-            booked && styles.statusPillBooked,
+            (showGo || admitted) && styles.statusPillBooked,
             holding && styles.statusPillHold,
             left && styles.statusPillLeft,
           ]}
         >
-          <Text style={[styles.statusText, (booked || left) && styles.statusTextBooked]}>
+          <Text style={[styles.statusText, (showGo || admitted || left) && styles.statusTextBooked]}>
             {statusLabel(req.status)}
           </Text>
         </View>
@@ -177,14 +183,17 @@ function RequestCard({
           </View>
         ) : null}
 
-        {booked ? (
+        {showGo ? (
           <View style={styles.confirmedBanner}>
             <Check size={14} color="#065F46" strokeWidth={3} />
-            <Text style={styles.confirmedText}>
-              {req.status === 'ADMITTED'
-                ? 'You are admitted — hospital can mark leave when you go'
-                : 'Hospital confirmed your bed — head there now'}
-            </Text>
+            <Text style={styles.confirmedText}>Hospital confirmed — head there now</Text>
+          </View>
+        ) : null}
+
+        {admitted ? (
+          <View style={styles.confirmedBanner}>
+            <Check size={14} color="#065F46" strokeWidth={3} />
+            <Text style={styles.confirmedText}>You are admitted at this hospital</Text>
           </View>
         ) : null}
 
@@ -192,7 +201,7 @@ function RequestCard({
           <View style={styles.leftBanner}>
             <Check size={14} color="#0369A1" strokeWidth={3} />
             <Text style={styles.leftBannerText}>
-              You left the hospital — bed was released back to the ward
+              You left — bed released. No navigation needed.
             </Text>
           </View>
         ) : null}
@@ -204,7 +213,7 @@ function RequestCard({
         ) : null}
       </View>
 
-      {booked ? (
+      {showGo ? (
         <View style={styles.actionStack}>
           <Pressable
             onPress={(e) => {
@@ -230,6 +239,19 @@ function RequestCard({
             </Pressable>
           ) : null}
         </View>
+      ) : null}
+
+      {admitted && req.hospitalPhone ? (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            onCall();
+          }}
+          style={({ pressed }) => [styles.callBtn, { marginTop: 12 }, pressed && { opacity: 0.9 }]}
+        >
+          <Phone size={15} color="#111111" />
+          <Text style={styles.callBtnText}>Call hospital</Text>
+        </Pressable>
       ) : null}
 
       {holding ? (
