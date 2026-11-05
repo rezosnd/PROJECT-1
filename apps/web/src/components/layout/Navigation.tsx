@@ -7,14 +7,11 @@ import {
   Search,
   Activity,
   ClipboardList,
-  CreditCard,
   ShieldCheck,
   User,
   BedDouble,
   Users,
   Stethoscope,
-  Sparkles,
-  Settings,
   PanelLeftClose,
   PanelLeftOpen,
   Building2,
@@ -39,8 +36,6 @@ export const Navigation: React.FC = () => {
     { to: '/doctors', label: 'Top Doctors', icon: Stethoscope },
     { to: '/equipment', label: 'Equipment', icon: Activity },
     { to: '/requests', label: 'My Requests', icon: ClipboardList },
-    { to: '/abha', label: 'ABHA ID', icon: CreditCard },
-    { to: '/profile', label: 'Profile', icon: User },
   ];
 
   const hospitalItems: NavItem[] = [
@@ -50,13 +45,9 @@ export const Navigation: React.FC = () => {
     ...(role === 'HOSPITAL_ADMIN'
       ? ([{ to: '/hospital?tab=staff', label: 'Staff Access', icon: Users }] as NavItem[])
       : []),
-    { to: '/profile', label: 'Account', icon: User },
   ];
 
-  const adminItems: NavItem[] = [
-    { to: '/admin', label: 'City Command', icon: ShieldCheck },
-    { to: '/profile', label: 'Account', icon: User },
-  ];
+  const adminItems: NavItem[] = [{ to: '/admin', label: 'City Command', icon: ShieldCheck }];
 
   const navItems = isCityAdmin ? adminItems : isHospital ? hospitalItems : patientItems;
 
@@ -100,16 +91,17 @@ export const Navigation: React.FC = () => {
         end={item.to === '/' || item.to === '/hospital' || item.to === '/admin'}
         title={collapsed ? item.label : undefined}
         className={({ isActive }) =>
-          `ll-nav-item ${collapsed ? 'justify-center px-2.5' : ''} ${
-            isItemActive(item, isActive) ? 'll-nav-item-active' : ''
-          }`
+          `ll-nav-item ${isItemActive(item, isActive) ? 'll-nav-item-active' : ''}`
         }
       >
         {({ isActive }) => {
           const active = isItemActive(item, isActive);
           return (
             <>
-              <Icon className="w-[18px] h-[18px] shrink-0" strokeWidth={active ? 2.4 : 2} />
+              <Icon
+                className="ll-nav-icon"
+                strokeWidth={active ? 2.45 : 2.15}
+              />
               {!collapsed && <span className="truncate">{item.label}</span>}
             </>
           );
@@ -132,8 +124,8 @@ export const Navigation: React.FC = () => {
           return (
             <>
               <Icon
-                className={`w-[22px] h-[22px] ${active ? 'text-ink' : 'text-slate-400'}`}
-                strokeWidth={active ? 2.5 : 1.8}
+                className={`w-6 h-6 ${active ? 'text-ink' : 'text-slate-400'}`}
+                strokeWidth={active ? 2.5 : 2}
               />
               <span
                 className={`text-[10px] mt-0.5 truncate max-w-[64px] ${
@@ -143,7 +135,7 @@ export const Navigation: React.FC = () => {
                 {item.label}
               </span>
               {active && (
-                <span className="absolute bottom-0 w-1 h-1 rounded-full bg-blue" />
+                <span className="absolute bottom-0 w-1 h-1 rounded-full bg-[var(--color-brand-lime)]" />
               )}
             </>
           );
@@ -152,16 +144,32 @@ export const Navigation: React.FC = () => {
     );
   };
 
+  const railWidth = collapsed ? 100 : 268;
+
   return (
     <>
-      {/* Desktop sidebar */}
+      {/* Spacer keeps main content offset while sidebar is fixed */}
+      <div
+        className="hidden lg:block shrink-0 transition-[width] duration-300 ease-out"
+        style={{ width: railWidth }}
+        aria-hidden
+      />
+
+      {/* Desktop sidebar — fixed so it never scrolls with the page */}
       <aside
-        className={`hidden lg:flex shrink-0 flex-col sticky top-0 h-screen p-4 transition-[width] duration-300 ease-out ${
-          collapsed ? 'w-[88px]' : 'w-[260px]'
-        }`}
+        className="hidden lg:flex flex-col fixed top-0 left-0 z-40 h-[100dvh] p-3 sm:p-4 transition-[width] duration-300 ease-out"
+        style={{ width: railWidth }}
       >
-        <div className="ll-panel flex-1 flex flex-col p-3 overflow-hidden relative">
-          <div className={`flex items-center mb-4 ${collapsed ? 'justify-center flex-col gap-2' : 'justify-between gap-2'}`}>
+        <div
+          className={`ll-panel flex flex-col p-3 overflow-hidden relative h-full ${
+            collapsed ? 'll-nav-collapsed' : ''
+          }`}
+        >
+          <div
+            className={`flex items-center mb-4 shrink-0 ${
+              collapsed ? 'justify-center flex-col gap-3' : 'justify-between gap-2'
+            }`}
+          >
             <Link
               to={isCityAdmin ? '/admin' : isHospital ? '/hospital' : '/'}
               className={`flex items-center gap-3 min-w-0 ${collapsed ? 'justify-center' : 'px-1'}`}
@@ -169,78 +177,32 @@ export const Navigation: React.FC = () => {
               {collapsed ? (
                 <BrandMark variant="mark" markClassName="w-10 h-10" />
               ) : (
-                <BrandMark
-                  variant="wordmark"
-                  showTagline
-                  markClassName="w-10 h-10"
-                />
+                <BrandMark variant="wordmark" showTagline markClassName="w-10 h-10" />
               )}
             </Link>
 
             <button
               type="button"
               onClick={toggle}
-              className="w-9 h-9 rounded-xl bg-card-soft border border-hairline flex items-center justify-center text-muted hover:text-ink hover:bg-white transition cursor-pointer shrink-0"
+              className="w-12 h-12 rounded-2xl ll-glass border border-white/60 flex items-center justify-center text-muted hover:text-ink hover:bg-white/70 transition cursor-pointer shrink-0"
               aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'}
               title={collapsed ? 'Open menu' : 'Close menu'}
             >
               {collapsed ? (
-                <PanelLeftOpen className="w-4 h-4" />
+                <PanelLeftOpen className="w-[22px] h-[22px]" />
               ) : (
-                <PanelLeftClose className="w-4 h-4" />
+                <PanelLeftClose className="w-[22px] h-[22px]" />
               )}
             </button>
           </div>
 
-          <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden pr-0.5" aria-label="Primary">
+          <nav className="ll-nav-list flex-1 overflow-hidden" aria-label="Primary">
             {navItems.map(renderDesktopLink)}
           </nav>
-
-          {!isHospital && !isCityAdmin && !collapsed && (
-            <div className="mt-3 rounded-[22px] bg-gradient-to-br from-[#111111] to-[#2A2A2A] text-white p-4 relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-amber-400/30 blur-2xl" />
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 text-amber-300 mb-2">
-                  <Sparkles className="w-4 h-4" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider">ABHA Ready</span>
-                </div>
-                <p className="text-sm font-semibold leading-snug mb-3">
-                  Link once — photo, QR & details stay on your profile.
-                </p>
-                <Link
-                  to="/abha"
-                  className="inline-flex items-center justify-center w-full h-10 rounded-xl bg-white text-ink text-xs font-bold hover:bg-card-soft transition"
-                >
-                  Open ABHA
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {!isHospital && !isCityAdmin && collapsed && (
-            <Link
-              to="/abha"
-              title="ABHA"
-              className="mt-3 mx-auto w-10 h-10 rounded-xl bg-ink text-amber-300 flex items-center justify-center"
-            >
-              <Sparkles className="w-4 h-4" />
-            </Link>
-          )}
-
-          <div className={`mt-3 pt-3 border-t border-hairline/80 ${collapsed ? 'flex justify-center' : ''}`}>
-            <Link
-              to="/profile"
-              title="Settings"
-              className={`ll-nav-item ${collapsed ? 'justify-center px-2.5' : ''}`}
-            >
-              <Settings className="w-[18px] h-[18px]" />
-              {!collapsed && <span>Settings</span>}
-            </Link>
-          </div>
         </div>
       </aside>
 
-      {/* Mobile bottom tab bar — matches Expo app */}
+      {/* Mobile bottom tab bar */}
       <nav
         aria-label="App tabs"
         className="lg:hidden fixed bottom-0 left-0 right-0 z-40 ll-glass-strong border-t border-white/50 px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"

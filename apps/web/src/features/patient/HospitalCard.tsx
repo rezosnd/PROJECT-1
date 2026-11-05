@@ -102,10 +102,15 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
 
       <div className="mt-3 flex items-center gap-2">
         <Button
+          type="button"
           variant="primary"
           size="md"
           className="flex-[1.4]"
-          onClick={() => onRequestBed?.(hospital.id, matchedWard.wardType)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRequestBed?.(hospital.id, matchedWard.wardType);
+          }}
         >
           Hold bed (15 min)
         </Button>

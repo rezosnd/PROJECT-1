@@ -20,12 +20,11 @@ export const Tabs: React.FC<TabsProps> = ({
   activeTab,
   onChange,
   className = '',
-  variant = 'pill'
 }) => {
   return (
     <div
       role="tablist"
-      className={`inline-flex items-center p-1 bg-card-soft rounded-pill border border-hairline/60 ${className}`}
+      className={`flex flex-wrap gap-1.5 p-1.5 rounded-[22px] ll-glass border border-white/55 ${className}`}
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTab;
@@ -36,18 +35,20 @@ export const Tabs: React.FC<TabsProps> = ({
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(tab.id)}
-            className={`inline-flex items-center justify-center gap-2 px-5 py-2 text-xs font-semibold rounded-pill transition-all duration-150 select-none ${
+            className={`inline-flex items-center justify-center gap-2 h-11 px-4 text-xs font-bold rounded-2xl transition-all duration-200 select-none ${
               isActive
-                ? 'bg-ink text-white shadow-soft'
-                : 'text-muted hover:text-ink hover:bg-white/50'
+                ? 'bg-[var(--color-brand-forest)]/90 text-[var(--color-brand-lime)] border border-white/15 shadow-[0_8px_20px_rgba(11,61,26,0.18)]'
+                : 'text-muted hover:text-ink hover:bg-white/55 border border-transparent'
             }`}
           >
-            {tab.icon && <span className="inline-flex shrink-0">{tab.icon}</span>}
+            {tab.icon && <span className="inline-flex shrink-0 [&_svg]:w-[18px] [&_svg]:h-[18px]">{tab.icon}</span>}
             <span>{tab.label}</span>
             {tab.badge !== undefined && (
               <span
-                className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-hairline text-muted'
+                className={`ml-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-extrabold inline-flex items-center justify-center ${
+                  isActive
+                    ? 'bg-[var(--color-brand-lime)] text-[var(--color-brand-forest)]'
+                    : 'bg-hairline text-muted'
                 }`}
               >
                 {tab.badge}
@@ -59,4 +60,3 @@ export const Tabs: React.FC<TabsProps> = ({
     </div>
   );
 };
-

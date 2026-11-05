@@ -7,7 +7,6 @@ import { abhaApi } from '../../lib/api/abha.api';
 import { bedsApi } from '../../lib/api/beds.api';
 import { TOP_DOCTORS, Doctor } from '../../lib/doctors-data';
 import { DoctorDetailModal } from '../../features/patient/DoctorDetailModal';
-import { BRAND } from '../../lib/brand';
 import {
   Search,
   MapPin,
@@ -17,51 +16,152 @@ import {
   Baby,
   Activity,
   Star,
-  ShieldCheck,
   BedDouble,
-  ClipboardList,
   Crosshair,
+  ShieldCheck,
+  AlertTriangle,
+  Stethoscope,
 } from 'lucide-react';
 
 const QUICK_TAGS = [
-  { id: 'stroke', label: 'Stroke / ICU', icon: Brain, severity: 5 },
-  { id: 'heart-attack', label: 'Cardiac', icon: Heart, severity: 5 },
-  { id: 'premature-baby', label: 'NICU', icon: Baby, severity: 5 },
-  { id: 'trauma', label: 'Trauma', icon: Activity, severity: 5 },
+  { id: 'stroke', label: 'Stroke / ICU', icon: Brain },
+  { id: 'heart-attack', label: 'Cardiac', icon: Heart },
+  { id: 'premature-baby', label: 'NICU', icon: Baby },
+  { id: 'trauma', label: 'Trauma', icon: Activity },
 ];
 
-function MetricRow({
-  icon: Icon,
-  label,
-  value,
-  bar,
-  tone = 'forest',
+function SparkBars({
+  heights,
+  fill = 0.55,
 }: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  bar: number;
-  tone?: 'forest' | 'lime' | 'teal';
+  heights: number[];
+  /** 0–1 how many bars are filled from the left */
+  fill?: number;
 }) {
-  const barColor =
-    tone === 'lime' ? 'bg-[#A8E017]' : tone === 'teal' ? 'bg-[#3F7A1E]' : 'bg-[#0B3D1A]';
-  const valueColor =
-    tone === 'lime' ? 'text-[#6B9A0A]' : tone === 'teal' ? 'text-[#3F7A1E]' : 'text-[#0B3D1A]';
+  const filled = Math.max(1, Math.round(heights.length * fill));
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-9 h-9 rounded-xl ll-glass border border-white/55 text-[#0B3D1A] flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4" strokeWidth={2.4} />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-xs font-semibold text-muted truncate">{label}</p>
-          <p className={`text-sm font-extrabold tabular-nums ${valueColor}`}>{value}</p>
-        </div>
-        <div className="mt-1.5 h-1.5 rounded-full bg-white/50 overflow-hidden border border-white/40">
+    <div className="mt-3 flex items-end gap-[3px] h-8">
+      {heights.map((h, i) => (
+        <span
+          key={i}
+          className="w-[3px] rounded-full"
+          style={{
+            height: `${Math.max(18, Math.min(100, h * 100))}%`,
+            background: i < filled ? 'rgba(17,17,17,0.55)' : 'rgba(255,255,255,0.55)',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Frosted available-beds panel — overlapping circular score like the CityCare ref */
+function AvailableBedsPanel({
+  freeBeds,
+  pendingHolds,
+  availabilityPct,
+  onFind,
+}: {
+  freeBeds: number;
+  pendingHolds: number;
+  availabilityPct: number;
+  onFind: () => void;
+}) {
+  const columns = [
+    {
+      label: 'Free now',
+      pct: Math.min(99, Math.max(8, Math.round((freeBeds / Math.max(freeBeds + 40, 1)) * 100))),
+      bars: [0.35, 0.55, 0.45, 0.7, 0.5, 0.85, 0.6, 0.4],
+      fill: 0.7,
+    },
+    {
+      label: 'On hold',
+      pct: Math.min(60, Math.max(6, pendingHolds * 8 + 12)),
+      bars: [0.4, 0.65, 0.5, 0.8, 0.55, 0.7, 0.45, 0.6],
+      fill: 0.45,
+    },
+    {
+      label: 'Critical wards',
+      pct: Math.min(95, Math.max(20, 100 - Math.round(freeBeds / 3))),
+      bars: [0.5, 0.35, 0.75, 0.55, 0.9, 0.4, 0.65, 0.5],
+      fill: 0.55,
+    },
+  ];
+
+  return (
+    <div className="relative pt-12 sm:pt-14">
+      {/* Overlapping circular badge */}
+      <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2">
+        <div
+          className="w-[108px] h-[108px] sm:w-[120px] sm:h-[120px] rounded-full grid place-items-center"
+          style={{
+            background: 'rgba(255,255,255,0.42)',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            boxShadow:
+              '0 10px 30px rgba(17,17,17,0.06), inset 0 0 0 1px rgba(255,255,255,0.65)',
+          }}
+        >
           <div
-            className={`h-full rounded-full ${barColor} transition-all duration-500`}
-            style={{ width: `${Math.max(6, Math.min(100, bar))}%` }}
-          />
+            className="w-[88%] h-[88%] rounded-full grid place-items-center"
+            style={{
+              border: '1.5px dashed rgba(255,255,255,0.95)',
+            }}
+          >
+            <div className="text-center px-2">
+              <p className="font-display text-2xl sm:text-[1.75rem] font-bold text-ink tabular-nums leading-none tracking-tight">
+                {availabilityPct}%
+              </p>
+              <p className="mt-1 text-[9px] sm:text-[10px] font-medium text-muted leading-tight">
+                Beds
+                <br />
+                available
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="relative rounded-[28px] sm:rounded-[32px] px-4 sm:px-6 pt-16 sm:pt-[4.75rem] pb-5 sm:pb-6"
+        style={{
+          background: 'rgba(255,255,255,0.38)',
+          backdropFilter: 'blur(28px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+          border: '1px solid rgba(255,255,255,0.7)',
+          boxShadow:
+            '0 16px 48px rgba(17,17,17,0.05), inset 0 1px 0 rgba(255,255,255,0.8)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="font-display text-base sm:text-lg font-bold text-ink tracking-tight">
+              Available beds
+            </h3>
+            <p className="text-xs text-muted mt-0.5">
+              {freeBeds} free citywide · live grid
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onFind}
+            className="h-9 px-3.5 rounded-full bg-ink text-white text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-ink-light transition shrink-0"
+          >
+            Find
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 sm:gap-5">
+          {columns.map((col) => (
+            <div key={col.label} className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-ink/80 leading-snug">
+                <span className="text-muted">{col.label}:</span>{' '}
+                <span className="font-semibold tabular-nums">{col.pct}%</span>
+              </p>
+              <SparkBars heights={col.bars} fill={col.fill} />
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -119,240 +219,255 @@ export const HomePage: React.FC = () => {
     navigate(`/results?${params.toString()}`);
   };
 
-  const careCards = [
-    {
-      title: 'Bed match',
-      grade: freeBeds > 20 ? 'A' : freeBeds > 8 ? 'B+' : 'C',
-      note: freeBeds > 20 ? 'Strong city capacity' : 'Check nearby wards',
-      tint: 'rgba(223, 245, 168, 0.55)',
-    },
-    {
-      title: 'ABHA',
-      grade: abhaReady ? 'A' : '—',
-      note: abhaReady ? 'Ready for intake' : 'Link to speed triage',
-      tint: 'rgba(200, 232, 106, 0.55)',
-    },
-    {
-      title: 'Requests',
-      grade: pendingHolds === 0 ? 'A' : String(pendingHolds),
-      note: pendingHolds === 0 ? 'No open holds' : 'Active 15-min holds',
-      tint: 'rgba(180, 220, 74, 0.55)',
-    },
+  const stats = [
+    { label: 'Free beds', value: String(freeBeds), hint: 'Citywide' },
+    { label: 'Open holds', value: String(pendingHolds), hint: pendingHolds ? 'Active' : 'Clear' },
+    { label: 'ABHA', value: abhaReady ? 'Ready' : 'Link', hint: abhaReady ? 'Verified' : 'Pending' },
+    { label: 'Doctors', value: String(TOP_DOCTORS.length), hint: 'Nearby' },
   ];
 
   return (
     <div className="pb-10 text-left max-w-6xl mx-auto space-y-5">
-      {/* Greeting only — no bell / 112 / avatar row */}
-      <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-brand-forest)]">
-          {BRAND.name}
-        </p>
-        <h1 className="mt-1 font-display text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
-          Hi {firstName}
-        </h1>
-        <p className="mt-1 text-sm text-muted">Find a free bed near you in a few taps.</p>
-      </div>
-
-      {/* FIND BEDS — primary glass hero */}
-      <section className="relative overflow-hidden rounded-[32px] ll-glass-strong border border-white/60 p-5 sm:p-7">
+      {/* Hero — CityCare style */}
+      <section className="relative overflow-hidden rounded-[32px] ll-glass-strong p-5 sm:p-7 min-h-[280px]">
         <div
-          className="pointer-events-none absolute -top-20 -right-16 w-64 h-64 rounded-full opacity-50"
-          style={{ background: 'radial-gradient(circle, rgba(168,224,23,0.45), transparent 68%)' }}
+          className="pointer-events-none absolute -top-24 left-[20%] w-72 h-72 rounded-full opacity-70"
+          style={{ background: 'radial-gradient(circle, rgba(240,180,138,0.55), transparent 70%)' }}
         />
         <div
-          className="pointer-events-none absolute -bottom-24 -left-10 w-56 h-56 rounded-full opacity-40"
-          style={{ background: 'radial-gradient(circle, rgba(11,61,26,0.12), transparent 70%)' }}
+          className="pointer-events-none absolute -bottom-28 right-[5%] w-80 h-80 rounded-full opacity-60"
+          style={{ background: 'radial-gradient(circle, rgba(158,212,184,0.55), transparent 70%)' }}
         />
 
-        <div className="relative z-10">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2.5">
-              <span className="w-10 h-10 rounded-2xl ll-glass-dark flex items-center justify-center border border-white/15">
-                <BedDouble className="w-5 h-5 text-[#A8E017]" />
-              </span>
-              <div>
-                <h2 className="font-display text-lg sm:text-xl font-extrabold text-ink">Find beds</h2>
-                <p className="text-[11px] text-muted flex items-center gap-1 mt-0.5">
-                  <MapPin className="w-3 h-3" />
-                  <span className="truncate max-w-[220px]">{addressLabel || 'Bhubaneswar'}</span>
-                </p>
-              </div>
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-end">
+          <div className="lg:col-span-5 pb-1">
+            <p className="text-sm text-muted">Care updates · last 7 days</p>
+            <h1 className="mt-1 font-display text-3xl sm:text-[2.5rem] font-bold text-ink tracking-tight leading-[1.05]">
+              Hello! {firstName}
+            </h1>
+            <p className="mt-3 text-sm text-muted max-w-sm leading-relaxed">
+              Live beds near {addressLabel || 'Bhubaneswar'} — hold in 15 minutes when it matters.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => launchSearch('emergency', 5, 'EMERGENCY')}
+                className="h-11 px-5 rounded-full bg-ink text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-ink-light transition"
+              >
+                Hold emergency bed
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(abhaReady ? '/requests' : '/abha')}
+                className="h-11 px-5 rounded-full ll-glass border border-white/70 text-sm font-semibold text-ink hover:bg-white/70 transition"
+              >
+                {abhaReady ? 'My requests' : 'Link ABHA'}
+              </button>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#0B3D1A] ll-glass px-2.5 py-1 rounded-full border border-white/55">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#A8E017] animate-pulse" />
-              {freeBeds} free citywide
-            </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    launchSearch(selectedTag, 4, searchText.trim() || selectedTag);
-                  }
-                }}
-                placeholder="Condition, hospital, or doctor"
-                className="w-full h-14 rounded-2xl bg-white/55 backdrop-blur-xl border border-white/70 pl-11 pr-4 text-sm text-ink placeholder:text-muted/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] focus:outline-none focus:ring-2 focus:ring-[#A8E017]/40 focus:border-[#0B3D1A]/25"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => detectLocation()}
-              disabled={isDetecting}
-              className="h-14 px-4 rounded-2xl ll-glass border border-white/60 text-xs font-bold text-ink inline-flex items-center justify-center gap-2 hover:bg-white/70 transition disabled:opacity-60 shrink-0"
-              title="Use my location"
-            >
-              <Crosshair className="w-4 h-4 text-[var(--color-brand-forest)]" />
-              {isDetecting ? 'Locating…' : 'Near me'}
-            </button>
+          <div className="lg:col-span-7">
+            <AvailableBedsPanel
+              freeBeds={freeBeds}
+              pendingHolds={pendingHolds}
+              availabilityPct={Math.min(99, Math.max(12, Math.round((freeBeds / Math.max(freeBeds + 28, 1)) * 100)))}
+              onFind={() => launchSearch(selectedTag, 4, searchText.trim() || selectedTag)}
+            />
           </div>
-
-          <div className="mt-3.5 flex flex-wrap gap-2">
-            {QUICK_TAGS.map((tag) => {
-              const Icon = tag.icon;
-              const active = selectedTag === tag.id;
-              return (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedTag(tag.id);
-                    setSearchText(tag.label);
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-bold transition border ${
-                    active
-                      ? 'bg-[#0B3D1A]/90 text-[#A8E017] border-white/10 backdrop-blur-md'
-                      : 'll-glass text-[#0B3D1A] border-white/55 hover:bg-white/70'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tag.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => launchSearch(selectedTag, 4, searchText.trim() || selectedTag)}
-            className="mt-5 w-full sm:w-auto min-w-[200px] h-13 h-[52px] px-7 rounded-2xl bg-[#0B3D1A]/92 backdrop-blur-md text-[#A8E017] text-sm font-extrabold inline-flex items-center justify-center gap-2 hover:bg-[#0B3D1A] transition border border-white/15 shadow-[0_12px_28px_rgba(11,61,26,0.22)]"
-          >
-            Search free beds
-            <ArrowRight className="w-4 h-4" />
-          </button>
         </div>
       </section>
 
-      {/* Glass card grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        <article className="rounded-[28px] ll-glass-strong border border-white/55 p-6 sm:p-7">
-          <div className="flex items-start justify-between gap-3 mb-5">
-            <div>
-              <h3 className="font-display text-lg font-bold text-ink">Current situation</h3>
-              <p className="text-xs text-muted mt-0.5">Live grid status for your session</p>
+      {/* Stat tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {stats.map((s) => (
+          <article key={s.label} className="rounded-[24px] ll-glass-strong p-4 sm:p-5">
+            <p className="text-xs text-muted">{s.label}</p>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <p className="font-display text-2xl sm:text-3xl font-bold text-ink tabular-nums tracking-tight">
+                {s.value}
+              </p>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-ink text-white">
+                {s.hint}
+              </span>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#3F7A1E] ll-glass px-2.5 py-1 rounded-full border border-white/50">
-              Live
+          </article>
+        ))}
+      </div>
+
+      {/* Find beds */}
+      <section className="rounded-[28px] ll-glass-strong p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-ink text-white flex items-center justify-center">
+              <BedDouble className="w-5 h-5" />
             </span>
+            <div>
+              <h2 className="font-display text-lg font-bold text-ink">Find beds</h2>
+              <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
+                <MapPin className="w-3 h-3" />
+                {addressLabel || 'Bhubaneswar'}
+              </p>
+            </div>
           </div>
+        </div>
 
-          <div className="space-y-5">
-            <MetricRow
-              icon={BedDouble}
-              label="City beds free"
-              value={String(freeBeds)}
-              bar={Math.min(100, (freeBeds / 60) * 100)}
-              tone="forest"
-            />
-            <MetricRow
-              icon={ShieldCheck}
-              label="ABHA status"
-              value={abhaReady ? 'Linked' : 'Not linked'}
-              bar={abhaReady ? 100 : 18}
-              tone="lime"
-            />
-            <MetricRow
-              icon={ClipboardList}
-              label="Open bed holds"
-              value={String(pendingHolds)}
-              bar={pendingHolds === 0 ? 12 : Math.min(100, pendingHolds * 28)}
-              tone="teal"
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+            <input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  launchSearch(selectedTag, 4, searchText.trim() || selectedTag);
+                }
+              }}
+              placeholder="Condition, hospital, or doctor"
+              className="w-full h-12 rounded-full bg-white/70 border border-white/80 pl-11 pr-4 text-sm text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-[#9ED4B8]/50"
             />
           </div>
-        </article>
-
-        <article className="rounded-[28px] ll-glass-strong border border-white/55 p-6 sm:p-7">
-          <h3 className="font-display text-lg font-bold text-ink">Care snapshot</h3>
-          <p className="text-xs text-muted mt-0.5 mb-5">Your readiness across GetMyHospital</p>
-
-          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-            {careCards.map((c) => (
-              <div
-                key={c.title}
-                className="rounded-[22px] px-3 py-4 text-center min-h-[120px] flex flex-col items-center justify-center border border-white/55 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
-                style={{ background: c.tint }}
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#0B3D1A]/70">{c.title}</p>
-                <p className="mt-2 font-display text-3xl font-extrabold text-[#0B3D1A]">{c.grade}</p>
-                <p className="mt-2 text-[10px] font-semibold text-[#0B3D1A]/65 leading-snug">{c.note}</p>
-              </div>
-            ))}
-          </div>
-
           <button
             type="button"
-            onClick={() => navigate(abhaReady ? '/requests' : '/abha')}
-            className="mt-5 w-full h-12 rounded-full ll-glass-dark text-[#A8E017] text-sm font-bold transition border border-white/15 hover:brightness-110"
+            onClick={() => detectLocation()}
+            disabled={isDetecting}
+            className="h-12 px-4 rounded-full ll-glass border border-white/70 text-sm font-semibold text-ink inline-flex items-center justify-center gap-2 hover:bg-white/80 transition disabled:opacity-60"
           >
-            {abhaReady ? 'View my requests' : 'Link ABHA now'}
+            <Crosshair className="w-4 h-4" />
+            {isDetecting ? 'Locating…' : 'Near me'}
           </button>
-        </article>
+        </div>
 
-        <article className="rounded-[28px] ll-glass-strong border border-white/55 p-6 sm:p-7 lg:col-span-2">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <h3 className="font-display text-lg font-bold text-ink">Top doctors</h3>
-              <p className="text-xs text-muted mt-0.5">Nearby specialists</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/doctors')}
-              className="text-xs font-bold text-[var(--color-brand-forest)] ll-glass px-3 py-1.5 rounded-full border border-white/55"
-            >
-              View all
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {TOP_DOCTORS.slice(0, 3).map((doc) => (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {QUICK_TAGS.map((tag) => {
+            const Icon = tag.icon;
+            const active = selectedTag === tag.id;
+            return (
               <button
-                key={doc.id}
+                key={tag.id}
                 type="button"
-                onClick={() => setSelectedDoctor(doc)}
-                className="ll-glass border border-white/55 rounded-2xl p-3.5 text-left hover:bg-white/70 transition flex items-center gap-3"
+                onClick={() => {
+                  setSelectedTag(tag.id);
+                  setSearchText(tag.label);
+                }}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition border ${
+                  active
+                    ? 'bg-ink text-white border-ink'
+                    : 'll-glass text-ink border-white/70 hover:bg-white/75'
+                }`}
               >
-                <img
-                  src={doc.avatarUrl}
-                  alt=""
-                  className="w-12 h-12 rounded-xl object-cover shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-ink truncate">{doc.name}</p>
-                  <p className="text-[11px] text-muted truncate">{doc.specialty}</p>
-                  <span className="mt-1 inline-flex items-center gap-0.5 text-xs font-bold text-[#0B3D1A]">
-                    <Star className="w-3.5 h-3.5 fill-[#A8E017] text-[#A8E017]" />
-                    {doc.rating.toFixed(1)}
-                  </span>
-                </div>
+                <Icon className="w-3.5 h-3.5" />
+                {tag.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => launchSearch(selectedTag, 4, searchText.trim() || selectedTag)}
+          className="mt-5 h-11 px-6 rounded-full bg-ink text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-ink-light transition"
+        >
+          Search free beds
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </section>
+
+      {/* Dark ops strip — CityCare bottom vibe */}
+      <section className="rounded-[28px] bg-[#111111] text-white p-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <p className="text-xs text-white/50 mb-3">Care focus</p>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_TAGS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  setSelectedTag(t.id);
+                  setSearchText(t.label);
+                  launchSearch(t.id, 5, t.label);
+                }}
+                className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-white/10 hover:bg-white/15 border border-white/10 transition"
+              >
+                {t.label}
               </button>
             ))}
           </div>
-        </article>
-      </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { name: 'ICU', pct: 97, glow: 'shadow-[0_0_24px_rgba(123,201,166,0.35)] border-[#7BC9A6]/40' },
+            { name: 'NICU', pct: 91, glow: 'shadow-[0_0_24px_rgba(232,154,92,0.35)] border-[#E89A5C]/40' },
+            { name: 'ER', pct: 95, glow: 'shadow-[0_0_24px_rgba(76,125,255,0.35)] border-[#4C7DFF]/40' },
+          ].map((d) => (
+            <div
+              key={d.name}
+              className={`rounded-2xl border bg-white/[0.04] px-2.5 py-3 text-center ${d.glow}`}
+            >
+              <p className="text-[10px] text-white/50">{d.name}</p>
+              <p className="mt-1 text-lg font-bold tabular-nums">{d.pct}%</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-2.5">
+          <p className="text-xs text-white/50">Alerts</p>
+          {[
+            { icon: AlertTriangle, text: `${freeBeds} beds free citywide`, ago: 'live' },
+            {
+              icon: ShieldCheck,
+              text: abhaReady ? 'ABHA ready for triage' : 'ABHA not linked',
+              ago: 'now',
+            },
+            { icon: Stethoscope, text: `${pendingHolds} open bed holds`, ago: 'sync' },
+          ].map((a) => (
+            <div key={a.text} className="flex items-center gap-2.5 text-xs">
+              <a.icon className="w-3.5 h-3.5 text-white/45 shrink-0" />
+              <span className="flex-1 text-white/85 truncate">{a.text}</span>
+              <span className="text-white/35 shrink-0">{a.ago}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Doctors */}
+      <section className="rounded-[28px] ll-glass-strong p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="font-display text-lg font-bold text-ink">Top doctors</h3>
+            <p className="text-sm text-muted mt-0.5">Nearby specialists</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/doctors')}
+            className="text-sm font-semibold text-ink hover:underline"
+          >
+            View all
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {TOP_DOCTORS.slice(0, 3).map((doc) => (
+            <button
+              key={doc.id}
+              type="button"
+              onClick={() => setSelectedDoctor(doc)}
+              className="rounded-2xl ll-glass border border-white/70 p-3.5 text-left hover:bg-white/75 transition flex items-center gap-3"
+            >
+              <img src={doc.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink truncate">{doc.name}</p>
+                <p className="text-xs text-muted truncate">{doc.specialty}</p>
+                <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-ink">
+                  <Star className="w-3.5 h-3.5 fill-[#E89A5C] text-[#E89A5C]" />
+                  {doc.rating.toFixed(1)}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <DoctorDetailModal
         doctor={selectedDoctor}

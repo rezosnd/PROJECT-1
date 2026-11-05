@@ -46,56 +46,52 @@ export const CityAdminPage: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-hairline shadow-sm">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-navy/10 flex items-center justify-center text-navy">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold font-heading text-ink">
+    <div className="max-w-7xl mx-auto pb-10 space-y-5 text-left">
+      <section className="rounded-[28px] overflow-hidden border border-white/20 shadow-[0_16px_48px_rgba(11,61,26,0.18)]">
+        <div className="ll-glass-dark text-white px-5 sm:px-7 py-6 sm:py-7">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-brand-lime)]">
+                City command
+              </p>
+              <h1 className="mt-2 font-display text-2xl sm:text-3xl font-extrabold tracking-tight">
                 City Health Administration
               </h1>
-              <p className="text-sm text-muted">
-                Bhubaneswar Municipal Healthcare Grid • Verification & Taxonomy Governance
+              <p className="mt-2 text-sm text-white/70">
+                Bhubaneswar grid · verification & taxonomy
               </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('add-hospital')}
+                className="h-11 px-4 rounded-2xl bg-[var(--color-brand-lime)] text-[var(--color-brand-forest)] text-xs font-bold inline-flex items-center gap-2 hover:brightness-105 transition"
+              >
+                <PlusCircle className="w-4.5 h-4.5" />
+                Register hospital
+              </button>
+              <span className="h-11 px-3.5 rounded-2xl bg-white/10 border border-white/15 text-[10px] font-bold uppercase tracking-wider inline-flex items-center text-white/80">
+                CITY_ADMIN
+              </span>
             </div>
           </div>
         </div>
+      </section>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setActiveTab('add-hospital')}
-            leftIcon={<PlusCircle className="w-4 h-4" />}
-          >
-            Register New Hospital
-          </Button>
-          <span className="text-xs px-3 py-1 bg-green/10 text-green font-semibold rounded-full border border-green/20">
-            Role: CITY_ADMIN
-          </span>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-hairline">
-        <Tabs
-          tabs={[
-            { id: 'map', label: 'City ICU Heatmap', icon: <Building2 className="w-4 h-4" /> },
-            { id: 'add-hospital', label: 'Register Hospital', icon: <PlusCircle className="w-4 h-4" /> },
-            { id: 'verify', label: 'Hospital Verification', icon: <Shield className="w-4 h-4" /> },
-            { id: 'staff', label: 'Staff Pre-Registration', icon: <UserPlus className="w-4 h-4" /> },
-            { id: 'users', label: 'Active Emails', icon: <Mail className="w-4 h-4" /> },
-            { id: 'conditions', label: 'Condition Taxonomy', icon: <BookOpen className="w-4 h-4" /> },
-            { id: 'audit', label: 'Audit Logs', icon: <FileText className="w-4 h-4" /> },
-          ]}
-          activeTab={activeTab}
-          onChange={(tab) => setActiveTab(tab as any)}
-        />
-      </div>
+      <Tabs
+        className="w-full"
+        tabs={[
+          { id: 'map', label: 'ICU Heatmap', icon: <Building2 /> },
+          { id: 'add-hospital', label: 'Register', icon: <PlusCircle /> },
+          { id: 'verify', label: 'Verify', icon: <Shield /> },
+          { id: 'staff', label: 'Staff', icon: <UserPlus /> },
+          { id: 'users', label: 'Emails', icon: <Mail /> },
+          { id: 'conditions', label: 'Taxonomy', icon: <BookOpen /> },
+          { id: 'audit', label: 'Audit', icon: <FileText /> },
+        ]}
+        activeTab={activeTab}
+        onChange={(tab) => setActiveTab(tab as any)}
+      />
 
       {/* Tab Panels */}
       {activeTab === 'map' && (

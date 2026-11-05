@@ -3,10 +3,18 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { abhaApi } from '../../lib/api/abha.api';
 import { AbhaCard } from '../../features/patient/AbhaCard';
-import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Shield, Award, Hospital, LogOut, ArrowRight, CheckCircle2 } from 'lucide-react';
+import {
+  Mail,
+  Shield,
+  Award,
+  Hospital,
+  LogOut,
+  ArrowRight,
+  Phone,
+  MapPin,
+} from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -22,11 +30,9 @@ export const ProfilePage: React.FC = () => {
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-4">
-        <h1 className="text-2xl font-bold font-display text-ink">Sign in to GetMyHospital</h1>
-        <p className="text-sm text-muted">
-          Access your ABHA details, active reservations, and hospital bed requests.
-        </p>
+      <div className="max-w-md mx-auto px-4 py-16 text-center space-y-4">
+        <h1 className="text-2xl font-display font-bold text-ink">Sign in required</h1>
+        <p className="text-sm text-muted">Access ABHA, reservations, and bed requests.</p>
         <Button onClick={() => navigate('/login')} variant="primary">
           Go to Sign In
         </Button>
@@ -36,168 +42,175 @@ export const ProfilePage: React.FC = () => {
 
   const profile = user.profile || {};
   const avatar = abhaProfile?.photoUrl || user.abhaPhotoUrl || user.pictureUrl;
+  const displayName = abhaProfile?.name || profile.fullName || user.name;
+  const abhaLinked = Boolean(abhaProfile?.abhaAddress);
+  const mobile =
+    abhaProfile?.mobile || (user as any).mobilePhone || profile.emergencyContactPhone || null;
+  const address =
+    [
+      abhaProfile?.addressLine || profile.addressLine,
+      profile.cityName || abhaProfile?.cityName,
+      profile.pinCode || abhaProfile?.pinCode,
+    ]
+      .filter(Boolean)
+      .join(', ') || '—';
+
+  const rows = [
+    { label: 'Blood group', value: profile.bloodGroup || abhaProfile?.bloodGroup || '—' },
+    { label: 'Gender', value: abhaProfile?.gender || profile.gender || '—' },
+    {
+      label: 'Date of birth',
+      value: abhaProfile?.dob
+        ? String(abhaProfile.dob).slice(0, 10)
+        : profile.dateOfBirth
+          ? String(profile.dateOfBirth).slice(0, 10)
+          : '—',
+    },
+    { label: 'Signed in with', value: 'Google' },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="ll-kicker">Account</p>
-        <h1 className="text-3xl font-extrabold font-display text-ink tracking-tight mt-1">My profile</h1>
-        <p className="text-sm text-muted mt-1">
-          ABHA details stay saved after linking — photo, QR, and clinical fields reload every visit.
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto pb-8 text-left space-y-5">
+      <section className="relative overflow-hidden rounded-[32px] ll-glass-strong p-5 sm:p-7">
+        <div
+          className="pointer-events-none absolute -top-20 right-0 w-64 h-64 rounded-full opacity-60"
+          style={{ background: 'radial-gradient(circle, rgba(240,180,138,0.5), transparent 70%)' }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-24 left-10 w-56 h-56 rounded-full opacity-50"
+          style={{ background: 'radial-gradient(circle, rgba(158,212,184,0.45), transparent 70%)' }}
+        />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <Card className="lg:col-span-7 p-6 space-y-5">
-          <div className="flex items-center gap-4">
-            {avatar ? (
-              <img
-                src={avatar}
-                alt={user.name}
-                className="w-16 h-16 rounded-2xl border border-hairline object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-2xl bg-ink text-white flex items-center justify-center text-xl font-bold font-display">
-                {user.name?.charAt(0) || 'U'}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold font-display text-ink truncate">
-                {abhaProfile?.name || profile.fullName || user.name}
-              </h2>
-              <div className="flex items-center gap-1.5 text-sm text-muted">
+        <div className="relative flex items-start gap-4">
+          {avatar ? (
+            <img
+              src={avatar}
+              alt=""
+              className="w-16 h-16 rounded-full object-cover border-2 border-white/80 shadow-soft shrink-0"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-ink text-white flex items-center justify-center text-xl font-display font-bold shrink-0">
+              {displayName?.charAt(0) || 'U'}
+            </div>
+          )}
+          <div className="min-w-0 flex-1 pt-0.5">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+              {displayName}
+            </h1>
+            <p className="mt-1 text-sm text-muted flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5">
                 <Mail className="w-3.5 h-3.5" />
-                <span className="truncate">{user.email}</span>
+                {user.email}
+              </span>
+            </p>
+            <p className={`mt-2 text-sm font-medium ${abhaLinked ? 'text-[#2F9B7A]' : 'text-[#E89A5C]'}`}>
+              {abhaLinked ? `ABHA linked · ${abhaProfile!.abhaAddress}` : 'ABHA not linked'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-5">
+        <section className="lg:col-span-3 rounded-[28px] ll-glass-strong p-5 sm:p-6">
+          <h2 className="font-display text-lg font-bold text-ink">Details</h2>
+          <dl className="mt-3 divide-y divide-black/[0.06]">
+            {rows.map((row) => (
+              <div key={row.label} className="flex items-baseline justify-between gap-4 py-3">
+                <dt className="text-sm text-muted shrink-0">{row.label}</dt>
+                <dd className="text-sm font-semibold text-ink text-right">{row.value}</dd>
               </div>
-              {abhaProfile?.abhaAddress ? (
-                <p className="text-xs font-bold text-teal mt-1 truncate">
-                  ABHA linked · {abhaProfile.abhaAddress}
-                </p>
-              ) : (
-                <p className="text-xs font-semibold text-orange mt-1">ABHA not linked yet</p>
-              )}
+            ))}
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-sm text-muted inline-flex items-center gap-1.5 shrink-0">
+                <Phone className="w-3.5 h-3.5" /> Mobile
+              </dt>
+              <dd className="text-sm font-semibold text-ink text-right">
+                {mobile ? (
+                  <a href={`tel:${String(mobile).replace(/\s/g, '')}`} className="hover:underline">
+                    {mobile}
+                  </a>
+                ) : (
+                  '—'
+                )}
+              </dd>
             </div>
-            <span className="px-3 py-1.5 rounded-xl text-[11px] font-bold bg-card-soft text-ink border border-hairline">
-              {user.role}
-            </span>
-          </div>
+            <div className="flex items-start justify-between gap-4 py-3">
+              <dt className="text-sm text-muted inline-flex items-center gap-1.5 shrink-0 pt-0.5">
+                <MapPin className="w-3.5 h-3.5" /> Address
+              </dt>
+              <dd className="text-sm font-semibold text-ink text-right max-w-[60%]">{address}</dd>
+            </div>
+          </dl>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="p-3.5 bg-card-soft rounded-2xl">
-              <span className="text-muted block">Authentication</span>
-              <span className="font-bold text-ink flex items-center gap-1 mt-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-green" /> Google OAuth
-              </span>
-            </div>
-            <div className="p-3.5 bg-card-soft rounded-2xl">
-              <span className="text-muted block">Blood group</span>
-              <span className="font-bold text-ink block mt-0.5">{profile.bloodGroup || '—'}</span>
-            </div>
-            <div className="p-3.5 bg-card-soft rounded-2xl">
-              <span className="text-muted block">Gender</span>
-              <span className="font-bold text-ink block mt-0.5">
-                {abhaProfile?.gender || profile.gender || '—'}
-              </span>
-            </div>
-            <div className="p-3.5 bg-card-soft rounded-2xl">
-              <span className="text-muted block">Date of birth</span>
-              <span className="font-bold text-ink block mt-0.5">
-                {abhaProfile?.dob
-                  ? String(abhaProfile.dob).slice(0, 10)
-                  : profile.dateOfBirth
-                  ? String(profile.dateOfBirth).slice(0, 10)
-                  : '—'}
-              </span>
-            </div>
-            <div className="p-3.5 bg-card-soft rounded-2xl sm:col-span-2">
-              <span className="text-muted block">Address</span>
-              <span className="font-bold text-ink block mt-0.5">
-                {abhaProfile?.addressLine || profile.addressLine || '—'}
-                {profile.cityName ? ` · ${profile.cityName}` : ''}
-                {profile.pinCode ? ` · ${profile.pinCode}` : ''}
-              </span>
-            </div>
-            {(abhaProfile?.mobile || profile.emergencyContactPhone) && (
-              <div className="p-3.5 bg-card-soft rounded-2xl sm:col-span-2">
-                <span className="text-muted block">Mobile / emergency</span>
-                <span className="font-bold text-ink block mt-0.5">
-                  {abhaProfile?.mobile ||
-                    `${profile.emergencyContactName || 'Contact'} · ${profile.emergencyContactPhone}`}
-                </span>
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-red hover:underline"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </button>
+        </section>
 
-          <div className="flex justify-end pt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-              leftIcon={<LogOut className="w-4 h-4 text-red" />}
-              className="text-red hover:bg-red/5"
-            >
-              Sign Out
-            </Button>
-          </div>
-        </Card>
-
-        <div className="lg:col-span-5 space-y-4">
+        <aside className="lg:col-span-2 space-y-3">
           {abhaProfile ? (
             <AbhaCard
               profile={abhaProfile}
               onUnlink={async () => {
                 await abhaApi.unlink();
               }}
+              className="max-w-none"
             />
           ) : (
-            <Card className="p-6 space-y-3">
-              <div className="w-11 h-11 rounded-2xl bg-card-sand text-orange flex items-center justify-center">
-                <Shield className="w-5 h-5" />
+            <div className="rounded-[28px] ll-glass-strong p-5 space-y-3">
+              <Shield className="w-5 h-5 text-ink" />
+              <div>
+                <h3 className="font-display font-bold text-ink">Link ABHA</h3>
+                <p className="text-sm text-muted mt-1 leading-relaxed">
+                  Save photo, QR, and mobile for faster triage.
+                </p>
               </div>
-              <h3 className="font-display font-bold text-lg text-ink">Link ABHA once</h3>
-              <p className="text-sm text-muted leading-relaxed">
-                After ABDM verify, photo + QR + demographics are stored and shown every time you open profile.
-              </p>
-              <Button onClick={() => navigate('/abha')} rightIcon={<ArrowRight className="w-4 h-4" />}>
+              <button
+                type="button"
+                onClick={() => navigate('/abha')}
+                className="h-11 px-4 rounded-full bg-ink text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-ink-light transition"
+              >
                 Link ABHA
-              </Button>
-            </Card>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           )}
 
           {user.role === 'PATIENT' && (
-            <div className="grid grid-cols-1 gap-3">
+            <nav className="space-y-2">
               <button
                 type="button"
                 onClick={() => navigate('/requests')}
-                className="ll-card p-4 text-left hover:shadow-float transition flex items-center justify-between"
+                className="w-full rounded-2xl ll-glass border border-white/70 px-4 py-3.5 text-left hover:bg-white/75 transition flex items-center justify-between gap-3"
               >
-                <div>
-                  <div className="flex items-center gap-2 text-ink font-bold text-sm">
-                    <Award className="w-4 h-4" /> My bed requests
-                  </div>
-                  <p className="text-xs text-muted mt-1">Track 15-minute holds</p>
-                </div>
+                <span className="inline-flex items-center gap-2.5 text-sm font-semibold text-ink">
+                  <Award className="w-4 h-4" />
+                  My bed requests
+                </span>
                 <ArrowRight className="w-4 h-4 text-muted" />
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/results')}
-                className="ll-card p-4 text-left hover:shadow-float transition flex items-center justify-between"
+                className="w-full rounded-2xl ll-glass border border-white/70 px-4 py-3.5 text-left hover:bg-white/75 transition flex items-center justify-between gap-3"
               >
-                <div>
-                  <div className="flex items-center gap-2 text-ink font-bold text-sm">
-                    <Hospital className="w-4 h-4" /> Find free beds
-                  </div>
-                  <p className="text-xs text-muted mt-1">Live capacity nearby</p>
-                </div>
+                <span className="inline-flex items-center gap-2.5 text-sm font-semibold text-ink">
+                  <Hospital className="w-4 h-4" />
+                  Find free beds
+                </span>
                 <ArrowRight className="w-4 h-4 text-muted" />
               </button>
-            </div>
+            </nav>
           )}
-        </div>
+        </aside>
       </div>
     </div>
   );

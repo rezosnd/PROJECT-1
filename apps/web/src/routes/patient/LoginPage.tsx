@@ -7,26 +7,21 @@ import {
   Building2,
   Shield,
   ShieldCheck,
-  CheckCircle2,
   AlertCircle,
-  BedDouble,
-  Activity,
-  Lock,
 } from 'lucide-react';
 import { BrandMark } from '../../components/brand/BrandMark';
-import { BRAND } from '../../lib/brand';
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
   '1050173417910-28c0irqqh1nhaurmognqn01c9ocvo6pb.apps.googleusercontent.com';
 
 const HOSPITALS = [
-  { id: '3256d42a-2dfe-4e1f-9d9d-867997d53d2a', name: 'AIIMS Bhubaneswar', badge: 'Level 1 Trauma' },
-  { id: '0f7fafb8-7f8c-4567-acf1-e9d3ca8847e3', name: 'KIMS Hospital & Medical College', badge: 'Level 1 Trauma' },
-  { id: 'e66d5397-2a29-4885-a964-56861611786d', name: 'SUM Ultimate Medicare', badge: 'Level 1 Trauma' },
-  { id: '2f462f84-d929-4cc4-8920-3b4bf7803c2e', name: 'Kalinga Hospital', badge: 'Level 2 Trauma' },
-  { id: '4f0a4313-9cfa-475c-8106-66f3d0a676d2', name: 'Capital Hospital (Govt)', badge: 'Govt General' },
-  { id: 'b5b618f5-15e9-4731-b342-f9680a48e5eb', name: 'Apollo Hospitals Bhubaneswar', badge: 'Super Specialty' },
+  { id: '3256d42a-2dfe-4e1f-9d9d-867997d53d2a', name: 'AIIMS Bhubaneswar' },
+  { id: '0f7fafb8-7f8c-4567-acf1-e9d3ca8847e3', name: 'KIMS Hospital' },
+  { id: 'e66d5397-2a29-4885-a964-56861611786d', name: 'SUM Ultimate Medicare' },
+  { id: '2f462f84-d929-4cc4-8920-3b4bf7803c2e', name: 'Kalinga Hospital' },
+  { id: '4f0a4313-9cfa-475c-8106-66f3d0a676d2', name: 'Capital Hospital (Govt)' },
+  { id: 'b5b618f5-15e9-4731-b342-f9680a48e5eb', name: 'Apollo Bhubaneswar' },
 ];
 
 export const LoginPage: React.FC = () => {
@@ -36,12 +31,15 @@ export const LoginPage: React.FC = () => {
 
   const [selectedPortal, setSelectedPortal] = useState<'PATIENT' | 'HOSPITAL' | 'CITY_ADMIN'>('PATIENT');
   const [selectedHospitalId, setSelectedHospitalId] = useState(HOSPITALS[0].id);
-  const [hospitalRoleType, setHospitalRoleType] = useState<'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN'>('HOSPITAL_STAFF');
+  const [hospitalRoleType, setHospitalRoleType] = useState<'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN'>(
+    'HOSPITAL_STAFF'
+  );
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [gisRendered, setGisRendered] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const btnHostRef = useRef<HTMLDivElement>(null);
 
-  const from = (location.state as any)?.from?.pathname || '/';
+  const fromRaw = (location.state as any)?.from?.pathname as string | undefined;
 
   const targetRole: UserRole =
     selectedPortal === 'CITY_ADMIN'
@@ -59,24 +57,26 @@ export const LoginPage: React.FC = () => {
     targetHospitalRef.current = targetHospital;
   }, [targetRole, targetHospital]);
 
+  const homeForUser = (u: { role: UserRole; needsProfileSetup?: boolean; profileComplete?: boolean }) => {
+    if (u.role === 'CITY_ADMIN') return '/admin';
+    if (u.role === 'HOSPITAL_STAFF' || u.role === 'HOSPITAL_ADMIN') return '/hospital';
+    if (u.needsProfileSetup || u.profileComplete === false) return '/onboarding';
+    // Never bounce back to login/auth screens
+    if (fromRaw && fromRaw !== '/login' && fromRaw !== '/onboarding') return fromRaw;
+    return '/';
+  };
+
   useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.role === 'CITY_ADMIN') {
-        navigate('/admin', { replace: true });
-      } else if (user.role.includes('HOSPITAL')) {
-        navigate('/hospital', { replace: true });
-      } else {
-        navigate(from, { replace: true });
-      }
-    }
-  }, [isAuthenticated, user, navigate, from]);
+    if (!isAuthenticated || !user) return;
+    navigate(homeForUser(user), { replace: true });
+  }, [isAuthenticated, user, navigate, fromRaw]);
 
   useEffect(() => {
     let checkInterval: ReturnType<typeof setInterval> | null = null;
 
     const tryRenderGIS = () => {
       const windowGoogle = (window as any).google;
-      const btnContainer = document.getElementById('google-signin-btn');
+      const btnContainer = btnHostRef.current;
       if (windowGoogle?.accounts?.id && btnContainer) {
         windowGoogle.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
@@ -92,6 +92,10 @@ export const LoginPage: React.FC = () => {
                 requestedRole: targetRoleRef.current,
                 hospitalId: targetHospitalRef.current,
               });
+              const u = useAuthStore.getState().user;
+              if (u) {
+                navigate(homeForUser(u), { replace: true });
+              }
             } catch (err: any) {
               setLocalError(
                 err.response?.data?.error?.message || err.message || 'Google sign-in failed'
@@ -102,6 +106,7 @@ export const LoginPage: React.FC = () => {
           },
         });
 
+        const width = Math.min(340, Math.max(260, btnContainer.clientWidth || 300));
         btnContainer.innerHTML = '';
         windowGoogle.accounts.id.renderButton(btnContainer, {
           theme: 'outline',
@@ -110,7 +115,7 @@ export const LoginPage: React.FC = () => {
           shape: 'pill',
           text: 'continue_with',
           logo_alignment: 'left',
-          width: 320,
+          width,
         });
 
         setGisRendered(true);
@@ -129,78 +134,43 @@ export const LoginPage: React.FC = () => {
     return () => {
       if (checkInterval) clearInterval(checkInterval);
     };
-  }, [loginWithGoogleCredential, gisRendered]);
+  }, [loginWithGoogleCredential, gisRendered, selectedPortal]);
 
   const errorMessage = localError || authError;
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <div className="ll-orb w-[460px] h-[460px] bg-[#A8E017]/30 -top-28 -left-16 animate-glass-float" />
-      <div className="ll-orb w-[380px] h-[380px] bg-[#0B3D1A]/12 top-1/3 -right-20" />
-      <div className="ll-orb w-[320px] h-[320px] bg-[#A8E017]/18 bottom-0 left-1/3" />
+    <div className="min-h-[100dvh] relative overflow-x-hidden flex flex-col ll-shell">
+      <div className="relative z-10 flex-1 flex flex-col w-full max-w-md mx-auto px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+            className="w-10 h-10 rounded-full ll-glass border border-white/70 flex items-center justify-center text-ink hover:bg-white/80 transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <BrandMark variant="full" className="h-9 max-w-[180px]" />
+        </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col lg:flex-row">
-        {/* Brand panel */}
-        <aside className="hidden lg:flex lg:w-[46%] flex-col justify-between p-10 xl:p-14">
-          <div className="ll-glass-strong rounded-[28px] p-6 border border-white/55 w-fit">
-            <BrandMark variant="full" className="h-14 max-w-[280px]" />
-            <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-brand-forest)]">
-              {BRAND.tagline}
-            </p>
-          </div>
+        <div className="flex-1 flex items-center py-8">
+          <div className="w-full relative overflow-hidden rounded-[32px] ll-glass-strong p-6 sm:p-7">
+            <div
+              className="pointer-events-none absolute -top-16 -right-10 w-40 h-40 rounded-full opacity-60"
+              style={{ background: 'radial-gradient(circle, rgba(240,180,138,0.5), transparent 70%)' }}
+            />
+            <div
+              className="pointer-events-none absolute -bottom-16 -left-8 w-36 h-36 rounded-full opacity-50"
+              style={{ background: 'radial-gradient(circle, rgba(158,212,184,0.45), transparent 70%)' }}
+            />
 
-          <div className="max-w-md ll-glass rounded-[32px] p-8 border border-white/50 mt-8">
-            <h1 className="font-display text-4xl xl:text-5xl font-extrabold tracking-tight text-ink leading-[1.05]">
-              Care that finds you a bed — fast.
-            </h1>
-            <p className="mt-4 text-base text-muted leading-relaxed">
-              Live ICU capacity, ABHA-ready identity, and hospital triage in one secure grid for Bhubaneswar.
-            </p>
-
-            <ul className="mt-8 space-y-3">
-              {[
-                { icon: BedDouble, label: 'Real-time ward & ICU availability' },
-                { icon: Activity, label: '15-minute hold & hospital queue' },
-                { icon: Lock, label: 'Google OAuth · JWT · ABDM ready' },
-              ].map(({ icon: Icon, label }) => (
-                <li key={label} className="flex items-center gap-3 text-sm font-semibold text-ink">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl ll-glass border border-white/60">
-                    <Icon className="h-4 w-4 text-[var(--color-brand-forest)]" strokeWidth={2.4} />
-                  </span>
-                  {label}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <p className="text-xs text-muted mt-6">National Health Authority & ABDM aligned</p>
-        </aside>
-
-        {/* Auth card */}
-        <main className="flex flex-1 items-center justify-center p-4 sm:p-8">
-          <div className="w-full max-w-[440px]">
-            <button
-              onClick={() => navigate(-1)}
-              aria-label="Go back"
-              className="mb-5 w-11 h-11 rounded-2xl ll-glass border border-white/60 flex items-center justify-center text-ink hover:bg-white/70 transition lg:hidden"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-
-            <div className="mb-6 lg:hidden ll-glass-strong rounded-2xl p-4 border border-white/55 w-fit">
-              <BrandMark variant="full" className="h-11 max-w-[220px]" />
-            </div>
-
-            <div className="rounded-[32px] ll-glass-strong border border-white/60 p-6 sm:p-8 shadow-[0_24px_60px_rgba(11,61,26,0.10)]">
-              <p className="ll-kicker text-[var(--color-brand-forest)]">Secure access</p>
-              <h2 className="mt-2 font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
-                Sign in to {BRAND.name}
-              </h2>
-              <p className="mt-2 text-sm text-muted leading-relaxed">
-                Use your Google account. Staff roles require prior registration by your hospital or city admin.
+            <div className="relative">
+              <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Sign in</h1>
+              <p className="mt-1.5 text-sm text-muted">
+                Continue with Google. Role follows your registration.
               </p>
 
-              <div className="mt-6 grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-[var(--color-card-soft)] border border-hairline">
+              <div className="mt-5 grid grid-cols-3 gap-1 p-1 rounded-full ll-glass border border-white/70">
                 {(
                   [
                     { id: 'PATIENT' as const, label: 'Patient', Icon: User },
@@ -212,67 +182,46 @@ export const LoginPage: React.FC = () => {
                     key={id}
                     type="button"
                     onClick={() => setSelectedPortal(id)}
-                    className={`py-2.5 px-2 rounded-xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
+                    className={`py-2.5 rounded-full text-xs font-semibold flex flex-col items-center justify-center gap-1 min-h-[52px] transition ${
                       selectedPortal === id
-                        ? 'bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)] shadow-soft'
+                        ? 'bg-ink text-white'
                         : 'text-muted hover:text-ink'
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{label}</span>
+                    <Icon className="w-4 h-4" />
+                    {label}
                   </button>
                 ))}
               </div>
 
-              <div className="mt-5 space-y-4">
+              <div className="mt-4 space-y-3">
                 {errorMessage && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2 text-xs text-red-700 font-medium">
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-2 text-xs text-red-700">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>{errorMessage}</span>
                   </div>
                 )}
 
                 {selectedPortal === 'PATIENT' && (
-                  <div className="rounded-2xl border border-[#D8E0D4] bg-[#F4F7F2] p-3.5">
-                    <p className="text-xs font-bold text-[var(--color-brand-forest)]">Patient portal</p>
-                    <p className="mt-1 text-xs text-muted leading-relaxed">
-                      Find live beds, place a 15-minute hold, and link ABHA with your Google identity.
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted">
+                    Find live beds, hold for 15 minutes, link ABHA after sign-in.
+                  </p>
                 )}
 
                 {selectedPortal === 'HOSPITAL' && (
-                  <div className="space-y-3">
-                    <div className="rounded-2xl border border-[#D8E0D4] bg-[#F4F7F2] p-3.5">
-                      <p className="text-xs font-bold text-[var(--color-brand-forest)]">Hospital staff</p>
-                      <p className="mt-1 text-xs text-muted leading-relaxed">
-                        Your Gmail must already be registered under Staff Access.
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wide text-muted mb-2">
-                        Facility
-                      </label>
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                        {HOSPITALS.map((h) => (
-                          <button
-                            key={h.id}
-                            type="button"
-                            onClick={() => setSelectedHospitalId(h.id)}
-                            className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all ${
-                              selectedHospitalId === h.id
-                                ? 'border-[var(--color-brand-forest)] bg-[var(--color-brand-forest)]/5 text-ink font-bold'
-                                : 'border-hairline bg-white text-ink/80 hover:bg-card-soft'
-                            }`}
-                          >
-                            <span className="text-xs font-semibold truncate pr-2">{h.name}</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-card-soft text-muted shrink-0">
-                              {h.badge}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted">Gmail must be pre-registered under Staff Access.</p>
+                    <select
+                      value={selectedHospitalId}
+                      onChange={(e) => setSelectedHospitalId(e.target.value)}
+                      className="w-full h-11 rounded-full bg-white/70 border border-white/80 px-4 text-sm font-medium text-ink focus:outline-none"
+                    >
+                      {HOSPITALS.map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {h.name}
+                        </option>
+                      ))}
+                    </select>
                     <div className="grid grid-cols-2 gap-2">
                       {(
                         [
@@ -284,10 +233,10 @@ export const LoginPage: React.FC = () => {
                           key={id}
                           type="button"
                           onClick={() => setHospitalRoleType(id)}
-                          className={`py-2.5 px-3 rounded-xl border text-center text-xs font-bold transition-all ${
+                          className={`h-10 rounded-full border text-xs font-semibold transition ${
                             hospitalRoleType === id
-                              ? 'border-[var(--color-brand-forest)] bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)]'
-                              : 'border-hairline bg-white text-muted hover:text-ink'
+                              ? 'bg-ink text-white border-ink'
+                              : 'll-glass text-muted border-white/70'
                           }`}
                         >
                           {label}
@@ -298,48 +247,30 @@ export const LoginPage: React.FC = () => {
                 )}
 
                 {selectedPortal === 'CITY_ADMIN' && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-3.5">
-                    <p className="text-xs font-bold text-amber-900">City command</p>
-                    <p className="mt-1 text-xs text-amber-800/80 leading-relaxed">
-                      Only the municipal admin Gmail can open City Command.
-                    </p>
-                  </div>
+                  <p className="text-sm text-[#8A5A2B] bg-[#FFF4E5]/80 border border-[#F0B48A]/40 rounded-2xl px-3 py-2.5">
+                    Only the municipal admin Gmail can open City Command.
+                  </p>
                 )}
 
-                <div className="pt-1 space-y-3">
-                  {isLoggingIn && (
-                    <div className="text-center text-xs font-semibold text-muted py-1">
-                      Verifying Google account…
-                    </div>
-                  )}
-                  <div
-                    id="google-signin-btn"
-                    className="w-full flex justify-center items-center min-h-[44px]"
-                  />
-                  {!gisRendered && (
-                    <p className="text-center text-xs text-muted">Loading secure Google Sign-In…</p>
-                  )}
-                </div>
+                {isLoggingIn && <p className="text-center text-sm text-muted">Verifying Google…</p>}
 
-                <div className="pt-4 border-t border-hairline flex items-start gap-2 text-xs text-muted">
-                  <CheckCircle2 className="w-4 h-4 text-[var(--color-brand-forest)] shrink-0 mt-0.5" />
-                  <span className="leading-snug">
-                    Google verifies identity. {BRAND.name} never stores your password.
-                  </span>
-                </div>
+                <div
+                  ref={btnHostRef}
+                  id="google-signin-btn"
+                  className="w-full flex justify-center items-center min-h-[48px]"
+                />
+                {!gisRendered && (
+                  <p className="text-center text-sm text-muted">Loading Google Sign-In…</p>
+                )}
 
-                <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[var(--color-brand-forest)]" />
-                  <span>OAuth · JWT · ABDM</span>
-                </div>
+                <p className="flex items-center justify-center gap-1.5 text-xs text-muted pt-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Google OAuth · no password stored
+                </p>
               </div>
             </div>
-
-            <p className="mt-5 text-center text-[11px] text-muted px-2">
-              Hospital staff: ask your admin to pre-register your Gmail before signing in.
-            </p>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

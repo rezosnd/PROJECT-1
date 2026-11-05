@@ -196,18 +196,20 @@ export const bedsRepository = {
               br.ward_type, br.urgency, br.condition_id, br.note, br.share_abha,
               br.status, br.hold_expires_at, br.created_at, br.patient_snapshot,
               u.blood_group, u.gender, u.age_years, u.emergency_contact_name, u.emergency_contact_phone,
-              u.allergies, u.city_name, u.address_line,
+              u.mobile_phone, u.allergies, u.city_name, u.address_line,
               GREATEST(0, ROUND(EXTRACT(EPOCH FROM (br.hold_expires_at - NOW())))) as remaining_seconds,
               al.abha_address,
               al.name as abha_verified_name,
               al.abha_number_enc,
+              al.mobile as abha_mobile,
               al.status as abha_status,
               CASE
                 WHEN br.share_abha = true AND al.status = 'LINKED' THEN
                   json_build_object(
                     'maskedNumber', CONCAT('**-****-****-', RIGHT(al.abha_address, 4)),
                     'abhaAddress', al.abha_address,
-                    'verifiedName', al.name
+                    'verifiedName', al.name,
+                    'mobile', al.mobile
                   )
                 ELSE NULL
               END as abha
@@ -216,8 +218,8 @@ export const bedsRepository = {
        LEFT JOIN abha_links al ON br.patient_id = al.user_id
        WHERE ${conditions.join(' AND ')}
        ORDER BY
-         CASE br.urgency WHEN 'CRITICAL' THEN 1 WHEN 'URGENT' THEN 2 ELSE 3 END,
-         br.created_at ASC`,
+         CASE br.status WHEN 'PENDING' THEN 0 WHEN 'APPROVED' THEN 1 ELSE 2 END,
+         br.created_at DESC`,
       values
     );
     return rows;

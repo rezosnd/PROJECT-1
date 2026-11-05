@@ -400,10 +400,19 @@ export const bedsService = {
           ageYears: r.age_years,
           emergencyContactName: r.emergency_contact_name,
           emergencyContactPhone: r.emergency_contact_phone,
+          mobile: r.abha_mobile || r.mobile_phone || r.emergency_contact_phone || null,
           allergies: r.allergies,
           cityName: r.city_name,
           addressLine: r.address_line
         },
+        patientMobile:
+          r.abha_mobile ||
+          r.mobile_phone ||
+          r.emergency_contact_phone ||
+          r.patient_snapshot?.mobile ||
+          r.patient_snapshot?.emergencyContactPhone ||
+          r.abha?.mobile ||
+          null,
         ward_type: r.ward_type,
         wardType: r.ward_type,
         urgency: r.urgency,
@@ -423,7 +432,8 @@ export const bedsService = {
         abha: r.share_abha && (r.abha_status === 'LINKED' || r.abha) ? {
           maskedNumber: r.abha?.maskedNumber || masked || '**-****-****-abdm',
           abhaAddress: r.abha_address || r.abha?.abhaAddress,
-          verifiedName: r.abha_verified_name || r.abha?.verifiedName || r.patient_name
+          verifiedName: r.abha_verified_name || r.abha?.verifiedName || r.patient_name,
+          mobile: r.abha?.mobile || r.abha_mobile || null
         } : null
       };
     });

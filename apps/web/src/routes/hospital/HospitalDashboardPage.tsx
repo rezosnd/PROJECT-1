@@ -54,13 +54,17 @@ export const HospitalDashboardPage: React.FC = () => {
   const { data: queue = [], refetch: refetchQueue } = useQuery({
     queryKey: ['hospital-queue', hospitalId],
     queryFn: () => bedsApi.getHospitalQueue(hospitalId),
-    staleTime: 10_000,
+    staleTime: 0,
+    refetchInterval: 750,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: true,
   });
 
   const { data: equipment = [], refetch: refetchEquipment } = useQuery({
     queryKey: ['hospital-equipment', hospitalId],
     queryFn: () => equipmentApi.getHospitalEquipment(hospitalId),
-    staleTime: 10_000,
+    staleTime: 5_000,
+    refetchInterval: 5_000,
   });
 
   const { data: forecastData } = useQuery({
@@ -104,17 +108,17 @@ export const HospitalDashboardPage: React.FC = () => {
   const expectedFree3h = forecastData?.horizons?.h3?.expectedFree ?? 0;
 
   const tabs: { id: HospitalTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: 'wards', label: 'Wards', icon: <BedDouble className="w-3.5 h-3.5" /> },
+    { id: 'wards', label: 'Wards', icon: <BedDouble className="w-4.5 h-4.5" /> },
     {
       id: 'queue',
       label: 'Queue',
-      icon: <Clock className="w-3.5 h-3.5" />,
+      icon: <Clock className="w-4.5 h-4.5" />,
       badge: pendingQueue || undefined,
     },
-    { id: 'equipment', label: 'Equipment', icon: <Stethoscope className="w-3.5 h-3.5" /> },
-    { id: 'forecast', label: 'Forecast', icon: <Activity className="w-3.5 h-3.5" /> },
+    { id: 'equipment', label: 'Equipment', icon: <Stethoscope className="w-4.5 h-4.5" /> },
+    { id: 'forecast', label: 'Forecast', icon: <Activity className="w-4.5 h-4.5" /> },
     ...(canManageStaff
-      ? [{ id: 'staff' as const, label: 'Staff', icon: <UserPlus className="w-3.5 h-3.5" /> }]
+      ? [{ id: 'staff' as const, label: 'Staff', icon: <UserPlus className="w-4.5 h-4.5" /> }]
       : []),
   ];
 
@@ -203,9 +207,9 @@ export const HospitalDashboardPage: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => changeTab(tab.id)}
-              className={`relative shrink-0 h-10 px-3.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition ${
+              className={`relative shrink-0 h-11 px-4 rounded-2xl text-xs font-bold inline-flex items-center gap-2 transition ${
                 active
-                  ? 'bg-[var(--color-brand-forest)]/90 backdrop-blur-md text-[var(--color-brand-lime)] border border-white/15'
+                  ? 'bg-[var(--color-brand-forest)]/90 backdrop-blur-md text-[var(--color-brand-lime)] border border-white/15 shadow-[0_8px_20px_rgba(11,61,26,0.18)]'
                   : 'll-glass text-muted border border-white/50 hover:text-ink'
               }`}
             >
@@ -229,27 +233,31 @@ export const HospitalDashboardPage: React.FC = () => {
 
       {activeTab === 'wards' && (
         <section className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div className="rounded-[24px] ll-glass border border-white/55 px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="font-display text-lg font-bold text-ink">Ward bed counters</h2>
-              <p className="text-xs text-muted mt-0.5">Adjust occupancy — live to the city grid.</p>
+              <h2 className="font-display text-lg sm:text-xl font-extrabold text-ink tracking-tight">
+                Ward bed counters
+              </h2>
+              <p className="text-xs text-muted mt-0.5">
+                Live to the city grid — add capacity, then move beds between states.
+              </p>
             </div>
-            <div className="flex flex-wrap gap-3 text-[11px] font-semibold text-muted">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green" /> Free
+            <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 ll-glass border border-white/55 px-2.5 py-1 rounded-full text-ink">
+                <span className="w-2 h-2 rounded-full bg-[#A8E017]" /> Free
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[var(--color-brand-forest)]" /> Occupied
+              <span className="inline-flex items-center gap-1.5 ll-glass border border-white/55 px-2.5 py-1 rounded-full text-ink">
+                <span className="w-2 h-2 rounded-full bg-[#0B3D1A]" /> Occupied
               </span>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 ll-glass border border-white/55 px-2.5 py-1 rounded-full text-ink">
                 <span className="w-2 h-2 rounded-full bg-orange" /> Hold / clean
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
             {beds.length === 0 ? (
-              <div className="col-span-full py-16 text-center text-muted border border-dashed border-hairline rounded-2xl bg-white">
+              <div className="col-span-full py-16 text-center text-muted rounded-[24px] ll-glass border border-dashed border-white/50">
                 No ward telemetry for this hospital yet.
               </div>
             ) : (
@@ -269,13 +277,7 @@ export const HospitalDashboardPage: React.FC = () => {
       )}
 
       {activeTab === 'queue' && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="font-display text-lg font-bold text-ink">Bed request queue</h2>
-            <p className="text-xs text-muted mt-0.5">
-              15-minute holds — approve, reject, or admit before expiry.
-            </p>
-          </div>
+        <section className="space-y-3">
           <RequestQueueTable
             requests={queue}
             onDecided={() => {

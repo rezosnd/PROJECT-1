@@ -11,17 +11,13 @@ import {
   Bell,
   Search,
   Sparkles,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from 'lucide-react';
-import { useSidebarStore } from '../../lib/ui/sidebar-store';
 
 export const Header: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuthStore();
-  const { collapsed, toggle } = useSidebarStore();
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -53,35 +49,31 @@ export const Header: React.FC = () => {
       {/* Desktop header */}
       <header className="hidden lg:block sticky top-0 z-30 px-4 sm:px-6 lg:px-8 pt-4 pb-2 bg-transparent">
         <div className="max-w-[1200px] mx-auto flex items-center gap-3 ll-glass-strong rounded-[22px] px-3 py-2.5 border border-white/50">
-          <button
-            type="button"
-            onClick={toggle}
-            className="w-11 h-11 rounded-2xl ll-glass border border-white/60 flex items-center justify-center text-muted hover:text-ink hover:bg-white/50 transition cursor-pointer shrink-0"
-            aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'}
-            title={collapsed ? 'Open menu' : 'Close menu'}
-          >
-            {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-          </button>
-
           <form onSubmit={handleSearch} className="relative flex-1 max-w-xl">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="ll-search pl-10"
-              placeholder="Search condition, hospital, or doctor..."
+              placeholder={
+                isHospital
+                  ? 'Search ward, patient, or equipment…'
+                  : 'Search condition, hospital, or doctor...'
+              }
               aria-label="Search"
             />
           </form>
 
-          <button
-            type="button"
-            onClick={() => navigate('/abha')}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-2xl bg-white border border-hairline text-xs font-bold text-ink hover:bg-card-soft transition shadow-soft"
-          >
-            <Sparkles className="w-4 h-4 text-teal" />
-            ABHA
-          </button>
+          {!isHospital && !isCityAdmin && (
+            <button
+              type="button"
+              onClick={() => navigate('/abha')}
+              className="inline-flex items-center gap-2 h-11 px-4 rounded-2xl bg-white border border-hairline text-xs font-bold text-ink hover:bg-card-soft transition shadow-soft"
+            >
+              <Sparkles className="w-4 h-4 text-teal" />
+              ABHA
+            </button>
+          )}
 
           <div className="relative">
             <button
@@ -168,34 +160,32 @@ export const Header: React.FC = () => {
 
       {/* Mobile app top bar — slim, only when page isn't already app-headed */}
       {!hideMobileChrome && (
-        <header className="lg:hidden sticky top-0 z-30 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 bg-[#F8FAFC]/95 backdrop-blur-md border-b border-slate-100">
-          <div className="flex items-center gap-3 max-w-lg mx-auto">
+        <header className="lg:hidden sticky top-0 z-30 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
+          <div className="flex items-center gap-2 max-w-lg mx-auto ll-glass-strong rounded-2xl border border-white/55 px-2.5 py-2">
             <Link
               to={isCityAdmin ? '/admin' : isHospital ? '/hospital' : '/'}
-              className="flex items-center gap-2 shrink-0"
+              className="shrink-0"
+              aria-label="Home"
             >
-              <div className="w-9 h-9 rounded-2xl bg-ink text-white flex items-center justify-center font-display font-bold text-sm">
-                LL
-              </div>
+              <img src="/LOGO_WITHOUT_NAME.png" alt="" className="w-9 h-9 object-contain" />
             </Link>
-            <form onSubmit={handleSearch} className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <form onSubmit={handleSearch} className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full h-10 rounded-2xl bg-white border border-slate-200 pl-9 pr-3 text-sm text-ink placeholder:text-slate-400 focus:outline-none focus:border-slate-300"
-                placeholder="Search hospitals…"
+                className="w-full h-10 rounded-xl bg-white/50 border border-white/60 pl-9 pr-3 text-sm text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-[#A8E017]/30"
+                placeholder="Search…"
                 aria-label="Search"
               />
             </form>
             <button
               type="button"
-              className="relative w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center"
-              aria-label="Notifications"
+              className="relative w-10 h-10 rounded-xl ll-glass border border-white/55 flex items-center justify-center shrink-0"
+              aria-label="Requests"
               onClick={() => navigate('/requests')}
             >
               <Bell className="w-4 h-4 text-ink" />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-orange" />
             </button>
           </div>
         </header>
