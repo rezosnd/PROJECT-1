@@ -1,6 +1,6 @@
 # PROJECT-1
 
-LifeLink — emergency health grid (web + mobile + API) for real-time hospital bed matching, ABHA/ABDM linkage, and hospital ops.
+GetMyHospital — emergency health grid (web + mobile + API) for real-time hospital bed matching, ABHA/ABDM linkage, and hospital ops.
 
 ## Apps
 

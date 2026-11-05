@@ -27,10 +27,10 @@ export const colors = {
   muted: '#64748B',
   subtle: '#94A3B8',
 
-  // Brand Palette
-  navy: '#0B2A5B',
-  blue: '#2563EB',
-  blueLight: '#EFF6FF',
+  // Brand Palette (GetMyHospital)
+  navy: '#0B3D1A',
+  blue: '#3F7A1E',
+  blueLight: '#F0FBE4',
 
   // Clinical Semantic Status
   teal: '#0D9488',

@@ -2,6 +2,13 @@ import nodemailer from 'nodemailer';
 import { config } from '../config/index.js';
 import { logger } from './logger.js';
 
+const BRAND_NAME = 'GetMyHospital';
+const BRAND_LOGO_MARK = () =>
+  `${String(config.PUBLIC_API_ORIGIN || 'https://project1-api.vercel.app').replace(/\/$/, '')}/brand/logo-mark.png`;
+const BRAND_LOGO_FULL = () =>
+  `${String(config.PUBLIC_API_ORIGIN || 'https://project1-api.vercel.app').replace(/\/$/, '')}/brand/logo.png`;
+const BRAND_PORTAL = 'https://getmyhospital.app';
+
 let transporter = null;
 
 function getTransporter() {
@@ -32,8 +39,8 @@ function getTransporter() {
  * - Minimal, quiet footer
  */
 function buildFormalEmailWrapper({
-  headerLinkText = 'Launch LifeLink',
-  headerLinkUrl = 'http://localhost:5000',
+  headerLinkText = 'Open GetMyHospital',
+  headerLinkUrl = BRAND_PORTAL,
   heroSvg = '',
   title = '',
   contentHtml = '',
@@ -42,6 +49,8 @@ function buildFormalEmailWrapper({
   secondaryNote = '',
   footerAppText = 'Stay in touch with your care network from anywhere. Download the app',
 }) {
+  const logoMark = BRAND_LOGO_MARK();
+  const logoFull = BRAND_LOGO_FULL();
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -53,7 +62,7 @@ function buildFormalEmailWrapper({
     body {
       margin: 0;
       padding: 0;
-      background-color: #F8FAFC;
+      background-color: #F4F7F2;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       color: #334155;
       -webkit-font-smoothing: antialiased;
@@ -63,7 +72,7 @@ function buildFormalEmailWrapper({
       border-collapse: collapse;
     }
     a {
-      color: #2563EB;
+      color: #3F7A1E;
       text-decoration: none;
     }
     @media only screen and (max-width: 600px) {
@@ -76,37 +85,32 @@ function buildFormalEmailWrapper({
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8FAFC; padding: 40px 16px;">
+<body style="margin: 0; padding: 0; background-color: #F4F7F2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #F4F7F2; padding: 40px 16px;">
     <tr>
       <td align="center">
         <!-- Main Card Container -->
         <table role="presentation" class="email-container" width="100%" cellpadding="0" cellspacing="0" style="max-width: 580px; margin: 0 auto;">
           <tr>
-            <td class="email-card" style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 40px 44px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);">
+            <td class="email-card" style="background-color: #FFFFFF; border: 1px solid #D8E0D4; border-radius: 16px; padding: 40px 44px; box-shadow: 0 1px 3px rgba(11, 61, 26, 0.06);">
               
               <!-- Header Row: Brand Logo & Secondary Header Link -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 28px;">
                 <tr>
                   <!-- Brand Logo -->
                   <td align="left" style="vertical-align: middle;">
-                    <table role="presentation" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="vertical-align: middle;">
-                          <div style="width: 28px; height: 28px; border-radius: 6px; background-color: #2563EB; text-align: center; line-height: 28px;">
-                            <span style="color: #FFFFFF; font-size: 16px; font-weight: 700; display: inline-block; vertical-align: middle;">✦</span>
-                          </div>
-                        </td>
-                        <td style="padding-left: 10px; vertical-align: middle;">
-                          <span style="color: #0F172A; font-size: 19px; font-weight: 700; letter-spacing: -0.3px;">lifelink</span>
-                        </td>
-                      </tr>
-                    </table>
+                    <a href="${headerLinkUrl}" style="text-decoration:none;">
+                      <img src="${logoFull}" alt="${BRAND_NAME}" width="200" height="48" style="display:block; width:200px; max-width:70%; height:auto; border:0; background:#000000; border-radius:10px;" />
+                    </a>
+                    <!-- Fallback mark for clients that block remote images -->
+                    <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">
+                      <img src="${logoMark}" alt="${BRAND_NAME}" width="32" height="32" />
+                    </div>
                   </td>
 
                   <!-- Secondary Header Link -->
                   <td align="right" style="vertical-align: middle;">
-                    <a href="${headerLinkUrl}" style="color: #64748B; font-size: 14px; text-decoration: none; font-weight: 500;">
+                    <a href="${headerLinkUrl}" style="color: #3F7A1E; font-size: 14px; text-decoration: none; font-weight: 600;">
                       ${headerLinkText}
                     </a>
                   </td>
@@ -140,7 +144,7 @@ function buildFormalEmailWrapper({
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0 32px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${ctaUrl}" style="display: inline-block; background-color: #2563EB; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none; padding: 13px 32px; border-radius: 6px; text-align: center;">
+                    <a href="${ctaUrl}" style="display: inline-block; background-color: #0B3D1A; color: #A8E017; font-size: 15px; font-weight: 700; text-decoration: none; padding: 13px 32px; border-radius: 999px; text-align: center;">
                       ${ctaText}
                     </a>
                   </td>
@@ -162,7 +166,7 @@ function buildFormalEmailWrapper({
               <!-- Sign-off -->
               <div style="color: #334155; font-size: 15px; line-height: 1.6; padding-top: 10px;">
                 <p style="margin: 0 0 4px 0; color: #64748B;">Our best,</p>
-                <p style="margin: 0; font-weight: 600; color: #1E293B;">The LifeLink Care Team</p>
+                <p style="margin: 0; font-weight: 600; color: #1E293B;">The GetMyHospital Care Team</p>
               </div>
 
             </td>
@@ -175,14 +179,14 @@ function buildFormalEmailWrapper({
                 ${footerAppText}
               </p>
               <p style="margin: 0 0 8px 0; font-size: 12px; color: #94A3B8;">
-                <a href="https://lifelink.health" style="color: #64748B; text-decoration: none;">Portal</a>
+                <a href="${BRAND_PORTAL}" style="color: #64748B; text-decoration: none;">Portal</a>
                 &nbsp;&nbsp;•&nbsp;&nbsp;
-                <a href="https://lifelink.health/doctors" style="color: #64748B; text-decoration: none;">Top Doctors</a>
+                <a href="${BRAND_PORTAL}/doctors" style="color: #64748B; text-decoration: none;">Top Doctors</a>
                 &nbsp;&nbsp;•&nbsp;&nbsp;
-                <a href="https://lifelink.health/help" style="color: #64748B; text-decoration: none;">Help Center</a>
+                <a href="${BRAND_PORTAL}/help" style="color: #64748B; text-decoration: none;">Help Center</a>
               </p>
               <p style="margin: 0; font-size: 11.5px; color: #94A3B8;">
-                LifeLink National Health Network • Ayushman Bharat Digital Mission (ABDM) Partner
+                GetMyHospital National Health Network • Ayushman Bharat Digital Mission (ABDM) Partner
               </p>
             </td>
           </tr>
@@ -234,7 +238,7 @@ export const emailService = {
    */
   async sendWelcomeEmail({ to, name, role }) {
     try {
-      const fromName = config.FROM_NAME || 'LifeLink Health';
+      const fromName = config.FROM_NAME || 'GetMyHospital Health';
       const fromEmail = config.FROM_EMAIL || 'veritasco.tech@gmail.com';
 
       const roleLabel =
@@ -246,10 +250,10 @@ export const emailService = {
 
       const contentHtml = `
         <p style="margin: 0 0 14px 0;">
-          You just created your account on <strong>LifeLink</strong>. It's a first step toward accessing real-time critical care, verified doctor appointments, and emergency hospital bed availability in a calmer, more transparent way. Congrats!
+          You just created your account on <strong>GetMyHospital</strong>. It's a first step toward accessing real-time critical care, verified doctor appointments, and emergency hospital bed availability in a calmer, more transparent way. Congrats!
         </p>
         <p style="margin: 0 0 18px 0;">
-          Navigating healthcare emergencies or scheduling specialist care isn't easy, but we've got your back. We put together a few resources and best practices for getting the most out of LifeLink:
+          Navigating healthcare emergencies or scheduling specialist care isn't easy, but we've got your back. We put together a few resources and best practices for getting the most out of GetMyHospital:
         </p>
         
         <!-- Clean Summary Box -->
@@ -273,7 +277,7 @@ export const emailService = {
 
       const secondaryNote = `
         <p style="margin: 0 0 14px 0;">
-          We'll be in touch in the coming days to make sure your experience with LifeLink is as smooth as possible. If you have any questions now, simply reply to this email.
+          We'll be in touch in the coming days to make sure your experience with GetMyHospital is as smooth as possible. If you have any questions now, simply reply to this email.
         </p>
         <p style="margin: 0; font-weight: 600; color: #1E293B;">
           We're glad you're here!
@@ -281,10 +285,10 @@ export const emailService = {
       `;
 
       const html = buildFormalEmailWrapper({
-        headerLinkText: 'Launch LifeLink',
+        headerLinkText: 'Open GetMyHospital',
         headerLinkUrl: 'http://localhost:5000',
         heroSvg: getMinimalHealthcareSvg(),
-        title: `Welcome to LifeLink, ${name}!`,
+        title: `Welcome to GetMyHospital, ${name}!`,
         contentHtml,
         ctaText: 'Browse Top Doctors →',
         ctaUrl: 'http://localhost:8081',
@@ -295,7 +299,7 @@ export const emailService = {
       const mailOptions = {
         from: `"${fromName}" <${fromEmail}>`,
         to,
-        subject: `Welcome to LifeLink, ${name}!`,
+        subject: `Welcome to GetMyHospital, ${name}!`,
         html,
       };
 
@@ -329,12 +333,12 @@ export const emailService = {
     fee,
   }) {
     try {
-      const fromName = config.FROM_NAME || 'LifeLink Health';
+      const fromName = config.FROM_NAME || 'GetMyHospital Health';
       const fromEmail = config.FROM_EMAIL || 'veritasco.tech@gmail.com';
 
       const contentHtml = `
         <p style="margin: 0 0 14px 0;">
-          Your specialist appointment with <strong>${doctorName}</strong> (${specialty}) has been confirmed and scheduled on the LifeLink Care Network.
+          Your specialist appointment with <strong>${doctorName}</strong> (${specialty}) has been confirmed and scheduled on the GetMyHospital Care Network.
         </p>
 
         <!-- Structured Details Table -->
@@ -421,12 +425,12 @@ export const emailService = {
     photoUrl,
   }) {
     try {
-      const fromName = config.FROM_NAME || 'LifeLink Health';
+      const fromName = config.FROM_NAME || 'GetMyHospital Health';
       const fromEmail = config.FROM_EMAIL || 'veritasco.tech@gmail.com';
 
       const contentHtml = `
         <p style="margin: 0 0 14px 0;">
-          We are pleased to inform you that <strong>${hospitalName}</strong> has been successfully verified and provisioned on the LifeLink Urban Emergency Network.
+          We are pleased to inform you that <strong>${hospitalName}</strong> has been successfully verified and provisioned on the GetMyHospital Urban Emergency Network.
         </p>
         <p style="margin: 0 0 18px 0;">
           Your facility is now connected to the real-time bed telemetry and emergency ambulance routing cluster:
@@ -519,7 +523,7 @@ export const emailService = {
     freeBedsNow,
   }) {
     try {
-      const fromName = config.FROM_NAME || 'LifeLink Health';
+      const fromName = config.FROM_NAME || 'GetMyHospital Health';
       const fromEmail = config.FROM_EMAIL || 'veritasco.tech@gmail.com';
       const expiresLabel = holdExpiresAt
         ? new Date(holdExpiresAt).toLocaleString('en-IN', {
@@ -540,7 +544,7 @@ export const emailService = {
         </p>
         <p style="margin: 0 0 18px 0; font-size: 15px; line-height: 1.55; color: #334155;">
           Your emergency bed reservation is confirmed on the
-          <strong style="color:#0B2A5B;">LifeLink Emergency Health Grid</strong>.
+          <strong style="color:#0B2A5B;">GetMyHospital Emergency Health Grid</strong>.
           The hospital triage desk has been notified.
         </p>
 
@@ -587,7 +591,7 @@ export const emailService = {
 
       const secondaryNote = `
         <p style="margin: 0; font-size: 12px; color: #94A3B8; line-height: 1.5;">
-          Operational confirmation from LifeLink CityHealth — advisory only, not a certified medical device.
+          Operational confirmation from GetMyHospital CityHealth — advisory only, not a certified medical device.
           If you did not place this request, reply to this email immediately.
         </p>
       `;
@@ -601,13 +605,13 @@ export const emailService = {
         ctaText: 'Track my bed request →',
         ctaUrl: requestsUrl,
         secondaryNote,
-        footerAppText: 'LifeLink Emergency Health Grid · Bhubaneswar',
+        footerAppText: 'GetMyHospital Emergency Health Grid · Bhubaneswar',
       });
 
       const mailOptions = {
         from: `"${fromName}" <${fromEmail}>`,
         to,
-        subject: `LifeLink · ${wardType || 'Bed'} hold at ${hospitalName || 'hospital'} — respond in 15 min`,
+        subject: `GetMyHospital · ${wardType || 'Bed'} hold at ${hospitalName || 'hospital'} — respond in 15 min`,
         html,
       };
 
@@ -631,7 +635,7 @@ export const emailService = {
    */
   async sendAbhaOtpEmail({ to, name, otp, txnId }) {
     try {
-      const fromName = config.FROM_NAME || 'LifeLink ABDM Gateway';
+      const fromName = config.FROM_NAME || 'GetMyHospital ABDM Gateway';
       const fromEmail = config.FROM_EMAIL || 'veritasco.tech@gmail.com';
 
       const contentHtml = `
@@ -639,7 +643,7 @@ export const emailService = {
           Hello <strong>${name || 'Citizen'}</strong>,
         </p>
         <p style="margin: 0 0 14px 0;">
-          Here is your 6-digit verification code to link and verify your <strong>Ayushman Bharat Health Account (ABHA)</strong> on the LifeLink Health Network:
+          Here is your 6-digit verification code to link and verify your <strong>Ayushman Bharat Health Account (ABHA)</strong> on the GetMyHospital Health Network:
         </p>
 
         <!-- Large High-Visibility OTP Box -->
@@ -667,19 +671,19 @@ export const emailService = {
       `;
 
       const html = buildFormalEmailWrapper({
-        headerLinkText: 'LifeLink Health Grid',
+        headerLinkText: 'GetMyHospital Health Grid',
         headerLinkUrl: 'http://localhost:5173',
         heroSvg: getMinimalHealthcareSvg(),
-        title: `${otp} is your LifeLink ABHA Verification Code`,
+        title: `${otp} is your GetMyHospital ABHA Verification Code`,
         contentHtml,
         secondaryNote,
-        footerAppText: 'LifeLink ABDM Digital Health Registry • National Health Authority Sandbox',
+        footerAppText: 'GetMyHospital ABDM Digital Health Registry • National Health Authority Sandbox',
       });
 
       const mailOptions = {
         from: `"${fromName}" <${fromEmail}>`,
         to,
-        subject: `${otp} is your LifeLink ABHA Verification Code`,
+        subject: `${otp} is your GetMyHospital ABHA Verification Code`,
         html,
       };
 

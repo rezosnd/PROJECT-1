@@ -10,7 +10,9 @@ import {
   AppState,
   Linking as RNLinking,
   SafeAreaView,
+  Image,
 } from 'react-native';
+import { BRAND } from '../src/lib/brand';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -18,7 +20,7 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../src/lib/auth/auth-store';
 import { typography } from '../src/theme/tokens';
-import { ArrowLeft, ShieldCheck, Activity, Lock } from 'lucide-react-native';
+import { ArrowLeft, ShieldCheck, Lock } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
@@ -176,7 +178,7 @@ export default function LoginScreen() {
       await RNLinking.openURL(bridgeUrl);
       Alert.alert(
         'Finish in browser',
-        'Complete Google Sign-In, then tap “Open LifeLink” if the app does not return automatically.'
+        'Complete Google Sign-In, then tap “Open GetMyHospital” if the app does not return automatically.'
       );
       setIsLoading(false);
     } catch (err: any) {
@@ -193,11 +195,13 @@ export default function LoginScreen() {
         </Pressable>
 
         <View style={styles.heroCard}>
-          <View style={styles.logoMark}>
-            <Activity size={22} color="#FFFFFF" strokeWidth={2.5} />
-          </View>
-          <Text style={styles.brand}>LifeLink</Text>
-          <Text style={styles.brandSub}>Emergency Health Grid</Text>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.heroLogo}
+            resizeMode="contain"
+            accessibilityLabel={BRAND.name}
+          />
+          <Text style={styles.brandSub}>{BRAND.tagline}</Text>
           <Text style={styles.heroLine}>
             Secure patient access for real-time ICU beds, ABHA linkage, and hospital triage.
           </Text>
@@ -234,7 +238,7 @@ export default function LoginScreen() {
           </Pressable>
 
           <Text style={styles.helper}>
-            If you see “Success — Opening LifeLink”, tap Tap to open LifeLink on that screen.
+            If you see “Success — Opening GetMyHospital”, tap Tap to open GetMyHospital on that screen.
           </Text>
         </View>
 
@@ -242,13 +246,13 @@ export default function LoginScreen() {
           <Text style={styles.setupTitle}>Still stuck on Success?</Text>
           <Text style={styles.setupHint}>
             Reload this Expo Go project after the API deploys, then try again. Use the black Tap to
-            open LifeLink button on the success page — do not wait on the white screen.
+            open GetMyHospital button on the success page — do not wait on the white screen.
           </Text>
         </View>
 
         <View style={styles.footer}>
-          <ShieldCheck size={14} color="#059669" />
-          <Text style={styles.footerText}>Google OAuth · short ticket · Expo Go</Text>
+          <ShieldCheck size={14} color="#3F7A1E" />
+          <Text style={styles.footerText}>{BRAND.name} · Google OAuth · Expo Go</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -275,31 +279,19 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     marginTop: 20,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#000000',
     borderRadius: 28,
     padding: 22,
   },
-  logoMark: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  brand: {
-    fontFamily: typography.fontFamilies.display,
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.6,
+  heroLogo: {
+    width: '100%',
+    height: 64,
   },
   brandSub: {
-    marginTop: 4,
-    fontSize: 11,
+    marginTop: 12,
+    fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#A8E017',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },

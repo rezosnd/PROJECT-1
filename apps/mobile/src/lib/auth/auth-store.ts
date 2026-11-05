@@ -114,7 +114,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loginAsStaff: async () => {
-    throw new Error('Staff sign-in is on the LifeLink web portal with a pre-registered Gmail.');
+    throw new Error('Staff sign-in is on the GetMyHospital web portal with a pre-registered Gmail.');
   },
 
 

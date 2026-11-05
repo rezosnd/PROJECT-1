@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../src/components/ui/Button';
 import { colors, radius, typography, spacing } from '../src/theme/tokens';
-import { Activity, ShieldCheck, ArrowRight } from 'lucide-react-native';
+import { ShieldCheck, ArrowRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { setAppLanguage } from '../src/i18n';
 import * as Haptics from 'expo-haptics';
+import { BRAND } from '../src/lib/brand';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -32,18 +33,20 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        {/* Logo Badge */}
-        <View style={styles.logoBadge}>
-          <Activity size={36} color={colors.navy} />
+        <View style={styles.logoWrap}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logoFull}
+            resizeMode="contain"
+            accessibilityLabel={BRAND.name}
+          />
         </View>
 
-        <Text style={styles.appName}>LifeLink</Text>
-        <Text style={styles.tagline}>CityHealth Emergency Grid</Text>
+        <Text style={styles.tagline}>{BRAND.tagline}</Text>
         <Text style={styles.subtitle}>
-          Real-time bed availability & diagnostic telemetry across Bhubaneswar hospitals.
+          Real-time bed availability & care matching across hospitals near you.
         </Text>
 
-        {/* Language Selection Card */}
         <View style={styles.languageSection}>
           <Text style={styles.sectionHeader}>Select Your Language / ଭାଷା ଚୟନ</Text>
           <View style={styles.langList}>
@@ -61,7 +64,7 @@ export default function SplashScreen() {
                   <Text style={[styles.langText, isSelected && styles.langTextActive]}>
                     {lang.native}
                   </Text>
-                  {isSelected && <ShieldCheck size={16} color={colors.navy} />}
+                  {isSelected && <ShieldCheck size={16} color={BRAND.colors.forest} />}
                 </Pressable>
               );
             })}
@@ -69,7 +72,6 @@ export default function SplashScreen() {
         </View>
       </View>
 
-      {/* Bottom CTA */}
       <View style={styles.footer}>
         <Button
           variant="primary"
@@ -79,7 +81,7 @@ export default function SplashScreen() {
           Continue
         </Button>
         <Text style={styles.prototypeNotice}>
-          LifeLink Emergency Health Grid • National Health Authority & ABDM Compliant
+          {BRAND.name} · National Health Authority & ABDM Compliant
         </Text>
       </View>
     </View>
@@ -89,60 +91,48 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#000000',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.screenPadding,
-    paddingTop: 80,
+    paddingTop: 72,
     paddingBottom: 40,
   },
   content: {
     alignItems: 'center',
   },
-  logoBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.surface,
+  logoWrap: {
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    marginBottom: 20,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 3,
+    marginBottom: 18,
   },
-  appName: {
-    fontFamily: typography.fontFamilies.headingBold,
-    fontSize: 34,
-    color: colors.ink,
-    letterSpacing: -0.5,
+  logoFull: {
+    width: '92%',
+    height: 88,
   },
   tagline: {
     fontFamily: typography.fontFamilies.bodyBold,
-    fontSize: typography.sizes.body,
-    color: colors.navy,
-    marginTop: 4,
+    fontSize: 11,
+    color: BRAND.colors.lime,
+    letterSpacing: 1.4,
+    textAlign: 'center',
   },
   subtitle: {
     fontFamily: typography.fontFamilies.body,
     fontSize: typography.sizes.bodySmall,
-    color: colors.muted,
+    color: '#CBD5E1',
     textAlign: 'center',
     lineHeight: 20,
     marginTop: 12,
-    maxWidth: 290,
+    maxWidth: 300,
   },
   languageSection: {
     width: '100%',
-    marginTop: 44,
+    marginTop: 40,
   },
   sectionHeader: {
     fontFamily: typography.fontFamilies.bodyBold,
     fontSize: typography.sizes.caption,
-    color: colors.muted,
+    color: '#94A3B8',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -155,24 +145,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface,
+    backgroundColor: '#111827',
     borderRadius: radius.pill,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: colors.hairline,
+    borderColor: '#1F2937',
   },
   langPillActive: {
-    borderColor: colors.navy,
-    backgroundColor: colors.blueLight,
+    borderColor: BRAND.colors.lime,
+    backgroundColor: '#0B3D1A',
   },
   langText: {
     fontFamily: typography.fontFamilies.bodyBold,
     fontSize: typography.sizes.body,
-    color: colors.ink,
+    color: '#E2E8F0',
   },
   langTextActive: {
-    color: colors.navy,
+    color: BRAND.colors.lime,
   },
   footer: {
     width: '100%',
@@ -180,9 +170,8 @@ const styles = StyleSheet.create({
   prototypeNotice: {
     fontFamily: typography.fontFamilies.body,
     fontSize: typography.sizes.badge,
-    color: colors.muted,
+    color: '#64748B',
     textAlign: 'center',
     marginTop: 14,
   },
 });
-

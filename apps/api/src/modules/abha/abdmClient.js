@@ -352,7 +352,7 @@ export class RealAbdmClient {
           txnId: `txn-sbx-${crypto.randomUUID()}`,
           message:
             'That Aadhaar was not accepted by UIDAI. Sandbox mode is on: use OTP 123456 (also emailed if your Gmail is linked). For a real OTP, enter your actual Aadhaar — UIDAI texts the Aadhaar-linked mobile.',
-          hint: 'Real ABHA OTP is sent by UIDAI to the mobile already linked with Aadhaar — not by LifeLink SMS.',
+          hint: 'Real ABHA OTP is sent by UIDAI to the mobile already linked with Aadhaar — not by GetMyHospital SMS.',
           testOtp: '123456'
         };
       }

@@ -37,7 +37,7 @@ export const ActiveUsersPanel: React.FC = () => {
         <div>
           <h2 className="text-lg font-bold font-heading text-ink">Active Registered Emails</h2>
           <p className="text-xs text-muted">
-            Every Google account that has signed into LifeLink — patients, hospital staff, and city admins.
+            Every Google account that has signed into GetMyHospital — patients, hospital staff, and city admins.
           </p>
         </div>
         <Button

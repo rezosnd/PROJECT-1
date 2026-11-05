@@ -151,7 +151,7 @@ export default function OnboardingScreen() {
         <TextInput style={[styles.input, styles.multiline]} value={medicalNotes} onChangeText={setMedicalNotes} multiline placeholder="Chronic conditions, current meds" placeholderTextColor="#94A3B8" />
 
         <Button variant="primary" onPress={submit} isLoading={isLoading} style={styles.submit}>
-          Save & continue to LifeLink
+          Save & continue to GetMyHospital
         </Button>
       </ScrollView>
     </View>

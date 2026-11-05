@@ -9,7 +9,7 @@ export const RouteErrorBoundary: React.FC = () => {
   const [showDetails, setShowDetails] = useState(false);
 
   let title = 'System Operational Interruption';
-  let message = 'An unexpected runtime error occurred within the LifeLink Emergency Health Grid.';
+  let message = 'An unexpected runtime error occurred within the GetMyHospital Emergency Health Grid.';
   let statusCode = 500;
   let details = '';
 
@@ -55,7 +55,7 @@ export const RouteErrorBoundary: React.FC = () => {
         {/* Heading & Subtitle */}
         <div className="space-y-2">
           <span className="text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-slate-100 text-slate-700">
-            LifeLink Node Error Safe-Recovery
+            GetMyHospital Node Error Safe-Recovery
           </span>
           <h1 className="text-2xl font-bold font-display text-navy tracking-tight">
             {title}

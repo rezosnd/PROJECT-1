@@ -9,7 +9,7 @@ interface MapPickerProps {
   className?: string;
 }
 
-// Custom clean SVG pin matching LifeLink design system
+// Custom clean SVG pin matching GetMyHospital design system
 const pinIcon = L.divIcon({
   className: 'custom-pin-icon',
   html: `<div style="width: 32px; height: 32px; border-radius: 50%; background: #2A2523; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25); border: 2px solid white;">

@@ -422,7 +422,7 @@ export const AddHospitalForm: React.FC<AddHospitalFormProps> = ({
         <div className="p-3 bg-blue-light/60 border border-blue/20 rounded-xl text-xs text-blue flex items-start gap-2.5">
           <Activity className="w-4 h-4 shrink-0 mt-0.5" />
           <span>
-            <strong>Automatic Ward Inventory:</strong> Upon submission, LifeLink automatically configures standard clinical ward quotas (ICU: 10 beds, HDU: 10 beds, General: 30 beds, Emergency: 15 beds, NICU: 6 beds) in the Neon PostgreSQL grid.
+            <strong>Automatic Ward Inventory:</strong> Upon submission, GetMyHospital automatically configures standard clinical ward quotas (ICU: 10 beds, HDU: 10 beds, General: 30 beds, Emergency: 15 beds, NICU: 6 beds) in the Neon PostgreSQL grid.
           </span>
         </div>
 

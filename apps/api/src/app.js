@@ -1,7 +1,11 @@
 import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import helmet from 'helmet';
 import cors from 'cors';
 import { config } from './config/index.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { traceMiddleware } from './middleware/trace.js';
 import { requestLoggerMiddleware } from './middleware/request-logger.js';
 import { rateLimiter } from './middleware/rate-limiter.js';
@@ -59,6 +63,15 @@ export function createApp() {
     windowMs: config.RATE_LIMIT_WINDOW_MS,
     prefix: 'rl:global'
   }));
+
+  // Brand assets for emails + OAuth bridge pages
+  app.use(
+    '/brand',
+    express.static(path.join(__dirname, '../public/brand'), {
+      maxAge: '7d',
+      fallthrough: true,
+    })
+  );
 
   // 6. Probes: Health and Readiness (Checks Postgres & Redis)
   app.get('/health', (req, res) => {

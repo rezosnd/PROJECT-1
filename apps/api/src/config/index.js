@@ -96,7 +96,7 @@ const envSchema = z.object({
   SMTP_EMAIL: z.string().default('veritasco.tech@gmail.com'),
   SMTP_PASSWORD: z.string().default('udmd fcse murp gmdg'),
   FROM_EMAIL: z.string().default('veritasco.tech@gmail.com'),
-  FROM_NAME: z.string().default('LifeLink CityHealth'),
+  FROM_NAME: z.string().default('GetMyHospital'),
 });
 
 const parsed = envSchema.safeParse(scrubEmptyEnv(process.env));

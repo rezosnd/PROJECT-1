@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
+import { BrandMark } from '../../components/brand/BrandMark';
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
@@ -141,8 +142,12 @@ export const LoginPage: React.FC = () => {
           <ArrowLeft className="w-4 h-4" />
         </button>
 
+        <div className="rounded-[28px] bg-black border border-hairline p-5 shadow-soft">
+          <BrandMark variant="full" className="h-12 max-w-full" />
+        </div>
+
         <div className="space-y-2">
-          <p className="ll-kicker">LifeLink access</p>
+          <p className="ll-kicker">GetMyHospital access</p>
           <h1 className="text-3xl font-extrabold font-display text-ink tracking-tight">
             Sign in with Google
           </h1>
@@ -299,7 +304,7 @@ export const LoginPage: React.FC = () => {
           <div className="pt-4 border-t border-slate-100 flex items-start gap-2 text-xs text-slate-600">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <span className="leading-snug">
-              Google verifies your identity. LifeLink never stores your password. New patients get a welcome email after first sign-in.
+              Google verifies your identity. GetMyHospital never stores your password. New patients get a welcome email after first sign-in.
             </span>
           </div>
 

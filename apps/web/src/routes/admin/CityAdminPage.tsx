@@ -137,7 +137,7 @@ export const CityAdminPage: React.FC = () => {
             <div>
               <h2 className="text-lg font-bold font-heading text-ink">Hospital Verification Queue</h2>
               <p className="text-xs text-muted">
-                Inspect facilities applying to join the LifeLink CityHealth network.
+                Inspect facilities applying to join the GetMyHospital CityHealth network.
               </p>
             </div>
           </div>

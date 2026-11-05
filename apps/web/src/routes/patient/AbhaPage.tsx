@@ -107,7 +107,7 @@ export const AbhaPage: React.FC = () => {
         title: (res as any).testOtp ? 'Sandbox OTP ready' : 'Aadhaar OTP sent by UIDAI',
         message:
           (res.message || res.hint ||
-            'OTP goes to the mobile already linked with your Aadhaar (not LifeLink SMS).') +
+            'OTP goes to the mobile already linked with your Aadhaar (not GetMyHospital SMS).') +
           sandboxHint
       });
     } catch (err: any) {

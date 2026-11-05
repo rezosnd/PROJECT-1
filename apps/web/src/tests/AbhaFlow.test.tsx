@@ -36,7 +36,7 @@ describe('AbhaCard Component', () => {
     // Modal title should appear
     expect(screen.getByText('Unlink ABHA Account')).toBeInTheDocument();
     expect(
-      screen.getByText(/Are you sure you want to unlink your ABHA identity from LifeLink/i)
+      screen.getByText(/Are you sure you want to unlink your ABHA identity from GetMyHospital/i)
     ).toBeInTheDocument();
 
     // Confirm button inside modal

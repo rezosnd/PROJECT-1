@@ -20,7 +20,7 @@ function fallbackQrUrl(profile: AbhaProfile) {
       address: profile.abhaAddress || '',
       name: profile.name || '',
       yob: profile.yearOfBirth || (profile.dob ? String(profile.dob).slice(0, 4) : ''),
-      source: 'LifeLink',
+      source: 'GetMyHospital',
     });
   return `https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data=${encodeURIComponent(payload)}`;
 }
@@ -160,7 +160,7 @@ export const AbhaCard: React.FC<AbhaCardProps> = ({ profile, onUnlink, className
         <div className="flex flex-col items-center gap-3 py-2">
           <img src={qrUri} alt="ABHA QR large" className="w-56 h-56 bg-white rounded-xl p-2 border border-hairline" />
           <p className="text-xs text-muted text-center">
-            Show this at hospital intake. QR payload is stored with your LifeLink ABHA link.
+            Show this at hospital intake. QR payload is stored with your GetMyHospital ABHA link.
           </p>
           <Button variant="outline" size="sm" onClick={() => setQrOpen(false)}>
             Close
@@ -172,7 +172,7 @@ export const AbhaCard: React.FC<AbhaCardProps> = ({ profile, onUnlink, className
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         title="Unlink ABHA Account"
-        description="Remove ABHA identity from LifeLink?"
+        description="Remove ABHA identity from GetMyHospital?"
       >
         <p className="text-xs text-muted leading-relaxed mb-4">
           Unlinking deletes your encrypted ABHA credentials and stored QR from this platform.

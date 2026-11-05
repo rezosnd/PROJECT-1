@@ -20,6 +20,7 @@ import {
   Building2,
   Clock,
 } from 'lucide-react';
+import { BrandMark } from '../brand/BrandMark';
 
 /** Use ElementType so Lucide icons type-check under tsc -b on Vercel */
 type NavItem = { to: string; label: string; icon: React.ElementType };
@@ -165,16 +166,14 @@ export const Navigation: React.FC = () => {
               to={isCityAdmin ? '/admin' : isHospital ? '/hospital' : '/'}
               className={`flex items-center gap-3 min-w-0 ${collapsed ? 'justify-center' : 'px-1'}`}
             >
-              <div className="w-10 h-10 rounded-2xl bg-ink text-white flex items-center justify-center shadow-soft shrink-0">
-                <Activity className="w-5 h-5" strokeWidth={2.5} />
-              </div>
-              {!collapsed && (
-                <div className="min-w-0">
-                  <div className="font-display text-[17px] font-extrabold text-ink leading-none">LifeLink</div>
-                  <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted mt-1 truncate">
-                    {isHospital ? 'Hospital Ops' : isCityAdmin ? 'City Command' : 'Health Grid'}
-                  </div>
-                </div>
+              {collapsed ? (
+                <BrandMark variant="mark" markClassName="w-10 h-10" />
+              ) : (
+                <BrandMark
+                  variant="wordmark"
+                  showTagline
+                  markClassName="w-10 h-10"
+                />
               )}
             </Link>
 

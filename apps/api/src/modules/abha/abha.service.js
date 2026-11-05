@@ -195,11 +195,11 @@ export const abhaService = {
       message: isSandboxTxn
         ? (result.message || 'Sandbox OTP ready. Use 123456 to continue.')
         : (result.message ||
-          'OTP sent by UIDAI to the mobile number already linked with your Aadhaar (not LifeLink email/SMS).'),
+          'OTP sent by UIDAI to the mobile number already linked with your Aadhaar (not GetMyHospital email/SMS).'),
       hint:
         result.hint ||
         (isSandboxTxn
-          ? 'Sandbox: enter 123456. A copy may also arrive on your LifeLink Gmail.'
+          ? 'Sandbox: enter 123456. A copy may also arrive on your GetMyHospital Gmail.'
           : 'Check the phone registered with Aadhaar / UIDAI for the 6-digit OTP.'),
       ...(isSandboxTxn && result.testOtp ? { testOtp: result.testOtp } : {}),
       badge: getBadge()

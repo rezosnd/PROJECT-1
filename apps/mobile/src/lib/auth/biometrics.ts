@@ -14,7 +14,7 @@ export const biometricService = {
     return elapsedSeconds > 60;
   },
 
-  async authenticateAsync(promptMessage = 'Unlock LifeLink CityHealth'): Promise<boolean> {
+  async authenticateAsync(promptMessage = 'Unlock GetMyHospital CityHealth'): Promise<boolean> {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 

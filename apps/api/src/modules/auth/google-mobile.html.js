@@ -27,7 +27,7 @@ export function renderGoogleMobileHtml({
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-  <title>LifeLink · Sign in</title>
+  <title>GetMyHospital · Sign in</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     * { box-sizing: border-box; }
@@ -47,12 +47,13 @@ export function renderGoogleMobileHtml({
       border: 1px solid #e2e8f0; border-radius: 32px; padding: 32px 28px;
       box-shadow: 0 24px 60px rgba(15,23,42,.08);
     }
-    .logo {
-      width: 52px; height: 52px; border-radius: 18px; background: #0f172a; color: #fff;
-      display: grid; place-items: center; font-weight: 800; font-size: 15px;
+    .logo-img {
+      width: 100%; max-width: 280px; height: auto; border-radius: 18px; background: #000;
+      display: block; margin: 0 auto;
     }
-    .brand { margin-top: 18px; font-size: 28px; font-weight: 800; letter-spacing: -0.04em; }
-    .sub { margin-top: 6px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #64748b; }
+    .brand { margin-top: 18px; font-size: 22px; font-weight: 800; letter-spacing: -0.04em; text-align:center; }
+    .brand span.g { color: #0B3D1A; } .brand span.h { color: #6B9A0A; }
+    .sub { margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #64748b; text-align:center; }
     .copy { margin-top: 14px; font-size: 14px; line-height: 1.55; color: #64748b; }
     #google-btn { margin-top: 22px; display: flex; justify-content: center; min-height: 44px; }
     .cta {
@@ -77,14 +78,14 @@ export function renderGoogleMobileHtml({
 </head>
 <body>
   <main class="card">
-    <div class="logo">LL</div>
-    <div class="brand">LifeLink</div>
-    <div class="sub">Patient sign-in · Expo Go</div>
-    <p class="copy">Tap the Google button below. After Google confirms, you return to LifeLink automatically.</p>
+    <img class="logo-img" src="${safeOrigin}/brand/logo.png" alt="GetMyHospital" />
+    <div class="brand"><span class="g">GetMy</span><span class="h">Hospital</span></div>
+    <div class="sub">FIND BEDS · BOOK CARE · SAVE LIVES</div>
+    <p class="copy">Tap the Google button below. After Google confirms, you return to GetMyHospital automatically.</p>
     <div id="google-btn"></div>
     <button type="button" class="cta" id="oauth-btn">Continue with Google (browser)</button>
     <button type="button" class="ghost" id="retry-btn" style="display:none">Try again</button>
-    <div id="ok" class="status ok">Signed in — returning to LifeLink…</div>
+    <div id="ok" class="status ok">Signed in — returning to GetMyHospital…</div>
     <div id="err" class="status err"></div>
     <div class="setup">
       <b>If you see Access blocked</b><br/>
@@ -137,7 +138,7 @@ export function renderGoogleMobileHtml({
       function finish(idToken) {
         if (!idToken) { showErr('No Google credential returned.'); return; }
         okEl.style.display = 'block';
-        okEl.textContent = 'Signed in — opening LifeLink…';
+        okEl.textContent = 'Signed in — opening GetMyHospital…';
         errEl.style.display = 'none';
         fetch(TICKET_API, {
           method: 'POST',
@@ -259,7 +260,7 @@ export function renderGoogleMobileCallbackHtml({
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Returning to LifeLink…</title>
+  <title>Returning to GetMyHospital…</title>
   ${primary && !err ? `<meta http-equiv="refresh" content="0;url=${primary.replace(/"/g, '').replace(/&/g, '&amp;')}" />` : ''}
   <style>
     body { margin:0; min-height:100vh; display:grid; place-items:center; background:#f8fafc; font-family:system-ui,sans-serif; color:#0f172a; padding:24px; }
@@ -281,8 +282,8 @@ export function renderGoogleMobileCallbackHtml({
 <body>
   <div class="box">
     <h1 id="title">Signing you in…</h1>
-    <p id="msg">Returning to the LifeLink app.</p>
-    <a id="open" class="btn" href="${primary.replace(/"/g, '')}" style="display:none">Tap to open LifeLink</a>
+    <p id="msg">Returning to the GetMyHospital app.</p>
+    <a id="open" class="btn" href="${primary.replace(/"/g, '')}" style="display:none">Tap to open GetMyHospital</a>
     <a id="alt" class="ghost" href="#" style="display:none">Try alternate link</a>
     <p class="hint" id="hint" style="display:none">If nothing happens, tap the button above. Keep Expo Go in recent apps.</p>
   </div>
@@ -313,7 +314,7 @@ export function renderGoogleMobileCallbackHtml({
       }
 
       title.textContent = 'Success';
-      msg.textContent = 'Opening LifeLink…';
+      msg.textContent = 'Opening GetMyHospital…';
       openBtn.href = links[0];
       openBtn.style.display = 'block';
       hint.style.display = 'block';
@@ -340,7 +341,7 @@ export function renderGoogleMobileCallbackHtml({
       tryNext();
       setTimeout(function () {
         title.textContent = 'Almost done';
-        msg.textContent = 'Tap the button to return to Expo Go / LifeLink.';
+        msg.textContent = 'Tap the button to return to Expo Go / GetMyHospital.';
       }, 1200);
     })();
   </script>

@@ -20,7 +20,7 @@ function buildQrPayload(profile: AbhaProfile) {
     yob: profile.yearOfBirth || '',
     gender: profile.gender || '',
     mobile: profile.mobile || '',
-    source: 'LifeLink',
+    source: 'GetMyHospital',
   });
 }
 
@@ -53,7 +53,7 @@ export const AbhaCardView: React.FC<AbhaCardViewProps> = ({ profile, onUnlink })
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `LifeLink ABHA\n${profile.name}\n${profile.maskedNumber}\n${profile.abhaAddress}`,
+        message: `GetMyHospital ABHA\n${profile.name}\n${profile.maskedNumber}\n${profile.abhaAddress}`,
       });
     } catch {
       /* ignore */

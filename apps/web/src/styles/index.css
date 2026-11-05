@@ -3,19 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --color-page: #F3F5F7;
+  --color-page: #F4F7F2;
   --color-surface: #FFFFFF;
   --color-card: #FFFFFF;
-  --color-card-soft: #F0F2F5;
-  --color-ink: #111111;
-  --color-muted: #6B7280;
-  --color-hairline: #E5E7EB;
-  --color-navy: #0A2540;
+  --color-card-soft: #EEF3EA;
+  --color-ink: #0A0A0A;
+  --color-muted: #5B6B5E;
+  --color-hairline: #D8E0D4;
+  --color-navy: #0B3D1A;
   --color-blue: #1D4ED8;
-  --color-teal: #0F766E;
-  --color-green: #059669;
+  --color-teal: #3F7A1E;
+  --color-green: #3F7A1E;
   --color-orange: #D97706;
   --color-red: #DC2626;
+  --color-brand-forest: #0B3D1A;
+  --color-brand-lime: #A8E017;
+  --color-brand-lime-ink: #6B9A0A;
 }
 
 @layer base {

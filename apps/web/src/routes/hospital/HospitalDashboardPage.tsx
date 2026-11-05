@@ -357,7 +357,7 @@ export const HospitalDashboardPage: React.FC = () => {
             <h3 className="text-sm font-bold text-ink mb-2">Clinical Triage Note</h3>
             <p className="text-sm text-muted leading-relaxed">
               Discharge prediction is derived from historical admission duration distributions and daily physician rounding windows.
-              In emergencies where critical bed demand surges, contact the City Health Command Center or divert triage via LifeLink dispatch.
+              In emergencies where critical bed demand surges, contact the City Health Command Center or divert triage via GetMyHospital dispatch.
             </p>
           </Card>
         </div>

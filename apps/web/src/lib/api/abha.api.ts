@@ -21,7 +21,7 @@ export interface AbhaProfile {
 }
 
 export const abhaApi = {
-  async grantConsent(purpose: string = 'LifeLink emergency bed reservations and ABDM records linkage') {
+  async grantConsent(purpose: string = 'GetMyHospital emergency bed reservations and ABDM records linkage') {
     const res = await apiClient.post('/abha/consent', { purpose });
     return res.data.data;
   },

@@ -2,29 +2,34 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'LifeLink',
-  slug: 'lifelink-cityhealth',
+  name: 'GetMyHospital',
+  slug: 'getmyhospital',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'lifelink',
   userInterfaceStyle: 'light',
+  splash: {
+    image: './assets/splash.png',
+    resizeMode: 'contain',
+    backgroundColor: '#000000',
+  },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.lifelink.cityhealth',
+    bundleIdentifier: 'com.getmyhospital.app',
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
-        'LifeLink uses your location to discover nearest hospital beds and compute accurate transit ETA in medical emergencies.',
+        'GetMyHospital uses your location to discover nearest hospital beds and compute accurate transit ETA in medical emergencies.',
       NSFaceIDUsageDescription:
-        'LifeLink uses biometric authentication to secure your health identity and reservation holds.',
+        'GetMyHospital uses biometric authentication to secure your health identity and reservation holds.',
     },
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#F3F3F3',
+      backgroundColor: '#000000',
     },
-    package: 'com.lifelink.cityhealth',
+    package: 'com.getmyhospital.app',
     permissions: [
       'ACCESS_COARSE_LOCATION',
       'ACCESS_FINE_LOCATION',
@@ -41,14 +46,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-location',
       {
         locationWhenInUsePermission:
-          'LifeLink uses your location to discover nearest hospital beds and compute accurate transit ETA in medical emergencies.',
+          'GetMyHospital uses your location to discover nearest hospital beds and compute accurate transit ETA in medical emergencies.',
       },
     ],
     [
       'expo-build-properties',
       {
         android: {
-          // Allows cleartext HTTP traffic to local PC LAN IP during development builds
           usesCleartextTraffic: true,
         },
       },
@@ -66,4 +70,3 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     useMocks: false,
   },
 });
-
