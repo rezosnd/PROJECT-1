@@ -7,13 +7,18 @@ import { googleAuthSchema, refreshTokenSchema, logoutSchema, completeProfileSche
 import {
   renderGoogleMobileHtml,
   renderGoogleMobileCallbackHtml,
-  decodeGoogleMobileState,
 } from './google-mobile.html.js';
 import {
   createMobileOAuthTicket,
   redeemMobileOAuthTicket,
   buildMobileDeepLinks,
 } from './oauth-mobile-ticket.js';
+import {
+  createCodeVerifier,
+  createCodeChallenge,
+  createMobileOAuthSession,
+  consumeMobileOAuthSession,
+} from './oauth-mobile-session.js';
 import { config } from '../../config/index.js';
 import { logger } from '../../infra/logger.js';
 import adminRoutes from '../admin/admin.routes.js';
@@ -22,9 +27,19 @@ import { GOOGLE_AUTH_PUBLIC_ORIGIN, resolveGoogleAuthOrigin } from './auth-origi
 const router = Router();
 const authLimiter = rateLimiter({ max: 20, windowMs: 60000, prefix: 'rl:auth' });
 
+const REDIRECT_PATH = '/api/v1/auth/google/mobile-callback';
+
 /** Always the production alias for Google OAuth (never preview/LAN host). */
 function publicApiOrigin() {
   return resolveGoogleAuthOrigin(config.PUBLIC_API_ORIGIN || GOOGLE_AUTH_PUBLIC_ORIGIN);
+}
+
+function googleClientId() {
+  return config.GOOGLE_WEB_CLIENT_ID || config.GOOGLE_CLIENT_ID || '';
+}
+
+function exactRedirectUri() {
+  return `${publicApiOrigin()}${REDIRECT_PATH}`;
 }
 
 function sendBridgeHtml(res, html) {
@@ -46,7 +61,7 @@ function sendBridgeHtml(res, html) {
 }
 
 async function exchangeGoogleAuthCode({ code, codeVerifier, redirectUri }) {
-  const clientId = config.GOOGLE_WEB_CLIENT_ID || config.GOOGLE_CLIENT_ID;
+  const clientId = googleClientId();
   const body = new URLSearchParams({
     code: String(code),
     client_id: String(clientId),
@@ -54,7 +69,9 @@ async function exchangeGoogleAuthCode({ code, codeVerifier, redirectUri }) {
     grant_type: 'authorization_code',
   });
   if (codeVerifier) body.set('code_verifier', String(codeVerifier));
-  if (config.GOOGLE_CLIENT_SECRET) body.set('client_secret', String(config.GOOGLE_CLIENT_SECRET));
+  if (config.GOOGLE_CLIENT_SECRET) {
+    body.set('client_secret', String(config.GOOGLE_CLIENT_SECRET));
+  }
 
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -85,22 +102,136 @@ async function sendSuccessHandoff(res, { idToken, returnUrl, scheme }) {
   );
 }
 
-// Expo Go bridge — starts auth-code + PKCE against HTTPS redirect URI
+function buildGoogleAuthorizeUrl({ clientId, redirectUri, challenge, state }) {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    state,
+    prompt: 'select_account',
+    access_type: 'online',
+    include_granted_scopes: 'true',
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+/**
+ * Diagnostic — confirms exact Google Console values the API uses.
+ * Open: https://project1-api.vercel.app/api/v1/auth/google/mobile-config
+ */
+router.get('/google/mobile-config', (_req, res) => {
+  const origin = publicApiOrigin();
+  const clientId = googleClientId();
+  const redirectUri = exactRedirectUri();
+  res.json({
+    success: true,
+    data: {
+      oauthClientType: 'Web application',
+      clientId,
+      javascriptOrigins: [origin],
+      redirectUris: [redirectUri],
+      exactRedirectUri: redirectUri,
+      hasClientSecret: Boolean(config.GOOGLE_CLIENT_SECRET),
+      publicApiOrigin: origin,
+      ready: Boolean(clientId && config.GOOGLE_CLIENT_SECRET && !String(clientId).startsWith('mock-')),
+      checklist: [
+        'Google Cloud → APIs & Services → Credentials → your Web client',
+        `Authorized JavaScript origins → add exactly: ${origin}`,
+        `Authorized redirect URIs → add exactly: ${redirectUri}`,
+        'OAuth consent screen → Audience/Testing → add your Gmail as Test user',
+        'Vercel env GOOGLE_CLIENT_ID / GOOGLE_WEB_CLIENT_ID = that Web client ID',
+        'Vercel env GOOGLE_CLIENT_SECRET = that Web client secret (required)',
+        'Wait 1–5 minutes after saving Google Console, then retry',
+      ],
+    },
+  });
+});
+
+/**
+ * Expo Go entry — server builds PKCE, stores session, 302 → Google.
+ * Avoids client-side state corruption that caused Google "Bad Request".
+ */
+router.get('/google/mobile-start', async (req, res) => {
+  const clientId = googleClientId();
+  const redirectUri = exactRedirectUri();
+  const scheme = String(req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
+  const returnUrl = typeof req.query.return_url === 'string' ? req.query.return_url : '';
+
+  if (!clientId || String(clientId).startsWith('mock-')) {
+    return sendBridgeHtml(
+      res,
+      renderGoogleMobileCallbackHtml({
+        redirectScheme: scheme,
+        returnUrl,
+        error: 'missing_client_id',
+        errorDetail:
+          'GOOGLE_CLIENT_ID is missing on the API. Set the Web client ID on Vercel, then retry.',
+      })
+    );
+  }
+
+  if (!config.GOOGLE_CLIENT_SECRET) {
+    return sendBridgeHtml(
+      res,
+      renderGoogleMobileCallbackHtml({
+        redirectScheme: scheme,
+        returnUrl,
+        error: 'missing_client_secret',
+        errorDetail:
+          'GOOGLE_CLIENT_SECRET is missing on Vercel. Copy the Web client secret from Google Cloud → Credentials into Vercel env, redeploy, then retry.',
+      })
+    );
+  }
+
+  try {
+    const verifier = createCodeVerifier();
+    const challenge = createCodeChallenge(verifier);
+    const state = await createMobileOAuthSession({
+      codeVerifier: verifier,
+      returnUrl,
+      scheme,
+    });
+    const url = buildGoogleAuthorizeUrl({
+      clientId,
+      redirectUri,
+      challenge,
+      state,
+    });
+    res.setHeader('Cache-Control', 'no-store');
+    return res.redirect(302, url);
+  } catch (err) {
+    logger.warn({ err: err.message }, '[Google Mobile] start failed');
+    return sendBridgeHtml(
+      res,
+      renderGoogleMobileCallbackHtml({
+        redirectScheme: scheme,
+        returnUrl,
+        error: 'start_failed',
+        errorDetail: err.message || 'Could not start Google sign-in.',
+      })
+    );
+  }
+});
+
+// Bridge page (GIS button + manual start) — Expo prefers /google/mobile-start
 router.get('/google/mobile', (req, res) => {
   const origin = publicApiOrigin();
   const scheme = String(req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
   const returnUrl = typeof req.query.return_url === 'string' ? req.query.return_url : '';
-  // Expo Go: do not auto-jump into Google (shows "request is invalid" if URI not set yet)
   const autoStart = req.query.auto === '1';
   sendBridgeHtml(
     res,
     renderGoogleMobileHtml({
-      clientId: config.GOOGLE_WEB_CLIENT_ID || config.GOOGLE_CLIENT_ID,
+      clientId: googleClientId(),
       redirectScheme: scheme,
       origin,
       returnUrl,
       autoStart,
       hasClientSecret: Boolean(config.GOOGLE_CLIENT_SECRET),
+      startUrl: `${origin}/api/v1/auth/google/mobile-start`,
     })
   );
 });
@@ -164,11 +295,15 @@ router.get('/google/mobile-ticket/:ticket', authLimiter, async (req, res) => {
  * Server exchanges code → id_token, stores short ticket, deep-links back to Expo Go.
  */
 router.get('/google/mobile-callback', async (req, res) => {
-  const origin = publicApiOrigin();
-  const redirectUri = `${origin}/api/v1/auth/google/mobile-callback`;
-  const state = decodeGoogleMobileState(req.query.state);
-  const returnUrl = state?.return_url || (typeof req.query.return_url === 'string' ? req.query.return_url : '');
-  const scheme = String(state?.scheme || req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
+  const redirectUri = exactRedirectUri();
+  const stateId = typeof req.query.state === 'string' ? req.query.state : '';
+  const session = stateId ? await consumeMobileOAuthSession(stateId) : null;
+  const returnUrl =
+    session?.returnUrl ||
+    (typeof req.query.return_url === 'string' ? req.query.return_url : '');
+  const scheme =
+    String(session?.scheme || req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') ||
+    'lifelink';
 
   if (req.query.error) {
     return sendBridgeHtml(
@@ -215,10 +350,36 @@ router.get('/google/mobile-callback', async (req, res) => {
     );
   }
 
+  if (!session?.codeVerifier) {
+    return sendBridgeHtml(
+      res,
+      renderGoogleMobileCallbackHtml({
+        redirectScheme: scheme,
+        returnUrl,
+        error: 'session_expired',
+        errorDetail:
+          'Sign-in session expired or was already used. Close the browser and tap Continue with Google again.',
+      })
+    );
+  }
+
+  if (!config.GOOGLE_CLIENT_SECRET) {
+    return sendBridgeHtml(
+      res,
+      renderGoogleMobileCallbackHtml({
+        redirectScheme: scheme,
+        returnUrl,
+        error: 'missing_client_secret',
+        errorDetail:
+          'GOOGLE_CLIENT_SECRET is missing on Vercel. Add the Web client secret, redeploy, then retry.',
+      })
+    );
+  }
+
   try {
     const tokens = await exchangeGoogleAuthCode({
       code,
-      codeVerifier: state?.code_verifier,
+      codeVerifier: session.codeVerifier,
       redirectUri,
     });
     const idToken = tokens.id_token;
@@ -228,16 +389,19 @@ router.get('/google/mobile-callback', async (req, res) => {
     return await sendSuccessHandoff(res, { idToken, returnUrl, scheme });
   } catch (err) {
     logger.warn({ err: err.message, payload: err.payload }, '[Google Mobile] code exchange failed');
-    const hint = !config.GOOGLE_CLIENT_SECRET
-      ? ' Set GOOGLE_CLIENT_SECRET on Vercel (Web client secret from Google Cloud).'
-      : '';
+    const detail = [
+      err.message || 'Token exchange failed',
+      `Redirect URI must be exactly: ${redirectUri}`,
+      'Confirm Web client secret matches GOOGLE_CLIENT_SECRET on Vercel.',
+      'Add your Gmail as a Test user on the OAuth consent screen.',
+    ].join(' ');
     return sendBridgeHtml(
       res,
       renderGoogleMobileCallbackHtml({
         redirectScheme: scheme,
         returnUrl,
         error: 'token_exchange_failed',
-        errorDetail: `${err.message}.${hint} Also confirm redirect URI is exactly ${redirectUri}`,
+        errorDetail: detail,
       })
     );
   }

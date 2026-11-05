@@ -28,9 +28,13 @@ Copy from local `apps/api/.env` at minimum:
 | `ABDM_*` | Same as local |
 | `CLOUDINARY_*` / `SMTP_*` | Same as local |
 
-## 3. Google Console + Expo Go (fixes “Access blocked / request is invalid”)
+## 3. Google Console + Expo Go (fixes “Bad Request / sign-in blocked”)
 
-Mobile login uses **authorization code + PKCE** (not `id_token` implicit).
+Expo opens **`/api/v1/auth/google/mobile-start`** (server PKCE) → Google →
+**`/api/v1/auth/google/mobile-callback`** → short ticket → deep link into Expo Go.
+
+Verify live config: `https://project1-api.vercel.app/api/v1/auth/google/mobile-config`
+(`hasClientSecret` must be `true`, `ready` must be `true`).
 
 Web client → add:
 
@@ -42,9 +46,9 @@ Web client → add:
 
 **OAuth consent → Testing** → add your Gmail as a **Test user**.
 
-**Vercel → Environment variables**
-- `GOOGLE_WEB_CLIENT_ID` = Web client ID
-- `GOOGLE_CLIENT_SECRET` = Web client **secret** (required for code→token exchange)
+**Vercel → Environment variables** (must match that same Web client)
+- `GOOGLE_CLIENT_ID` / `GOOGLE_WEB_CLIENT_ID` = Web client ID
+- `GOOGLE_CLIENT_SECRET` = Web client **secret** (required — missing secret → Google “Bad Request”)
 - `PUBLIC_API_ORIGIN` = `https://project1-api.vercel.app`
 
 Do **not** add LAN IPs or `exp://` URLs in Google Console.

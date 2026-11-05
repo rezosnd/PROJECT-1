@@ -1,9 +1,8 @@
 /**
  * Expo Go Google Sign-In bridge (HTTPS on project1-api.vercel.app).
  *
- * After Google succeeds we mint a SHORT one-time ticket (not the JWT id_token).
- * Putting id_token in the deep link makes Android Custom Tabs hang on
- * "Success / Opening LifeLink…" and never hand off to Expo Go.
+ * Preferred path: /google/mobile-start (server PKCE) → Google → mobile-callback → short ticket.
+ * GIS button is a backup that only needs JS origin (no client secret).
  */
 export function renderGoogleMobileHtml({
   clientId,
@@ -12,6 +11,7 @@ export function renderGoogleMobileHtml({
   returnUrl = '',
   autoStart = false,
   hasClientSecret = false,
+  startUrl = '',
 }) {
   const safeClientId = String(clientId || '').replace(/"/g, '');
   const safeScheme = String(redirectScheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '');
@@ -19,6 +19,9 @@ export function renderGoogleMobileHtml({
   const safeReturn = String(returnUrl || '').replace(/"/g, '');
   const redirectUri = `${safeOrigin}/api/v1/auth/google/mobile-callback`;
   const ticketApi = `${safeOrigin}/api/v1/auth/google/mobile-ticket`;
+  const safeStart =
+    String(startUrl || `${safeOrigin}/api/v1/auth/google/mobile-start`).replace(/"/g, '') ||
+    `${safeOrigin}/api/v1/auth/google/mobile-start`;
   const auto = autoStart ? '1' : '0';
   const secretReady = hasClientSecret ? '1' : '0';
 
@@ -81,32 +84,31 @@ export function renderGoogleMobileHtml({
     <img class="logo-img" src="${safeOrigin}/brand/logo.png" alt="GetMyHospital" />
     <div class="brand"><span class="g">GetMy</span><span class="h">Hospital</span></div>
     <div class="sub">FIND BEDS · BOOK CARE · SAVE LIVES</div>
-    <p class="copy">Tap the Google button below. After Google confirms, you return to GetMyHospital automatically.</p>
+    <p class="copy">Tap Continue with Google. After Google confirms, you return to GetMyHospital automatically.</p>
     <div id="google-btn"></div>
-    <button type="button" class="cta" id="oauth-btn">Continue with Google (browser)</button>
+    <button type="button" class="cta" id="oauth-btn">Continue with Google</button>
     <button type="button" class="ghost" id="retry-btn" style="display:none">Try again</button>
     <div id="ok" class="status ok">Signed in — returning to GetMyHospital…</div>
     <div id="err" class="status err"></div>
     <div class="setup">
-      <b>If you see Access blocked</b><br/>
-      1) Google Cloud → Web client → <b>JavaScript origins</b>:<br/>
-      <code>${safeOrigin}</code><br/>
-      2) <b>Redirect URI</b>:<br/>
-      <code>${redirectUri}</code><br/>
-      3) Consent → Testing → add your Gmail as <b>Test user</b><br/>
-      4) Vercel env <code>GOOGLE_CLIENT_SECRET</code> = Web client secret
-      ${secretReady === '1' ? '' : '<br/><b style="color:#b91c1c">Client secret not detected on API yet.</b>'}
+      <b>Still blocked?</b><br/>
+      Web OAuth client only. Add exactly:<br/>
+      Origin <code>${safeOrigin}</code><br/>
+      Redirect <code>${redirectUri}</code><br/>
+      Test user = your Gmail · Vercel needs <code>GOOGLE_CLIENT_SECRET</code>
+      ${secretReady === '1' ? '' : '<br/><br/><b style="color:#b91c1c">Client secret not detected on API yet.</b>'}
     </div>
-    <p class="hint">Short ticket handoff · ${safeOrigin}</p>
+    <p class="hint">Secure server PKCE · Expo Go</p>
   </main>
   <script>
     (function () {
       var CLIENT_ID = "${safeClientId}";
       var SCHEME = "${safeScheme}";
       var RETURN_URL = "${safeReturn}";
-      var REDIRECT_URI = "${redirectUri}";
       var TICKET_API = "${ticketApi}";
+      var START_URL = "${safeStart}";
       var AUTO = "${auto}" === "1";
+      var SECRET_READY = "${secretReady}" === "1";
       var btn = document.getElementById('oauth-btn');
       var retry = document.getElementById('retry-btn');
       var okEl = document.getElementById('ok');
@@ -158,46 +160,21 @@ export function renderGoogleMobileHtml({
         });
       }
 
-      function b64url(bytes) {
-        var str = '';
-        bytes.forEach(function (b) { str += String.fromCharCode(b); });
-        return btoa(str).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
-      }
-      function randomBytes(n) {
-        var a = new Uint8Array(n);
-        crypto.getRandomValues(a);
-        return a;
-      }
-      function sha256(plain) {
-        return crypto.subtle.digest('SHA-256', new TextEncoder().encode(plain)).then(function (buf) {
-          return b64url(new Uint8Array(buf));
-        });
-      }
-
       function startOauth() {
         if (!CLIENT_ID) { showErr('Google client ID missing on API.'); return; }
+        if (!SECRET_READY) {
+          showErr('GOOGLE_CLIENT_SECRET missing on API. Set it on Vercel (Web client secret), redeploy, then retry. Or use the Google button above if it loads.');
+          return;
+        }
         btn.disabled = true;
         okEl.style.display = 'block';
         okEl.textContent = 'Opening Google securely…';
         errEl.style.display = 'none';
-        var verifier = b64url(randomBytes(32));
-        sha256(verifier).then(function (challenge) {
-          var stateObj = { return_url: RETURN_URL, scheme: SCHEME, code_verifier: verifier, v: 2 };
-          var state = btoa(unescape(encodeURIComponent(JSON.stringify(stateObj))))
-            .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
-          var url = 'https://accounts.google.com/o/oauth2/v2/auth'
-            + '?client_id=' + encodeURIComponent(CLIENT_ID)
-            + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
-            + '&response_type=code'
-            + '&scope=' + encodeURIComponent('openid email profile')
-            + '&code_challenge=' + encodeURIComponent(challenge)
-            + '&code_challenge_method=S256'
-            + '&state=' + encodeURIComponent(state)
-            + '&prompt=select_account';
-          window.location.href = url;
-        }).catch(function (e) {
-          showErr((e && e.message) || 'Could not start secure Google login.');
-        });
+        var url = START_URL
+          + (START_URL.indexOf('?') >= 0 ? '&' : '?')
+          + 'scheme=' + encodeURIComponent(SCHEME)
+          + '&return_url=' + encodeURIComponent(RETURN_URL);
+        window.location.href = url;
       }
 
       function bootGis() {
@@ -219,14 +196,14 @@ export function renderGoogleMobileHtml({
             theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: 320
           });
         } catch (e) {
-          showErr('Google button failed to load. Use “Continue with Google (browser)”.');
+          /* GIS optional — server PKCE button still works */
         }
       }
 
       btn.addEventListener('click', startOauth);
       retry.addEventListener('click', startOauth);
       bootGis();
-      if (AUTO) setTimeout(startOauth, 500);
+      if (AUTO) setTimeout(startOauth, 300);
     })();
   </script>
 </body>
@@ -245,7 +222,10 @@ export function renderGoogleMobileCallbackHtml({
   const safeTicket = String(ticket || '').replace(/[^a-f0-9]/gi, '');
   const safeReturn = String(returnUrl || '').replace(/"/g, '');
   const err = String(error || '').replace(/"/g, '');
-  const detail = String(errorDetail || '').replace(/"/g, '');
+  const detail = String(errorDetail || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/"/g, '&quot;');
   const links = Array.isArray(deepLinks) ? deepLinks.filter(Boolean) : [];
   if (safeTicket && !links.length) {
     const q = `ticket=${safeTicket}`;
@@ -289,12 +269,10 @@ export function renderGoogleMobileCallbackHtml({
   </div>
   <script>
     (function () {
-      var SCHEME = "${safeScheme}";
-      var RETURN_URL = "${safeReturn}";
+      var links = ${linksJson};
       var ticket = "${safeTicket}";
       var error = "${err}";
       var detail = "${detail}";
-      var links = ${linksJson};
       var title = document.getElementById('title');
       var msg = document.getElementById('msg');
       var openBtn = document.getElementById('open');
@@ -302,9 +280,9 @@ export function renderGoogleMobileCallbackHtml({
       var hint = document.getElementById('hint');
 
       if (error) {
-        title.textContent = 'Google sign-in blocked';
+        title.textContent = 'Google sign-in failed';
         title.className = 'err';
-        msg.innerHTML = (detail || error) + '<br/><br/>Add JS origin + redirect URI + Test user in Google Cloud, then retry.';
+        msg.innerHTML = detail || error;
         return;
       }
       if (!ticket || !links.length) {
@@ -329,13 +307,6 @@ export function renderGoogleMobileCallbackHtml({
         var url = links[i++];
         openBtn.href = url;
         try { window.location.href = url; } catch (e) {}
-        try {
-          var iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = url;
-          document.body.appendChild(iframe);
-          setTimeout(function () { try { document.body.removeChild(iframe); } catch (e) {} }, 800);
-        } catch (e) {}
         setTimeout(tryNext, 500);
       }
       tryNext();
@@ -347,19 +318,4 @@ export function renderGoogleMobileCallbackHtml({
   </script>
 </body>
 </html>`;
-}
-
-export function decodeGoogleMobileState(state) {
-  if (!state) return null;
-  try {
-    let s = String(state).replace(/-/g, '+').replace(/_/g, '/');
-    while (s.length % 4) s += '=';
-    return JSON.parse(decodeURIComponent(escape(Buffer.from(s, 'base64').toString('utf8'))));
-  } catch {
-    try {
-      return JSON.parse(decodeURIComponent(escape(atob(String(state)))));
-    } catch {
-      return null;
-    }
-  }
 }

@@ -72,13 +72,13 @@ export default function LoginScreen() {
   const finishingRef = useRef(false);
 
   const returnUrl = useMemo(() => Linking.createURL('oauth'), []);
+  /** Server PKCE start — avoids client-side state that caused Google "Bad Request". */
   const bridgeUrl = useMemo(() => {
     const params = new URLSearchParams({
       scheme: 'lifelink',
       return_url: returnUrl,
-      auto: '0',
     });
-    return `${AUTH_BRIDGE_ORIGIN}/api/v1/auth/google/mobile?${params.toString()}`;
+    return `${AUTH_BRIDGE_ORIGIN}/api/v1/auth/google/mobile-start?${params.toString()}`;
   }, [returnUrl]);
 
   useEffect(() => {
@@ -243,9 +243,9 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.setupBox}>
-          <Text style={styles.setupTitle}>Blue “Something went wrong”?</Text>
+          <Text style={styles.setupTitle}>If Google fails</Text>
           <Text style={styles.setupHint}>
-            Reload this Expo project (shake → Reload) so the new /oauth handoff route is installed, then try Google again.
+            Reload Expo (shake → Reload), then try again. After Success, tap Open GetMyHospital if the app does not return automatically.
           </Text>
         </View>
 
