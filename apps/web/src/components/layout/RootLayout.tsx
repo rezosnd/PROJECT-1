@@ -23,6 +23,20 @@ export const RootLayout: React.FC = () => {
     }
   }, [isAuthenticated, user, location.pathname, navigate]);
 
+  const isAuthChromeFree =
+    location.pathname === '/login' || location.pathname === '/onboarding';
+
+  if (isAuthChromeFree) {
+    return (
+      <div className="ll-shell min-h-screen antialiased">
+        <OfflineBanner />
+        <main id="main-content" tabIndex={-1} className="min-h-screen focus:outline-none">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="ll-shell flex flex-col antialiased">
       <OfflineBanner />
