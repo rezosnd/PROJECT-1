@@ -13,7 +13,8 @@ function cleanMemoryBuckets() {
     }
   }
 }
-setInterval(cleanMemoryBuckets, 60000).unref();
+const _rlCleanup = setInterval(cleanMemoryBuckets, 60000);
+if (typeof _rlCleanup.unref === 'function') _rlCleanup.unref();
 
 /**
  * Distributed Systems Note: Coordinated Rate Limiting with Degraded Fallback.
