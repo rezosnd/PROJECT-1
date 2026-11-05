@@ -73,6 +73,8 @@ function statusLabel(status: string) {
       return 'Confirmed';
     case 'ADMITTED':
       return 'Admitted';
+    case 'DISCHARGED':
+      return 'Left hospital';
     case 'REJECTED':
       return 'Declined';
     case 'EXPIRED':
@@ -86,6 +88,10 @@ function statusLabel(status: string) {
 
 function isBooked(status: string) {
   return status === 'APPROVED' || status === 'ADMITTED';
+}
+
+function isLeft(status: string) {
+  return status === 'DISCHARGED';
 }
 
 function isHoldActive(status: string) {
@@ -109,13 +115,14 @@ function RequestCard({
 }) {
   const booked = isBooked(req.status);
   const holding = isHoldActive(req.status);
+  const left = isLeft(req.status);
 
   return (
     <Pressable
       onPress={onOpenDetail}
       style={({ pressed }) => [
         styles.requestCard,
-        { backgroundColor: color },
+        { backgroundColor: left ? '#E0F2FE' : color },
         pressed && { transform: [{ scale: 0.985 }], opacity: 0.96 },
       ]}
     >
@@ -133,8 +140,15 @@ function RequestCard({
             </Text>
           </View>
         </View>
-        <View style={[styles.statusPill, booked && styles.statusPillBooked, holding && styles.statusPillHold]}>
-          <Text style={[styles.statusText, booked && styles.statusTextBooked]}>
+        <View
+          style={[
+            styles.statusPill,
+            booked && styles.statusPillBooked,
+            holding && styles.statusPillHold,
+            left && styles.statusPillLeft,
+          ]}
+        >
+          <Text style={[styles.statusText, (booked || left) && styles.statusTextBooked]}>
             {statusLabel(req.status)}
           </Text>
         </View>
@@ -166,7 +180,20 @@ function RequestCard({
         {booked ? (
           <View style={styles.confirmedBanner}>
             <Check size={14} color="#065F46" strokeWidth={3} />
-            <Text style={styles.confirmedText}>Hospital confirmed your bed — head there now</Text>
+            <Text style={styles.confirmedText}>
+              {req.status === 'ADMITTED'
+                ? 'You are admitted — hospital can mark leave when you go'
+                : 'Hospital confirmed your bed — head there now'}
+            </Text>
+          </View>
+        ) : null}
+
+        {left ? (
+          <View style={styles.leftBanner}>
+            <Check size={14} color="#0369A1" strokeWidth={3} />
+            <Text style={styles.leftBannerText}>
+              You left the hospital — bed was released back to the ward
+            </Text>
           </View>
         ) : null}
 
@@ -428,6 +455,9 @@ const styles = StyleSheet.create({
   statusPillHold: {
     backgroundColor: '#FFFFFF',
   },
+  statusPillLeft: {
+    backgroundColor: '#0369A1',
+  },
   statusText: {
     fontSize: 11,
     fontWeight: '800',
@@ -500,6 +530,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#065F46',
+  },
+  leftBanner: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F0F9FF',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  leftBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0369A1',
   },
   note: {
     marginTop: 10,

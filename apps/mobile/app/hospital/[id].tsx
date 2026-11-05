@@ -61,10 +61,19 @@ export default function HospitalDetailScreen() {
     queryFn: () => forecastApi.getForecast(hospitalId, 'ICU'),
   });
 
-  const doctorName = hospital?.doctorName || 'Dr. Shah';
-  const doctorSpecialty = hospital?.doctorSpecialty || 'Cardiologist';
-  const doctorFee = hospital?.doctorFee || 1500;
-  const heroImage = hospital?.doctorHeroImage || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=800&q=80';
+  const hospitalName = hospital?.name || 'Hospital';
+  const hospitalType = hospital?.type || hospital?.specialties?.[0] || 'Emergency care';
+  const freeBeds = wards.reduce((sum, w) => {
+    const free =
+      typeof w.free === 'number'
+        ? w.free
+        : Math.max(0, w.total - (w.occupied + w.reserved + w.cleaning + w.maintenance));
+    return sum + free;
+  }, 0);
+  const heroImage =
+    hospital?.photoUrl ||
+    hospital?.doctorHeroImage ||
+    'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=900&q=80';
   const cardColor = hospital?.cardColor || colors.cardYellow;
 
   const handleOpenRequest = (wardType = 'ICU') => {
@@ -124,40 +133,32 @@ export default function HospitalDetailScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* DOCTOR HERO PORTRAIT */}
         <View style={styles.heroWrapper}>
-          <Image
-            source={{ uri: heroImage }}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
+          <Image source={{ uri: heroImage }} style={styles.heroImage} resizeMode="cover" />
           <View style={styles.heroOverlayGradient} />
         </View>
 
-        {/* BOTTOM SHEET / CARD MATCHING REFERENCE SCREEN */}
         <View style={[styles.bottomCard, { backgroundColor: cardColor }]}>
-          {/* Top Sheet Handle */}
           <View style={styles.handleBar} />
 
-          {/* DOCTOR & PRICE HEADER ROW */}
           <View style={styles.headerRow}>
-            <Pressable
-              onPress={() => router.push('/doctor/doc-002' as any)}
-              style={styles.doctorIdentityRow}
-              accessibilityLabel="View full doctor profile"
-            >
+            <View style={styles.doctorIdentityRow}>
               <View style={styles.specialtyCircle}>
                 <Heart size={20} color="#111111" strokeWidth={2.2} />
               </View>
               <View style={styles.doctorInfoText}>
-                <Text style={styles.doctorTitleText}>{doctorName}</Text>
-                <Text style={styles.doctorSpecialtyText}>{doctorSpecialty}</Text>
+                <Text style={styles.doctorTitleText} numberOfLines={2}>
+                  {hospitalName}
+                </Text>
+                <Text style={styles.doctorSpecialtyText} numberOfLines={1}>
+                  {hospitalType}
+                </Text>
               </View>
-            </Pressable>
+            </View>
 
             <View style={styles.priceContainer}>
-              <Text style={styles.priceAmount}>₹ {doctorFee.toFixed(2)}</Text>
-              <Text style={styles.priceSubtext}>+GST</Text>
+              <Text style={styles.priceAmount}>{freeBeds}</Text>
+              <Text style={styles.priceSubtext}>beds free</Text>
             </View>
           </View>
 

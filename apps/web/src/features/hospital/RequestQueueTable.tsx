@@ -9,6 +9,7 @@ import {
   Check,
   X,
   UserCheck,
+  LogOut,
   Zap,
   Radio,
   Phone,
@@ -77,8 +78,10 @@ const STATUS_ORDER: Record<string, number> = {
   PENDING: 0,
   APPROVED: 1,
   ADMITTED: 2,
-  REJECTED: 3,
-  EXPIRED: 4,
+  DISCHARGED: 3,
+  REJECTED: 4,
+  EXPIRED: 5,
+  CANCELLED: 6,
 };
 
 export const RequestQueueTable: React.FC<RequestQueueTableProps> = ({
@@ -142,14 +145,28 @@ export const RequestQueueTable: React.FC<RequestQueueTableProps> = ({
     return () => window.clearTimeout(t);
   }, [requests, soundEnabled]);
 
-  const handleDecision = async (id: string, decision: 'APPROVED' | 'REJECTED' | 'ADMITTED') => {
+  const handleDecision = async (
+    id: string,
+    decision: 'APPROVED' | 'REJECTED' | 'ADMITTED' | 'DISCHARGED'
+  ) => {
     setProcessingId(id);
     try {
       await bedsApi.decideBedRequest(id, decision);
       addToast({
-        type: decision === 'APPROVED' ? 'success' : decision === 'ADMITTED' ? 'info' : 'warning',
-        title: `Request ${decision.toLowerCase()}`,
-        message: 'Patient bed request updated.',
+        type:
+          decision === 'APPROVED' || decision === 'DISCHARGED'
+            ? 'success'
+            : decision === 'ADMITTED'
+              ? 'info'
+              : 'warning',
+        title:
+          decision === 'DISCHARGED'
+            ? 'Patient left — bed freed'
+            : `Request ${decision.toLowerCase()}`,
+        message:
+          decision === 'DISCHARGED'
+            ? 'Occupied bed released. Patient request marked as left.'
+            : 'Patient bed request updated.',
       });
       onDecided?.();
     } catch (err: any) {
@@ -253,10 +270,12 @@ export const RequestQueueTable: React.FC<RequestQueueTableProps> = ({
                               ? 'bg-[#A8E017]/25 text-[#0B3D1A] border-[#A8E017]/40'
                               : r.status === 'ADMITTED'
                                 ? 'bg-[#0B3D1A]/10 text-[#0B3D1A] border-[#0B3D1A]/15'
+                                : r.status === 'DISCHARGED'
+                                  ? 'bg-sky-50 text-sky-800 border-sky-200'
                                 : 'bg-white/60 text-muted border-white/70'
                         }`}
                       >
-                        {r.status}
+                        {r.status === 'DISCHARGED' ? 'LEFT' : r.status}
                       </span>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -360,6 +379,18 @@ export const RequestQueueTable: React.FC<RequestQueueTableProps> = ({
                       >
                         <UserCheck className="w-3.5 h-3.5" />
                         Admit
+                      </button>
+                    )}
+
+                    {r.status === 'ADMITTED' && (
+                      <button
+                        type="button"
+                        disabled={isProcessing}
+                        onClick={() => handleDecision(r.id, 'DISCHARGED')}
+                        className="h-10 px-3.5 rounded-xl bg-[#0B3D1A] text-[#A8E017] text-xs font-extrabold inline-flex items-center gap-1.5 hover:brightness-110 disabled:opacity-50 transition"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Patient left
                       </button>
                     )}
                   </div>

@@ -21,14 +21,15 @@ export const HospitalResultCard: React.FC<HospitalResultCardProps> = ({
   const { t } = useTranslation();
   const { hospital, matchedWard } = item;
 
-  // Alternate lime green and yellow to match the reference design perfectly
   const cardBg = hospital.cardColor || (index % 2 === 0 ? colors.cardLime : colors.cardYellow);
 
-  const doctorName = hospital.doctorName || 'Dr. Specialist';
-  const doctorSpecialty = hospital.doctorSpecialty || hospital.specialties?.[0] || 'Critical Care Lead';
-  const doctorFee = hospital.doctorFee || 1200;
-  const rating = hospital.doctorRating || hospital.ratingAvg || 4.5;
-  const avatarUri = hospital.doctorAvatar || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&q=80';
+  const hospitalName = hospital.name || 'Hospital';
+  const hospitalType = hospital.type || hospital.specialties?.[0] || 'Emergency care';
+  const rating = hospital.ratingAvg || hospital.doctorRating || 4.5;
+  const avatarUri =
+    hospital.photoUrl ||
+    hospital.doctorAvatar ||
+    'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=300&q=80';
 
   // Specialty icon renderer
   const renderSpecialtyIcon = () => {
@@ -83,21 +84,19 @@ export const HospitalResultCard: React.FC<HospitalResultCardProps> = ({
         </View>
       </View>
 
-      {/* CENTER COLUMN: Doctor Info + Fee + Appointment Button */}
       <View style={styles.centerColumn}>
-        <Text style={styles.doctorName} numberOfLines={1}>
-          {doctorName}
+        <Text style={styles.doctorName} numberOfLines={2}>
+          {hospitalName}
         </Text>
         <Text style={styles.doctorSpecialty} numberOfLines={1}>
-          {doctorSpecialty}
+          {hospitalType}
         </Text>
-        <Text style={styles.facilitySubtitle} numberOfLines={1}>
-          {hospital.name}
-        </Text>
+        {hospital.city ? (
+          <Text style={styles.facilitySubtitle} numberOfLines={1}>
+            {hospital.city}
+          </Text>
+        ) : null}
 
-        <Text style={styles.feeText}>
-          ₹ {doctorFee.toFixed(2)}
-        </Text>
         <Text style={styles.feeBeds}>
           {matchedWard.freeBeds > 0
             ? `${matchedWard.freeBeds} ${matchedWard.wardType} bed${matchedWard.freeBeds === 1 ? '' : 's'} free now`
@@ -226,18 +225,11 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
     marginTop: 1,
   },
-  feeText: {
-    fontFamily: typography.fontFamilies.headingBold,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111111',
-    marginTop: 6,
-  },
   feeBeds: {
     fontSize: 12,
     fontWeight: '700',
     color: '#111111',
-    marginTop: 4,
+    marginTop: 8,
   },
   chanceText: {
     fontSize: 10,

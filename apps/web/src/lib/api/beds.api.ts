@@ -27,7 +27,14 @@ export interface WardInventory {
   updatedAt: string;
 }
 
-export type BedRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ADMITTED' | 'EXPIRED';
+export type BedRequestStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'ADMITTED'
+  | 'DISCHARGED'
+  | 'EXPIRED'
+  | 'CANCELLED';
 
 export interface BedRequest {
   id: string;
@@ -151,14 +158,26 @@ export const bedsApi = {
 
   async decideBedRequest(
     requestId: string,
-    decision: 'APPROVED' | 'REJECTED' | 'ADMITTED' | 'APPROVE' | 'REJECT' | 'ADMIT'
+    decision:
+      | 'APPROVED'
+      | 'REJECTED'
+      | 'ADMITTED'
+      | 'DISCHARGED'
+      | 'APPROVE'
+      | 'REJECT'
+      | 'ADMIT'
+      | 'DISCHARGE'
+      | 'LEFT'
   ): Promise<BedRequest> {
+    const u = String(decision).toUpperCase();
     const normalized =
-      decision === 'APPROVED' || decision === 'APPROVE'
+      u === 'APPROVED' || u === 'APPROVE'
         ? 'APPROVE'
-        : decision === 'REJECTED' || decision === 'REJECT'
-        ? 'REJECT'
-        : 'ADMIT';
+        : u === 'REJECTED' || u === 'REJECT'
+          ? 'REJECT'
+          : u === 'DISCHARGED' || u === 'DISCHARGE' || u === 'LEFT' || u === 'LEAVE'
+            ? 'DISCHARGE'
+            : 'ADMIT';
     const res = await apiClient.patch(`/bed-requests/${requestId}/decision`, {
       decision: normalized,
     });

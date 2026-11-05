@@ -62,6 +62,12 @@ const STATUS_META: Record<
     chip: 'bg-[#0B3D1A]/10 text-[#0B3D1A] border-[#0B3D1A]/15',
     icon: CheckCircle2,
   },
+  DISCHARGED: {
+    label: 'Left hospital',
+    tone: 'text-sky-800',
+    chip: 'bg-sky-50 text-sky-800 border-sky-200',
+    icon: CheckCircle2,
+  },
   EXPIRED: {
     label: 'Expired',
     tone: 'text-muted',
@@ -124,7 +130,9 @@ function statusMessage(r: BedRequest) {
     case 'PENDING':
       return 'Request received — ward staff are reviewing your hold.';
     case 'ADMITTED':
-      return 'Patient admitted. Hold cycle completed.';
+      return 'Patient admitted. Hospital can mark leave when you go.';
+    case 'DISCHARGED':
+      return 'You left the hospital — your bed was released back to the ward.';
     case 'REJECTED':
       return 'Hospital declined this request. Try another ward or facility.';
     case 'EXPIRED':

@@ -716,6 +716,114 @@ export const bedsService = {
   },
 
   /**
+   * Patient left hospital — free occupied bed and mark request DISCHARGED.
+   */
+  async dischargeBedRequest(requestId, staff, reason) {
+    return await withTransaction(async (client) => {
+      const request = await bedsRepository.findBedRequestByIdForUpdate(client, requestId);
+      if (!request) {
+        throw new AppError('Bed request not found', 404, 'REQUEST_NOT_FOUND');
+      }
+
+      if (request.hospital_id !== staff.hospitalId && staff.role !== 'CITY_ADMIN') {
+        throw new AppError('Cross-hospital tenant access denied', 403, 'TENANT_ACCESS_DENIED');
+      }
+
+      if (request.status !== 'ADMITTED') {
+        throw new AppError(
+          `Can only mark leave for admitted patients (current: '${request.status}')`,
+          400,
+          'CANNOT_DISCHARGE'
+        );
+      }
+
+      const ward = await bedsRepository.lockWardForUpdate(client, request.hospital_id, request.ward_type);
+      if (!ward) {
+        throw new AppError('Ward not found', 404, 'WARD_NOT_FOUND');
+      }
+
+      const newOccupied = Math.max(0, ward.occupied - 1);
+      const updatedWard = await bedsRepository.updateWardCounters(client, {
+        id: ward.id,
+        total: ward.total,
+        occupied: newOccupied,
+        reserved: ward.reserved,
+        cleaning: ward.cleaning,
+        maintenance: ward.maintenance,
+        hasVentilatorBeds: ward.has_ventilator_beds,
+      });
+
+      await bedsRepository.appendLedgerEntry(client, {
+        hospitalId: request.hospital_id,
+        wardType: request.ward_type,
+        field: 'occupied',
+        delta: -1,
+        reason: 'PATIENT_LEFT_DISCHARGED',
+        actorId: staff.sub,
+      });
+
+      await bedsRepository.recordFlowHourly(client, {
+        hospitalId: request.hospital_id,
+        wardType: request.ward_type,
+        deltaAdmissions: 0,
+        deltaDischarges: 1,
+      });
+
+      await bedsRepository.insertSnapshot(client, {
+        hospitalId: request.hospital_id,
+        wardType: request.ward_type,
+        total: updatedWard.total,
+        occupied: updatedWard.occupied,
+        reserved: updatedWard.reserved,
+        free: updatedWard.free,
+      });
+
+      const updatedRequest = await bedsRepository.updateBedRequestStatus(client, requestId, {
+        status: 'DISCHARGED',
+        decidedBy: staff.sub,
+        reason: reason || 'Patient left hospital — bed freed',
+      });
+
+      broadcastRealtimeEvent({
+        event: 'beds:update',
+        room: `hospital:${request.hospital_id}`,
+        payload: {
+          hospitalId: request.hospital_id,
+          wardType: request.ward_type,
+          free: updatedWard.free,
+          total: updatedWard.total,
+          occupied: updatedWard.occupied,
+          version: updatedWard.version,
+          at: new Date().toISOString(),
+        },
+      });
+
+      broadcastRealtimeEvent({
+        event: 'request:update',
+        room: `user:${request.patient_id}`,
+        payload: {
+          requestId,
+          hospitalId: request.hospital_id,
+          status: 'DISCHARGED',
+          reason: reason || 'Patient left hospital',
+        },
+      });
+
+      broadcastRealtimeEvent({
+        event: 'request:update',
+        room: `hospital:${request.hospital_id}`,
+        payload: {
+          requestId,
+          hospitalId: request.hospital_id,
+          status: 'DISCHARGED',
+        },
+      });
+
+      return updatedRequest;
+    });
+  },
+
+  /**
    * Distributed Systems Note: Periodic Hold Expiry via Advisory Lock.
    * Every 30 seconds, one API instance acquires 'BED_HOLD_EXPIRY_LOCK' and frees overdue holds,
    * guaranteeing that patient reservation deadlines (15 minutes) are strictly enforced without double-releasing.

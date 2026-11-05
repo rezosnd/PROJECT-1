@@ -28,7 +28,15 @@ export interface BedRequest {
   patientName?: string;
   wardType: string;
   urgency: 'IMMEDIATE' | 'HIGH' | 'MODERATE';
-  status: 'PENDING' | 'HOLD' | 'APPROVED' | 'ADMITTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED';
+  status:
+    | 'PENDING'
+    | 'HOLD'
+    | 'APPROVED'
+    | 'ADMITTED'
+    | 'DISCHARGED'
+    | 'REJECTED'
+    | 'EXPIRED'
+    | 'CANCELLED';
   note?: string | null;
   shareAbha?: boolean;
   maskedAbha?: string;

@@ -127,10 +127,14 @@ export const bedsController = {
     try {
       const requestId = req.params.id;
       const { decision, reason } = req.body;
-      const updated =
-        decision === 'ADMIT'
-          ? await bedsService.admitBedRequest(requestId, req.user)
-          : await bedsService.decideBedRequest(requestId, decision, reason, req.user);
+      let updated;
+      if (decision === 'ADMIT') {
+        updated = await bedsService.admitBedRequest(requestId, req.user);
+      } else if (decision === 'DISCHARGE') {
+        updated = await bedsService.dischargeBedRequest(requestId, req.user, reason);
+      } else {
+        updated = await bedsService.decideBedRequest(requestId, decision, reason, req.user);
+      }
       res.status(200).json({
         success: true,
         data: updated

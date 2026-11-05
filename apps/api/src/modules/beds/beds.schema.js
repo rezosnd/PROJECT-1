@@ -88,8 +88,9 @@ export const decideBedRequestSchema = z.object({
       if (u === 'APPROVED' || u === 'APPROVE') return 'APPROVE';
       if (u === 'REJECTED' || u === 'REJECT') return 'REJECT';
       if (u === 'ADMITTED' || u === 'ADMIT') return 'ADMIT';
+      if (u === 'DISCHARGED' || u === 'DISCHARGE' || u === 'LEFT' || u === 'LEAVE') return 'DISCHARGE';
       return u;
-    }, z.enum(['APPROVE', 'REJECT', 'ADMIT'])),
+    }, z.enum(['APPROVE', 'REJECT', 'ADMIT', 'DISCHARGE'])),
     reason: z.string().max(255).optional()
   })
 });

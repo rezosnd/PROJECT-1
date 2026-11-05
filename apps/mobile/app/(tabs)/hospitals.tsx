@@ -126,7 +126,7 @@ export default function HospitalsScreen() {
     setSelectedHospitalForHold({
       id: hospitalId,
       ward: wardType,
-      name: hosp?.hospital?.doctorName ? `${hosp.hospital.doctorName} (${hosp.hospital.name})` : (hosp?.hospital?.name || 'Hospital'),
+      name: hosp?.hospital?.name || 'Hospital',
     });
   };
 
