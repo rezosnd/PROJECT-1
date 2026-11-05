@@ -103,32 +103,45 @@ export async function redeemMobileOAuthTicket(ticketId) {
   return null;
 }
 
+/** Convert exp:// URL into an Android Intent that Custom Tabs can open. */
+export function toAndroidIntentUrl(expUrl) {
+  const raw = String(expUrl || '');
+  const m = raw.match(/^exp:\/\/([^?#]+)(\?[^#]*)?(#.*)?$/i);
+  if (!m) return null;
+  const path = m[1];
+  const query = m[2] || '';
+  return `intent://${path}${query}#Intent;scheme=exp;package=host.exp.exponent;end`;
+}
+
 export function buildMobileDeepLinks({ returnUrl, scheme, ticket }) {
   const q = `ticket=${encodeURIComponent(ticket)}`;
   const links = [];
   const ret = String(returnUrl || '').trim();
 
-  // Primary: exact Expo AuthSession return URL (exp://IP:PORT/--/oauth)
-  // Never use bare exp://oauth — that crashes Expo Go with the blue error screen.
+  // Never use bare exp://oauth — crashes Expo Go.
+  let expLink = '';
   if (ret) {
-    links.push(ret + (ret.includes('?') ? '&' : '?') + q);
+    expLink = ret + (ret.includes('?') ? '&' : '?') + q;
   }
 
-  // Expo Go intent — only when we know the Metro host from returnUrl
+  // Android Custom Tabs: Intent URL first (plain exp:// clicks often do nothing)
+  if (expLink.startsWith('exp://')) {
+    const intent = toAndroidIntentUrl(expLink);
+    if (intent) links.push(intent);
+    links.push(expLink);
+  } else if (expLink) {
+    links.push(expLink);
+  }
+
   const m = ret.match(/^exp:\/\/([^/?#]+)(\/[^?#]*)?/i);
-  if (m) {
+  if (m && !links.some((l) => l.startsWith('intent://'))) {
     const host = m[1];
-    const path = (m[2] && m[2] !== '/') ? m[2] : '/--/oauth';
-    links.push(
-      `intent://${host}${path}?${q}#Intent;scheme=exp;package=host.exp.exponent;end`
-    );
+    const path = m[2] && m[2] !== '/' ? m[2] : '/--/oauth';
+    links.push(`intent://${host}${path}?${q}#Intent;scheme=exp;package=host.exp.exponent;end`);
   }
 
-  // Standalone / custom scheme fallback (dev client or production build)
   const sch = String(scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
-  if (!ret || !ret.startsWith('exp://')) {
-    links.push(`${sch}://oauth?${q}`);
-  }
+  links.push(`${sch}://oauth?${q}`);
 
   return [...new Set(links.filter(Boolean))];
 }

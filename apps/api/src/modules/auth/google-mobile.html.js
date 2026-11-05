@@ -265,7 +265,8 @@ export function renderGoogleMobileCallbackHtml({
     <p id="msg">Returning to the GetMyHospital app.</p>
     <a id="open" class="btn" href="${primary.replace(/"/g, '')}" style="display:none">Open GetMyHospital</a>
     <a id="alt" class="ghost" href="#" style="display:none">Try alternate link</a>
-    <p class="hint" id="hint" style="display:none">If nothing happens, tap the button above. Keep Expo Go in recent apps.</p>
+    <button type="button" id="closeHint" class="ghost" style="display:none;width:100%;cursor:pointer">Done — return to Expo Go</button>
+    <p class="hint" id="hint" style="display:none">If the button does nothing, tap Done and switch back to Expo Go — sign-in finishes automatically.</p>
   </div>
   <script>
     (function () {
@@ -277,7 +278,44 @@ export function renderGoogleMobileCallbackHtml({
       var msg = document.getElementById('msg');
       var openBtn = document.getElementById('open');
       var altBtn = document.getElementById('alt');
+      var closeHint = document.getElementById('closeHint');
       var hint = document.getElementById('hint');
+
+      function tryOpen(url) {
+        if (!url) return;
+        try {
+          var a = document.createElement('a');
+          a.setAttribute('href', url);
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () { try { a.remove(); } catch (e) {} }, 50);
+        } catch (e) {}
+        try { window.location.href = url; } catch (e2) {}
+      }
+
+      function openApp(ev) {
+        if (ev) {
+          try { ev.preventDefault(); } catch (e) {}
+          try { ev.stopPropagation(); } catch (e) {}
+        }
+        // Prefer Android Intent links — plain exp:// taps are often ignored in Custom Tabs
+        var ordered = links.slice().sort(function (a, b) {
+          var ai = a.indexOf('intent://') === 0 ? 0 : 1;
+          var bi = b.indexOf('intent://') === 0 ? 0 : 1;
+          return ai - bi;
+        });
+        var i = 0;
+        function next() {
+          if (i >= ordered.length) return;
+          tryOpen(ordered[i++]);
+          if (i < ordered.length) setTimeout(next, 450);
+        }
+        next();
+        title.textContent = 'Almost done';
+        msg.textContent = 'Approve “Open Expo Go” if asked. Or tap Done and switch back to the app.';
+        closeHint.style.display = 'block';
+      }
 
       if (error) {
         title.textContent = 'Google sign-in failed';
@@ -292,23 +330,24 @@ export function renderGoogleMobileCallbackHtml({
       }
 
       title.textContent = 'Success';
-      msg.textContent = 'Opening GetMyHospital…';
-      // Only the primary Expo return URL — bare exp://oauth crashes Expo Go.
+      msg.textContent = 'Tap Open GetMyHospital to finish.';
       openBtn.href = links[0];
       openBtn.style.display = 'block';
       hint.style.display = 'block';
+      closeHint.style.display = 'block';
       if (links[1]) {
         altBtn.href = links[1];
         altBtn.style.display = 'block';
+        altBtn.addEventListener('click', openApp);
       }
+      openBtn.addEventListener('click', openApp);
+      closeHint.addEventListener('click', function () {
+        msg.textContent = 'Switch back to Expo Go now — sign-in completes there automatically.';
+        try { window.close(); } catch (e) {}
+      });
 
-      try { window.location.replace(links[0]); } catch (e) {
-        try { window.location.href = links[0]; } catch (e2) {}
-      }
-      setTimeout(function () {
-        title.textContent = 'Almost done';
-        msg.textContent = 'Tap Open GetMyHospital, then Continue to Expo Go.';
-      }, 900);
+      // Auto-try once (may be blocked; button is the real fallback)
+      setTimeout(function () { openApp(); }, 250);
     })();
   </script>
 </body>

@@ -18,6 +18,8 @@ import {
   createCodeChallenge,
   createMobileOAuthSession,
   consumeMobileOAuthSession,
+  publishMobileHandoff,
+  takeMobileHandoff,
 } from './oauth-mobile-session.js';
 import { config } from '../../config/index.js';
 import { logger } from '../../infra/logger.js';
@@ -88,8 +90,15 @@ async function exchangeGoogleAuthCode({ code, codeVerifier, redirectUri }) {
   return data;
 }
 
-async function sendSuccessHandoff(res, { idToken, returnUrl, scheme }) {
+async function sendSuccessHandoff(res, { idToken, returnUrl, scheme, handoff = '' }) {
   const ticket = await createMobileOAuthTicket(idToken);
+  if (handoff) {
+    try {
+      await publishMobileHandoff(handoff, ticket);
+    } catch (err) {
+      logger.warn({ err: err.message }, '[Google Mobile] handoff publish failed');
+    }
+  }
   const deepLinks = buildMobileDeepLinks({ returnUrl, scheme, ticket });
   return sendBridgeHtml(
     res,
@@ -159,6 +168,8 @@ router.get('/google/mobile-start', async (req, res) => {
   const redirectUri = exactRedirectUri();
   const scheme = String(req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
   const returnUrl = typeof req.query.return_url === 'string' ? req.query.return_url : '';
+  const handoff =
+    typeof req.query.handoff === 'string' ? req.query.handoff.replace(/[^a-f0-9]/gi, '') : '';
 
   if (!clientId || String(clientId).startsWith('mock-')) {
     return sendBridgeHtml(
@@ -193,6 +204,7 @@ router.get('/google/mobile-start', async (req, res) => {
       codeVerifier: verifier,
       returnUrl,
       scheme,
+      handoff,
     });
     const url = buildGoogleAuthorizeUrl({
       clientId,
@@ -291,6 +303,30 @@ router.get('/google/mobile-ticket/:ticket', authLimiter, async (req, res) => {
 });
 
 /**
+ * Expo polls this while the browser is open. Works when "Open GetMyHospital"
+ * deep links are blocked by Chrome Custom Tabs.
+ */
+router.get('/google/mobile-handoff/:handoff', authLimiter, async (req, res) => {
+  try {
+    const ticket = await takeMobileHandoff(req.params.handoff);
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        pending: true,
+        error: { message: 'waiting' },
+      });
+    }
+    return res.json({ success: true, data: { ticket } });
+  } catch (err) {
+    logger.warn({ err: err.message }, '[Google Mobile] handoff poll failed');
+    return res.status(500).json({
+      success: false,
+      error: { message: err.message || 'Could not poll handoff' },
+    });
+  }
+});
+
+/**
  * Google redirects here with ?code=&state=
  * Server exchanges code → id_token, stores short ticket, deep-links back to Expo Go.
  */
@@ -304,6 +340,7 @@ router.get('/google/mobile-callback', async (req, res) => {
   const scheme =
     String(session?.scheme || req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') ||
     'lifelink';
+  const handoff = session?.handoff || '';
 
   if (req.query.error) {
     return sendBridgeHtml(
@@ -323,6 +360,7 @@ router.get('/google/mobile-callback', async (req, res) => {
         idToken: req.query.id_token || req.query.credential,
         returnUrl,
         scheme,
+        handoff,
       });
     } catch (err) {
       return sendBridgeHtml(
@@ -386,7 +424,7 @@ router.get('/google/mobile-callback', async (req, res) => {
     if (!idToken) {
       throw new Error('Google token response did not include id_token');
     }
-    return await sendSuccessHandoff(res, { idToken, returnUrl, scheme });
+    return await sendSuccessHandoff(res, { idToken, returnUrl, scheme, handoff });
   } catch (err) {
     logger.warn({ err: err.message, payload: err.payload }, '[Google Mobile] code exchange failed');
     const detail = [

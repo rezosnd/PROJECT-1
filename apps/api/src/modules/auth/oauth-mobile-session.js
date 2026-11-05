@@ -14,9 +14,13 @@ async function ensureTable() {
       code_verifier TEXT NOT NULL,
       return_url TEXT NOT NULL DEFAULT '',
       scheme TEXT NOT NULL DEFAULT 'lifelink',
+      handoff TEXT NOT NULL DEFAULT '',
       expires_at TIMESTAMPTZ NOT NULL
     )
   `);
+  try {
+    await pool.query(`ALTER TABLE oauth_mobile_sessions ADD COLUMN IF NOT EXISTS handoff TEXT NOT NULL DEFAULT ''`);
+  } catch (_) {}
   tableReady = true;
 }
 
@@ -44,7 +48,12 @@ export function createCodeChallenge(verifier) {
  * Persist PKCE + Expo return URL under a short opaque state id.
  * Avoids stuffing long exp:// URLs + verifier into Google's state (causes Bad Request).
  */
-export async function createMobileOAuthSession({ codeVerifier, returnUrl = '', scheme = 'lifelink' }) {
+export async function createMobileOAuthSession({
+  codeVerifier,
+  returnUrl = '',
+  scheme = 'lifelink',
+  handoff = '',
+}) {
   const id = randomId();
   const verifier = String(codeVerifier || '');
   if (!verifier) throw new Error('missing_code_verifier');
@@ -52,6 +61,7 @@ export async function createMobileOAuthSession({ codeVerifier, returnUrl = '', s
     codeVerifier: verifier,
     returnUrl: String(returnUrl || ''),
     scheme: String(scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink',
+    handoff: String(handoff || '').replace(/[^a-f0-9]/gi, ''),
   };
   const ttlSec = 600;
 
@@ -67,14 +77,15 @@ export async function createMobileOAuthSession({ codeVerifier, returnUrl = '', s
   try {
     await ensureTable();
     await pool.query(
-      `INSERT INTO oauth_mobile_sessions (id, code_verifier, return_url, scheme, expires_at)
-       VALUES ($1, $2, $3, $4, NOW() + ($5::text || ' seconds')::interval)
+      `INSERT INTO oauth_mobile_sessions (id, code_verifier, return_url, scheme, handoff, expires_at)
+       VALUES ($1, $2, $3, $4, $5, NOW() + ($6::text || ' seconds')::interval)
        ON CONFLICT (id) DO UPDATE SET
          code_verifier = EXCLUDED.code_verifier,
          return_url = EXCLUDED.return_url,
          scheme = EXCLUDED.scheme,
+         handoff = EXCLUDED.handoff,
          expires_at = EXCLUDED.expires_at`,
-      [id, payload.codeVerifier, payload.returnUrl, payload.scheme, String(ttlSec)]
+      [id, payload.codeVerifier, payload.returnUrl, payload.scheme, payload.handoff, String(ttlSec)]
     );
     return id;
   } catch (err) {
@@ -101,6 +112,7 @@ export async function consumeMobileOAuthSession(stateId) {
           codeVerifier: parsed.codeVerifier,
           returnUrl: parsed.returnUrl || '',
           scheme: parsed.scheme || 'lifelink',
+          handoff: parsed.handoff || '',
         };
       }
     } catch (err) {
@@ -113,7 +125,7 @@ export async function consumeMobileOAuthSession(stateId) {
     const { rows } = await pool.query(
       `DELETE FROM oauth_mobile_sessions
        WHERE id = $1 AND expires_at > NOW()
-       RETURNING code_verifier, return_url, scheme`,
+       RETURNING code_verifier, return_url, scheme, handoff`,
       [id]
     );
     if (rows[0]) {
@@ -121,6 +133,7 @@ export async function consumeMobileOAuthSession(stateId) {
         codeVerifier: rows[0].code_verifier,
         returnUrl: rows[0].return_url || '',
         scheme: rows[0].scheme || 'lifelink',
+        handoff: rows[0].handoff || '',
       };
     }
   } catch (err) {
@@ -135,8 +148,55 @@ export async function consumeMobileOAuthSession(stateId) {
       codeVerifier: mem.codeVerifier,
       returnUrl: mem.returnUrl || '',
       scheme: mem.scheme || 'lifelink',
+      handoff: mem.handoff || '',
     };
   }
   memory.delete(id);
+  return null;
+}
+
+const handoffMemory = new Map();
+
+/** Publish ticket for Expo app to poll (Custom Tabs often block Open-app deep links). */
+export async function publishMobileHandoff(handoffId, ticket) {
+  const id = String(handoffId || '').replace(/[^a-f0-9]/gi, '');
+  const t = String(ticket || '').replace(/[^a-f0-9]/gi, '');
+  if (!id || !t) return;
+  const ttlSec = 180;
+  if (isRedisAvailable()) {
+    try {
+      await redis.set(`oauth:mobile:handoff:${id}`, t, 'EX', ttlSec);
+      return;
+    } catch (err) {
+      logger.warn({ err: err.message }, '[OAuthHandoff] Redis set failed');
+    }
+  }
+  handoffMemory.set(id, { ticket: t, exp: Date.now() + ttlSec * 1000 });
+}
+
+/** App polls this; returns ticket once then deletes. */
+export async function takeMobileHandoff(handoffId) {
+  const id = String(handoffId || '').replace(/[^a-f0-9]/gi, '');
+  if (!id || id.length < 16) return null;
+
+  if (isRedisAvailable()) {
+    try {
+      const key = `oauth:mobile:handoff:${id}`;
+      const val = await redis.get(key);
+      if (val) {
+        await redis.del(key);
+        return val;
+      }
+    } catch (err) {
+      logger.warn({ err: err.message }, '[OAuthHandoff] Redis get failed');
+    }
+  }
+
+  const mem = handoffMemory.get(id);
+  if (mem && mem.exp > Date.now()) {
+    handoffMemory.delete(id);
+    return mem.ticket;
+  }
+  handoffMemory.delete(id);
   return null;
 }

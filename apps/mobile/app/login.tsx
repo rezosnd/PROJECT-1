@@ -54,15 +54,22 @@ function extractParam(url: string | null | undefined, key: string): string | nul
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+async function resolveIdTokenFromTicket(ticket: string): Promise<string | null> {
+  const res = await axios.get(`${API_URL}/auth/google/mobile-ticket/${encodeURIComponent(ticket)}`, {
+    timeout: 15000,
+  });
+  return res.data?.data?.idToken || null;
+}
+
 async function resolveIdTokenFromAuthUrl(url: string): Promise<string | null> {
   const ticket = extractParam(url, 'ticket');
-  if (ticket) {
-    const res = await axios.get(`${API_URL}/auth/google/mobile-ticket/${encodeURIComponent(ticket)}`, {
-      timeout: 15000,
-    });
-    return res.data?.data?.idToken || null;
-  }
+  if (ticket) return resolveIdTokenFromTicket(ticket);
   return extractParam(url, 'id_token');
+}
+
+function randomHandoffId(): string {
+  const bytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
+  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export default function LoginScreen() {
@@ -70,16 +77,10 @@ export default function LoginScreen() {
   const { loginWithGoogleIdToken, logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const finishingRef = useRef(false);
+  const pollStopRef = useRef<null | (() => void)>(null);
+  const activeHandoffRef = useRef<string | null>(null);
 
   const returnUrl = useMemo(() => Linking.createURL('oauth'), []);
-  /** Server PKCE start — avoids client-side state that caused Google "Bad Request". */
-  const bridgeUrl = useMemo(() => {
-    const params = new URLSearchParams({
-      scheme: 'lifelink',
-      return_url: returnUrl,
-    });
-    return `${AUTH_BRIDGE_ORIGIN}/api/v1/auth/google/mobile-start?${params.toString()}`;
-  }, [returnUrl]);
 
   useEffect(() => {
     // Clear any stale session so OAuth handoff starts clean — do not block UI.
@@ -89,6 +90,8 @@ export default function LoginScreen() {
   const completeWithToken = async (idToken: string) => {
     if (finishingRef.current) return;
     finishingRef.current = true;
+    pollStopRef.current?.();
+    pollStopRef.current = null;
     setIsLoading(true);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -132,6 +135,55 @@ export default function LoginScreen() {
     }
   };
 
+  const completeWithTicket = async (ticket: string) => {
+    if (finishingRef.current) return;
+    try {
+      setIsLoading(true);
+      const idToken = await resolveIdTokenFromTicket(ticket);
+      if (!idToken) {
+        setIsLoading(false);
+        return;
+      }
+      await completeWithToken(idToken);
+    } catch (err: any) {
+      finishingRef.current = false;
+      setIsLoading(false);
+      Alert.alert(
+        'Sign-in failed',
+        err.response?.data?.error?.message || err.message || 'Could not finish Google sign-in'
+      );
+    }
+  };
+
+  /** Poll while browser is open — works when Open GetMyHospital deep link is blocked. */
+  const startHandoffPoll = (handoff: string) => {
+    pollStopRef.current?.();
+    let stopped = false;
+    pollStopRef.current = () => {
+      stopped = true;
+    };
+    const started = Date.now();
+    const tick = async () => {
+      if (stopped || finishingRef.current) return;
+      if (Date.now() - started > 120000) return;
+      try {
+        const res = await axios.get(
+          `${API_URL}/auth/google/mobile-handoff/${encodeURIComponent(handoff)}`,
+          { timeout: 8000, validateStatus: () => true }
+        );
+        const ticket = res.data?.data?.ticket;
+        if (res.status === 200 && ticket) {
+          await completeWithTicket(ticket);
+          return;
+        }
+      } catch (_) {}
+      if (!stopped && !finishingRef.current) {
+        setTimeout(tick, 1200);
+      }
+    };
+    setTimeout(tick, 1500);
+  };
+
   useEffect(() => {
     const handleUrl = ({ url }: { url: string }) => {
       if (extractParam(url, 'ticket') || extractParam(url, 'id_token')) {
@@ -144,6 +196,11 @@ export default function LoginScreen() {
     });
     const appSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
+        // User switched back from browser — keep polling / check deep link
+        const handoff = activeHandoffRef.current;
+        if (handoff && !finishingRef.current) {
+          startHandoffPoll(handoff);
+        }
         Linking.getInitialURL().then((url) => {
           if (url && (extractParam(url, 'ticket') || extractParam(url, 'id_token'))) {
             void completeWithAuthUrl(url);
@@ -154,6 +211,7 @@ export default function LoginScreen() {
     return () => {
       sub.remove();
       appSub.remove();
+      pollStopRef.current?.();
     };
   }, []);
 
@@ -161,28 +219,54 @@ export default function LoginScreen() {
     if (isLoading) return;
     finishingRef.current = false;
     setIsLoading(true);
+    const handoff = randomHandoffId();
+    activeHandoffRef.current = handoff;
+    const params = new URLSearchParams({
+      scheme: 'lifelink',
+      return_url: returnUrl,
+      handoff,
+    });
+    const startUrl = `${AUTH_BRIDGE_ORIGIN}/api/v1/auth/google/mobile-start?${params.toString()}`;
+    startHandoffPoll(handoff);
+
     try {
-      const result = await WebBrowser.openAuthSessionAsync(bridgeUrl, returnUrl, {
+      const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUrl, {
         showInRecents: true,
         preferEphemeralSession: false,
         createTask: false,
       } as any);
 
+      if (finishingRef.current) return;
+
       if (result.type === 'success' && result.url) {
         await completeWithAuthUrl(result.url);
         return;
       }
+
+      // Dismiss / cancel: still try handoff poll once more (Google may have finished)
       if (result.type === 'cancel' || result.type === 'dismiss') {
+        try {
+          const res = await axios.get(
+            `${API_URL}/auth/google/mobile-handoff/${encodeURIComponent(handoff)}`,
+            { timeout: 8000, validateStatus: () => true }
+          );
+          if (res.status === 200 && res.data?.data?.ticket) {
+            await completeWithTicket(res.data.data.ticket);
+            return;
+          }
+        } catch (_) {}
         setIsLoading(false);
         return;
       }
-      await RNLinking.openURL(bridgeUrl);
+
+      await RNLinking.openURL(startUrl);
       Alert.alert(
         'Finish in browser',
-        'Complete Google Sign-In, then tap “Open GetMyHospital” if the app does not return automatically.'
+        'After Google Success, switch back to Expo Go — sign-in completes automatically. You can also tap Open GetMyHospital.'
       );
       setIsLoading(false);
     } catch (err: any) {
+      pollStopRef.current?.();
       Alert.alert('Google Sign-In', err?.message || 'Could not open Google sign-in');
       setIsLoading(false);
     }
@@ -239,14 +323,14 @@ export default function LoginScreen() {
           </Pressable>
 
           <Text style={styles.helper}>
-            After Google Success, tap Open GetMyHospital — Expo will finish sign-in on a secure handoff screen.
+            After Google Success, switch back to Expo Go — sign-in finishes automatically even if Open GetMyHospital does nothing.
           </Text>
         </View>
 
         <View style={styles.setupBox}>
-          <Text style={styles.setupTitle}>If Google fails</Text>
+          <Text style={styles.setupTitle}>Button does nothing?</Text>
           <Text style={styles.setupHint}>
-            Reload Expo (shake → Reload), then try again. After Success, tap Open GetMyHospital if the app does not return automatically.
+            That is normal in Chrome Custom Tabs. Close the browser or tap Done, return to Expo Go, and wait a second — login completes via secure poll.
           </Text>
         </View>
 
