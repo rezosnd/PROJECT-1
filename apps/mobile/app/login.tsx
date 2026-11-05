@@ -14,6 +14,8 @@ import {
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import axios from 'axios';
+import Constants from 'expo-constants';
 import { useAuthStore } from '../src/lib/auth/auth-store';
 import { typography } from '../src/theme/tokens';
 import { ArrowLeft, ShieldCheck, Activity, Lock } from 'lucide-react-native';
@@ -23,6 +25,8 @@ import * as Haptics from 'expo-haptics';
 WebBrowser.maybeCompleteAuthSession();
 
 const AUTH_BRIDGE_ORIGIN = 'https://project1-api.vercel.app';
+const API_URL =
+  Constants.expoConfig?.extra?.apiUrl || `${AUTH_BRIDGE_ORIGIN}/api/v1`;
 
 function GoogleIcon() {
   return (
@@ -35,15 +39,28 @@ function GoogleIcon() {
   );
 }
 
-function extractIdToken(url: string | null | undefined): string | null {
+function extractParam(url: string | null | undefined, key: string): string | null {
   if (!url) return null;
   try {
     const parsed = Linking.parse(url);
-    const fromQuery = (parsed.queryParams?.id_token as string) || null;
-    if (fromQuery) return fromQuery;
+    const fromQuery = parsed.queryParams?.[key];
+    if (typeof fromQuery === 'string' && fromQuery) return fromQuery;
+    if (Array.isArray(fromQuery) && fromQuery[0]) return String(fromQuery[0]);
   } catch (_) {}
-  const match = String(url).match(/[?#&]id_token=([^&]+)/i);
+  const re = new RegExp(`[?#&]${key}=([^&]+)`, 'i');
+  const match = String(url).match(re);
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+async function resolveIdTokenFromAuthUrl(url: string): Promise<string | null> {
+  const ticket = extractParam(url, 'ticket');
+  if (ticket) {
+    const res = await axios.get(`${API_URL}/auth/google/mobile-ticket/${encodeURIComponent(ticket)}`, {
+      timeout: 15000,
+    });
+    return res.data?.data?.idToken || null;
+  }
+  return extractParam(url, 'id_token');
 }
 
 export default function LoginScreen() {
@@ -76,6 +93,9 @@ export default function LoginScreen() {
       try {
         await WebBrowser.dismissBrowser();
       } catch (_) {}
+      try {
+        await WebBrowser.dismissAuthSession();
+      } catch (_) {}
       router.replace('/(tabs)');
     } catch (err: any) {
       finishingRef.current = false;
@@ -88,10 +108,32 @@ export default function LoginScreen() {
     }
   };
 
+  const completeWithAuthUrl = async (url: string) => {
+    if (finishingRef.current) return;
+    try {
+      setIsLoading(true);
+      const idToken = await resolveIdTokenFromAuthUrl(url);
+      if (!idToken) {
+        setIsLoading(false);
+        Alert.alert('Almost there', 'No sign-in ticket returned. Close the browser and tap Continue again.');
+        return;
+      }
+      await completeWithToken(idToken);
+    } catch (err: any) {
+      finishingRef.current = false;
+      setIsLoading(false);
+      Alert.alert(
+        'Sign-in failed',
+        err.response?.data?.error?.message || err.message || 'Could not finish Google sign-in'
+      );
+    }
+  };
+
   useEffect(() => {
     const handleUrl = ({ url }: { url: string }) => {
-      const idToken = extractIdToken(url);
-      if (idToken) void completeWithToken(idToken);
+      if (extractParam(url, 'ticket') || extractParam(url, 'id_token')) {
+        void completeWithAuthUrl(url);
+      }
     };
     const sub = Linking.addEventListener('url', handleUrl);
     Linking.getInitialURL().then((url) => {
@@ -100,8 +142,9 @@ export default function LoginScreen() {
     const appSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         Linking.getInitialURL().then((url) => {
-          const idToken = extractIdToken(url);
-          if (idToken) void completeWithToken(idToken);
+          if (url && (extractParam(url, 'ticket') || extractParam(url, 'id_token'))) {
+            void completeWithAuthUrl(url);
+          }
         });
       }
     });
@@ -119,17 +162,11 @@ export default function LoginScreen() {
       const result = await WebBrowser.openAuthSessionAsync(bridgeUrl, returnUrl, {
         showInRecents: true,
         preferEphemeralSession: false,
-        createTask: true,
+        createTask: false,
       } as any);
 
-      if (result.type === 'success') {
-        const idToken = extractIdToken(result.url);
-        if (!idToken) {
-          Alert.alert('Almost there', 'No token returned. Close the browser and tap Continue again.');
-          setIsLoading(false);
-          return;
-        }
-        await completeWithToken(idToken);
+      if (result.type === 'success' && result.url) {
+        await completeWithAuthUrl(result.url);
         return;
       }
       if (result.type === 'cancel' || result.type === 'dismiss') {
@@ -137,7 +174,10 @@ export default function LoginScreen() {
         return;
       }
       await RNLinking.openURL(bridgeUrl);
-      Alert.alert('Finish in browser', 'Complete Google Sign-In, then return to Expo Go / LifeLink.');
+      Alert.alert(
+        'Finish in browser',
+        'Complete Google Sign-In, then tap “Open LifeLink” if the app does not return automatically.'
+      );
       setIsLoading(false);
     } catch (err: any) {
       Alert.alert('Google Sign-In', err?.message || 'Could not open Google sign-in');
@@ -165,7 +205,7 @@ export default function LoginScreen() {
 
         <Text style={styles.title}>Sign in</Text>
         <Text style={styles.subtitle}>
-          Use your Google account. Works with Expo Go over HTTPS — no LAN IP origins.
+          Use your Google account. After Success, the app opens with a short secure ticket.
         </Text>
 
         <View style={styles.card}>
@@ -194,30 +234,21 @@ export default function LoginScreen() {
           </Pressable>
 
           <Text style={styles.helper}>
-            On the next screen, tap Google → choose your Gmail → return to the app.
+            If you see “Success — Opening LifeLink”, tap Tap to open LifeLink on that screen.
           </Text>
         </View>
 
         <View style={styles.setupBox}>
-          <Text style={styles.setupTitle}>Still “Access blocked”?</Text>
+          <Text style={styles.setupTitle}>Still stuck on Success?</Text>
           <Text style={styles.setupHint}>
-            Google Cloud → Web client:{'\n'}
-            • JS origin{'\n'}
-            <Text style={styles.code}>{AUTH_BRIDGE_ORIGIN}</Text>
-            {'\n'}
-            • Redirect URI{'\n'}
-            <Text style={styles.code}>
-              {AUTH_BRIDGE_ORIGIN}/api/v1/auth/google/mobile-callback
-            </Text>
-            {'\n'}
-            • Consent → Testing → add your Gmail as Test user{'\n'}
-            • Vercel env: GOOGLE_CLIENT_SECRET = Web client secret
+            Reload this Expo Go project after the API deploys, then try again. Use the black Tap to
+            open LifeLink button on the success page — do not wait on the white screen.
           </Text>
         </View>
 
         <View style={styles.footer}>
           <ShieldCheck size={14} color="#059669" />
-          <Text style={styles.footerText}>Google OAuth · JWT · Expo Go</Text>
+          <Text style={styles.footerText}>Google OAuth · short ticket · Expo Go</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -333,11 +364,6 @@ const styles = StyleSheet.create({
   },
   setupTitle: { fontSize: 12, fontWeight: '800', color: '#1E3A8A', marginBottom: 6 },
   setupHint: { fontSize: 11, lineHeight: 16, color: '#1E40AF' },
-  code: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 10,
-    fontWeight: '700',
-  },
   footer: {
     marginTop: 'auto',
     flexDirection: 'row',

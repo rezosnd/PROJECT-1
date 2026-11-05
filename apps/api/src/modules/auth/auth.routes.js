@@ -9,6 +9,11 @@ import {
   renderGoogleMobileCallbackHtml,
   decodeGoogleMobileState,
 } from './google-mobile.html.js';
+import {
+  createMobileOAuthTicket,
+  redeemMobileOAuthTicket,
+  buildMobileDeepLinks,
+} from './oauth-mobile-ticket.js';
 import { config } from '../../config/index.js';
 import { logger } from '../../infra/logger.js';
 import adminRoutes from '../admin/admin.routes.js';
@@ -66,6 +71,20 @@ async function exchangeGoogleAuthCode({ code, codeVerifier, redirectUri }) {
   return data;
 }
 
+async function sendSuccessHandoff(res, { idToken, returnUrl, scheme }) {
+  const ticket = await createMobileOAuthTicket(idToken);
+  const deepLinks = buildMobileDeepLinks({ returnUrl, scheme, ticket });
+  return sendBridgeHtml(
+    res,
+    renderGoogleMobileCallbackHtml({
+      redirectScheme: scheme,
+      returnUrl,
+      ticket,
+      deepLinks,
+    })
+  );
+}
+
 // Expo Go bridge — starts auth-code + PKCE against HTTPS redirect URI
 router.get('/google/mobile', (req, res) => {
   const origin = publicApiOrigin();
@@ -87,8 +106,62 @@ router.get('/google/mobile', (req, res) => {
 });
 
 /**
+ * Mint a short one-time ticket for the GIS button path (avoids huge deep-link URLs).
+ */
+router.post('/google/mobile-ticket', authLimiter, async (req, res) => {
+  try {
+    const idToken = req.body?.id_token || req.body?.credential || '';
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'id_token required' },
+      });
+    }
+    const returnUrl = String(req.body?.return_url || '');
+    const scheme =
+      String(req.body?.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
+    const ticket = await createMobileOAuthTicket(idToken);
+    const deepLinks = buildMobileDeepLinks({ returnUrl, scheme, ticket });
+    return res.json({
+      success: true,
+      data: {
+        ticket,
+        open_url: deepLinks[0] || null,
+        deep_links: deepLinks,
+      },
+    });
+  } catch (err) {
+    logger.warn({ err: err.message }, '[Google Mobile] ticket mint failed');
+    return res.status(500).json({
+      success: false,
+      error: { message: err.message || 'Could not create ticket' },
+    });
+  }
+});
+
+/** App redeems ticket → id_token (one-time). */
+router.get('/google/mobile-ticket/:ticket', authLimiter, async (req, res) => {
+  try {
+    const idToken = await redeemMobileOAuthTicket(req.params.ticket);
+    if (!idToken) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Ticket expired or already used. Tap Continue with Google again.' },
+      });
+    }
+    return res.json({ success: true, data: { idToken } });
+  } catch (err) {
+    logger.warn({ err: err.message }, '[Google Mobile] ticket redeem failed');
+    return res.status(500).json({
+      success: false,
+      error: { message: err.message || 'Could not redeem ticket' },
+    });
+  }
+});
+
+/**
  * Google redirects here with ?code=&state=
- * Server exchanges code → id_token, then deep-links back to Expo Go.
+ * Server exchanges code → id_token, stores short ticket, deep-links back to Expo Go.
  */
 router.get('/google/mobile-callback', async (req, res) => {
   const origin = publicApiOrigin();
@@ -109,16 +182,24 @@ router.get('/google/mobile-callback', async (req, res) => {
     );
   }
 
-  // Legacy: id_token already present (hash is handled client-side only)
   if (req.query.id_token || req.query.credential) {
-    return sendBridgeHtml(
-      res,
-      renderGoogleMobileCallbackHtml({
-        redirectScheme: scheme,
-        returnUrl,
+    try {
+      return await sendSuccessHandoff(res, {
         idToken: req.query.id_token || req.query.credential,
-      })
-    );
+        returnUrl,
+        scheme,
+      });
+    } catch (err) {
+      return sendBridgeHtml(
+        res,
+        renderGoogleMobileCallbackHtml({
+          redirectScheme: scheme,
+          returnUrl,
+          error: 'ticket_failed',
+          errorDetail: err.message || 'Could not prepare app handoff.',
+        })
+      );
+    }
   }
 
   const code = req.query.code;
@@ -144,14 +225,7 @@ router.get('/google/mobile-callback', async (req, res) => {
     if (!idToken) {
       throw new Error('Google token response did not include id_token');
     }
-    return sendBridgeHtml(
-      res,
-      renderGoogleMobileCallbackHtml({
-        redirectScheme: scheme,
-        returnUrl,
-        idToken,
-      })
-    );
+    return await sendSuccessHandoff(res, { idToken, returnUrl, scheme });
   } catch (err) {
     logger.warn({ err: err.message, payload: err.payload }, '[Google Mobile] code exchange failed');
     const hint = !config.GOOGLE_CLIENT_SECRET
@@ -169,16 +243,36 @@ router.get('/google/mobile-callback', async (req, res) => {
   }
 });
 
-router.post('/google/mobile-callback', (req, res) => {
+router.post('/google/mobile-callback', async (req, res) => {
   const idToken = req.body?.credential || req.body?.id_token || '';
-  sendBridgeHtml(
-    res,
-    renderGoogleMobileCallbackHtml({
-      redirectScheme: String(req.body?.scheme || req.query?.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink',
-      idToken,
-      returnUrl: String(req.body?.return_url || req.query?.return_url || ''),
-    })
-  );
+  const returnUrl = String(req.body?.return_url || req.query?.return_url || '');
+  const scheme =
+    String(req.body?.scheme || req.query?.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') ||
+    'lifelink';
+  if (!idToken) {
+    return sendBridgeHtml(
+      res,
+      renderGoogleMobileCallbackHtml({
+        redirectScheme: scheme,
+        returnUrl,
+        error: 'missing_token',
+        errorDetail: 'No Google credential posted.',
+      })
+    );
+  }
+  try {
+    return await sendSuccessHandoff(res, { idToken, returnUrl, scheme });
+  } catch (err) {
+    return sendBridgeHtml(
+      res,
+      renderGoogleMobileCallbackHtml({
+        redirectScheme: scheme,
+        returnUrl,
+        error: 'ticket_failed',
+        errorDetail: err.message || 'Could not prepare app handoff.',
+      })
+    );
+  }
 });
 
 router.post('/google', authLimiter, validate(googleAuthSchema), authController.googleLogin);

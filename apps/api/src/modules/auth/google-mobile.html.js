@@ -1,14 +1,9 @@
 /**
  * Expo Go Google Sign-In bridge (HTTPS on project1-api.vercel.app).
  *
- * Primary: GIS button (needs JS origin https://project1-api.vercel.app)
- * Secondary: Auth-code + PKCE (needs redirect URI + GOOGLE_CLIENT_SECRET on Vercel)
- *
- * Google Cloud → Web client:
- *   JS origins: https://project1-api.vercel.app
- *   Redirect URI: https://project1-api.vercel.app/api/v1/auth/google/mobile-callback
- *   Consent → Testing → add your Gmail as Test user
- * Vercel env: GOOGLE_CLIENT_SECRET = Web client secret
+ * After Google succeeds we mint a SHORT one-time ticket (not the JWT id_token).
+ * Putting id_token in the deep link makes Android Custom Tabs hang on
+ * "Success / Opening LifeLink…" and never hand off to Expo Go.
  */
 export function renderGoogleMobileHtml({
   clientId,
@@ -23,6 +18,7 @@ export function renderGoogleMobileHtml({
   const safeOrigin = 'https://project1-api.vercel.app';
   const safeReturn = String(returnUrl || '').replace(/"/g, '');
   const redirectUri = `${safeOrigin}/api/v1/auth/google/mobile-callback`;
+  const ticketApi = `${safeOrigin}/api/v1/auth/google/mobile-ticket`;
   const auto = autoStart ? '1' : '0';
   const secretReady = hasClientSecret ? '1' : '0';
 
@@ -100,7 +96,7 @@ export function renderGoogleMobileHtml({
       4) Vercel env <code>GOOGLE_CLIENT_SECRET</code> = Web client secret
       ${secretReady === '1' ? '' : '<br/><b style="color:#b91c1c">Client secret not detected on API yet.</b>'}
     </div>
-    <p class="hint">GIS + PKCE · ${safeOrigin}</p>
+    <p class="hint">Short ticket handoff · ${safeOrigin}</p>
   </main>
   <script>
     (function () {
@@ -108,6 +104,7 @@ export function renderGoogleMobileHtml({
       var SCHEME = "${safeScheme}";
       var RETURN_URL = "${safeReturn}";
       var REDIRECT_URI = "${redirectUri}";
+      var TICKET_API = "${ticketApi}";
       var AUTO = "${auto}" === "1";
       var btn = document.getElementById('oauth-btn');
       var retry = document.getElementById('retry-btn');
@@ -122,15 +119,42 @@ export function renderGoogleMobileHtml({
         retry.style.display = 'block';
       }
 
+      function openApp(ticket) {
+        var q = 'ticket=' + encodeURIComponent(ticket);
+        var links = [];
+        if (RETURN_URL) links.push(RETURN_URL + (RETURN_URL.indexOf('?') >= 0 ? '&' : '?') + q);
+        links.push(SCHEME + '://oauth?' + q);
+        var i = 0;
+        function go() {
+          if (i >= links.length) return;
+          var url = links[i++];
+          try { window.location.href = url; } catch (e) {}
+          setTimeout(go, 400);
+        }
+        go();
+      }
+
       function finish(idToken) {
         if (!idToken) { showErr('No Google credential returned.'); return; }
         okEl.style.display = 'block';
+        okEl.textContent = 'Signed in — opening LifeLink…';
         errEl.style.display = 'none';
-        var url = RETURN_URL
-          ? (RETURN_URL + (RETURN_URL.indexOf('?') >= 0 ? '&' : '?') + 'id_token=' + encodeURIComponent(idToken))
-          : (SCHEME + '://oauth?id_token=' + encodeURIComponent(idToken));
-        try { window.location.href = url; } catch (e) {}
-        setTimeout(function () { try { window.location.replace(url); } catch (e) {} }, 200);
+        fetch(TICKET_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_token: idToken, return_url: RETURN_URL, scheme: SCHEME })
+        }).then(function (r) { return r.json(); }).then(function (data) {
+          var ticket = data && data.data && data.data.ticket;
+          if (!ticket) throw new Error((data && data.error && data.error.message) || 'No ticket');
+          if (data.data.open_url) {
+            try { window.location.href = data.data.open_url; } catch (e) {}
+            setTimeout(function () { openApp(ticket); }, 300);
+          } else {
+            openApp(ticket);
+          }
+        }).catch(function (e) {
+          showErr((e && e.message) || 'Could not finish sign-in handoff.');
+        });
       }
 
       function b64url(bytes) {
@@ -210,16 +234,25 @@ export function renderGoogleMobileHtml({
 
 export function renderGoogleMobileCallbackHtml({
   redirectScheme = 'lifelink',
-  idToken = '',
+  ticket = '',
+  deepLinks = [],
   returnUrl = '',
   error = '',
   errorDetail = '',
 }) {
   const safeScheme = String(redirectScheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '');
-  const token = String(idToken || '').replace(/"/g, '');
+  const safeTicket = String(ticket || '').replace(/[^a-f0-9]/gi, '');
   const safeReturn = String(returnUrl || '').replace(/"/g, '');
   const err = String(error || '').replace(/"/g, '');
   const detail = String(errorDetail || '').replace(/"/g, '');
+  const links = Array.isArray(deepLinks) ? deepLinks.filter(Boolean) : [];
+  if (safeTicket && !links.length) {
+    const q = `ticket=${safeTicket}`;
+    if (safeReturn) links.push(safeReturn + (safeReturn.includes('?') ? '&' : '?') + q);
+    links.push(`${safeScheme}://oauth?${q}`);
+  }
+  const primary = links[0] || '';
+  const linksJson = JSON.stringify(links).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -227,46 +260,88 @@ export function renderGoogleMobileCallbackHtml({
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Returning to LifeLink…</title>
+  ${primary && !err ? `<meta http-equiv="refresh" content="0;url=${primary.replace(/"/g, '').replace(/&/g, '&amp;')}" />` : ''}
   <style>
-    body { margin:0; min-height:100vh; display:grid; place-items:center; background:#f8fafc; font-family:system-ui,sans-serif; color:#0f172a; }
-    .box { max-width: 360px; padding: 24px; text-align:center; }
-    h1 { font-size: 18px; margin: 0 0 8px; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; background:#f8fafc; font-family:system-ui,sans-serif; color:#0f172a; padding:24px; }
+    .box { max-width: 380px; width:100%; padding: 28px 22px; text-align:center; background:#fff; border:1px solid #e2e8f0; border-radius:28px; box-shadow:0 18px 50px rgba(15,23,42,.08); }
+    h1 { font-size: 20px; margin: 0 0 8px; letter-spacing:-0.02em; }
     p { font-size: 13px; color:#64748b; line-height:1.5; margin:0; }
     .err { color:#b91c1c; }
+    .btn {
+      display:block; margin-top:20px; height:52px; line-height:52px; border-radius:999px;
+      background:#0f172a; color:#fff !important; font-size:15px; font-weight:800; text-decoration:none;
+    }
+    .ghost {
+      display:block; margin-top:10px; height:48px; line-height:48px; border-radius:999px;
+      border:1px solid #e2e8f0; background:#fff; color:#0f172a !important; font-size:13px; font-weight:700; text-decoration:none;
+    }
+    .hint { margin-top:14px; font-size:11px; color:#94a3b8; }
   </style>
 </head>
 <body>
   <div class="box">
     <h1 id="title">Signing you in…</h1>
     <p id="msg">Returning to the LifeLink app.</p>
+    <a id="open" class="btn" href="${primary.replace(/"/g, '')}" style="display:none">Tap to open LifeLink</a>
+    <a id="alt" class="ghost" href="#" style="display:none">Try alternate link</a>
+    <p class="hint" id="hint" style="display:none">If nothing happens, tap the button above. Keep Expo Go in recent apps.</p>
   </div>
   <script>
     (function () {
       var SCHEME = "${safeScheme}";
       var RETURN_URL = "${safeReturn}";
-      var idToken = "${token}";
+      var ticket = "${safeTicket}";
       var error = "${err}";
       var detail = "${detail}";
+      var links = ${linksJson};
       var title = document.getElementById('title');
       var msg = document.getElementById('msg');
+      var openBtn = document.getElementById('open');
+      var altBtn = document.getElementById('alt');
+      var hint = document.getElementById('hint');
+
       if (error) {
         title.textContent = 'Google sign-in blocked';
         title.className = 'err';
         msg.innerHTML = (detail || error) + '<br/><br/>Add JS origin + redirect URI + Test user in Google Cloud, then retry.';
         return;
       }
-      if (!idToken) {
+      if (!ticket || !links.length) {
         title.textContent = 'No credential';
         msg.textContent = 'Close this tab and try again from the app.';
         return;
       }
-      var deep = RETURN_URL
-        ? (RETURN_URL + (RETURN_URL.indexOf('?') >= 0 ? '&' : '?') + 'id_token=' + encodeURIComponent(idToken))
-        : (SCHEME + '://oauth?id_token=' + encodeURIComponent(idToken));
+
       title.textContent = 'Success';
       msg.textContent = 'Opening LifeLink…';
-      window.location.href = deep;
-      setTimeout(function () { window.location.replace(deep); }, 250);
+      openBtn.href = links[0];
+      openBtn.style.display = 'block';
+      hint.style.display = 'block';
+      if (links[1]) {
+        altBtn.href = links[1];
+        altBtn.style.display = 'block';
+      }
+
+      var i = 0;
+      function tryNext() {
+        if (i >= links.length) return;
+        var url = links[i++];
+        openBtn.href = url;
+        try { window.location.href = url; } catch (e) {}
+        try {
+          var iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = url;
+          document.body.appendChild(iframe);
+          setTimeout(function () { try { document.body.removeChild(iframe); } catch (e) {} }, 800);
+        } catch (e) {}
+        setTimeout(tryNext, 500);
+      }
+      tryNext();
+      setTimeout(function () {
+        title.textContent = 'Almost done';
+        msg.textContent = 'Tap the button to return to Expo Go / LifeLink.';
+      }, 1200);
     })();
   </script>
 </body>
