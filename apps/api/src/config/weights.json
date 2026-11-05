@@ -1,0 +1,19 @@
+{
+  "base": {
+    "proximity": 0.30,
+    "bedScore": 0.30,
+    "equipment": 0.20,
+    "bedTrend": 0.10,
+    "specialty": 0.05,
+    "quality": 0.05
+  },
+  "highSeverity": {
+    "proximity": 0.35,
+    "bedScore": 0.35,
+    "equipment": 0.15,
+    "bedTrend": 0.05,
+    "specialty": 0.05,
+    "quality": 0.05
+  }
+}
+

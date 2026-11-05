@@ -1,0 +1,1162 @@
+openapi: 3.0.3
+info:
+  title: CityHealth API - Live Bed & Equipment Availability with ABHA
+  version: 1.0.0
+  description: |
+    College prototype (Distributed Systems, KIIT University).
+    Synthetic data only. Not a medical device; client applications always display: "In an emergency call 112".
+    
+    Architecture:
+    - Google (Gmail) OAuth 2.0 Sign-in ONLY
+    - Role-Based Access Control (PATIENT, HOSPITAL_ADMIN, HOSPITAL_STAFF, CITY_ADMIN)
+    - Multi-tenant data isolation per hospital
+    - Exactly-once semantics via Idempotency-Key
+    - Refresh Token Rotation with Token Family Reuse Detection
+servers:
+  - url: http://localhost:8080
+    description: Local Development / Docker Compose Server
+
+paths:
+  /health:
+    get:
+      summary: Liveness probe
+      description: Returns liveness status and uptime.
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /ready:
+    get:
+      summary: Readiness probe
+      description: Verifies connectivity to PostgreSQL and Redis. Falls back gracefully if Redis is unavailable.
+      responses:
+        '200':
+          description: Service is ready (or degraded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+        '503':
+          description: Core persistence database is unreachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/google:
+    post:
+      summary: Google (Gmail) sign-in
+      description: Verifies Google ID token, claims pre-registered staff role or seed admin role, and issues short-lived access JWT + rotating refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          headers:
+            x-trace-id:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: Invalid Google token or unverified email address
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: User account suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: Schema validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh access token
+      description: |
+        Rotates refresh token. Detects token family reuse: if an already-consumed token is presented,
+        the entire token family is immediately revoked and HTTP 401 is returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token rotated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshSuccessResponse'
+        '401':
+          description: Invalid, expired, or reused refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/logout:
+    post:
+      summary: Logout session
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Session terminated and tokens revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccessResponse'
+
+  /api/v1/auth/users/me:
+    get:
+      summary: Get current authenticated user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Missing or expired bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/admin/staff:
+    post:
+      summary: Pre-register hospital staff by Gmail
+      description: |
+        CITY_ADMIN can assign staff to any hospital.
+        HOSPITAL_ADMIN can only register staff for their own hospital.
+        Supports Idempotency-Key header.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+          required: false
+          description: Client-provided UUID to enforce exactly-once semantics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreregisterStaffRequest'
+      responses:
+        '201':
+          description: Staff pre-registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffResponse'
+        '403':
+          description: Cross-tenant operation forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /api/v1/auth/admin/users:
+    get:
+      summary: List all users (CITY_ADMIN only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [PATIENT, HOSPITAL_ADMIN, HOSPITAL_STAFF, CITY_ADMIN]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ACTIVE, SUSPENDED]
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated user directory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersListResponse'
+
+  /api/v1/auth/admin/users/{id}/status:
+    patch:
+      summary: Update user status (CITY_ADMIN only)
+      description: Suspending a user immediately revokes all their active refresh tokens.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, SUSPENDED]
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+  # --- HOSPITALS MODULE ---
+  /api/v1/hospitals:
+    get:
+      summary: Search hospitals via PostGIS spatial discovery
+      description: |
+        Geospatial discovery using ST_DWithin and ST_Distance.
+        Results are cached in Redis for 30s with single-flight request coalescing.
+      parameters:
+        - name: lat
+          in: query
+          schema:
+            type: number
+            default: 20.2961
+        - name: lng
+          in: query
+          schema:
+            type: number
+            default: 85.8245
+        - name: radiusKm
+          in: query
+          schema:
+            type: number
+            default: 25
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [GOVERNMENT, PRIVATE, TRUST]
+        - name: specialty
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [distance, rating]
+            default: distance
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Hospitals discovered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HospitalsListResponse'
+
+    post:
+      summary: Onboard new hospital
+      description: CITY_ADMIN role only. Seeds default 0 inventory for all 10 ward types.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHospitalInput'
+      responses:
+        '201':
+          description: Hospital registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HospitalDetailResponse'
+
+  /api/v1/hospitals/{id}:
+    get:
+      summary: Get hospital details with live bed inventory and equipment summary
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Hospital detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HospitalDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update hospital profile
+      description: Hospital staff (own hospital) or CITY_ADMIN.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                phone: { type: string }
+                address: { type: string }
+                emergency24x7: { type: boolean }
+                specialties: { type: array, items: { type: string } }
+                facilities: { type: array, items: { type: string } }
+      responses:
+        '200':
+          description: Hospital profile updated
+
+  /api/v1/hospitals/{id}/verify:
+    patch:
+      summary: Verify or suspend hospital status
+      description: CITY_ADMIN role only.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [VERIFIED, PENDING_VERIFICATION, SUSPENDED]
+      responses:
+        '200':
+          description: Status updated
+
+  # --- BEDS MODULE ---
+  /api/v1/hospitals/{id}/beds:
+    get:
+      summary: Live bed inventory per ward
+      description: Returns all 10 ward types with strictly derived free beds.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Live bed inventory list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BedsListResponse'
+
+  /api/v1/hospitals/{id}/beds/{wardType}/adjust:
+    post:
+      summary: Atomic bed counter adjustment with row lock
+      description: |
+        Staff of hospital only (enforced via requireTenant).
+        Requires Idempotency-Key header. Executes SELECT ... FOR UPDATE.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: wardType
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/WardType'
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustBedCountersInput'
+      responses:
+        '200':
+          description: Ward counters adjusted
+        '409':
+          description: Invariant violation (counters or free < 0)
+
+  /api/v1/hospitals/{id}/beds/{wardType}:
+    put:
+      summary: Direct replacement of bed counters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: wardType
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/WardType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutBedCountersInput'
+      responses:
+        '200':
+          description: Ward inventory replaced
+
+  /api/v1/hospitals/{id}/beds/{wardType}/expected-discharges:
+    post:
+      summary: Record expected patient discharges for predictive availability
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: wardType
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/WardType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedAt]
+              properties:
+                expectedAt:
+                  type: array
+                  items:
+                    type: string
+                    format: date-time
+      responses:
+        '200':
+          description: Expected discharges logged
+
+  # --- BED REQUESTS & RESERVATIONS ---
+  /api/v1/bed-requests:
+    post:
+      summary: Reserve bed with 15-minute hold
+      description: |
+        Pessimistically locks ward row (SELECT ... FOR UPDATE).
+        Increments reserved counter (free beds decremented).
+        Rejects with HTTP 409 if free beds == 0.
+        Mandatory Idempotency-Key header.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBedRequestInput'
+      responses:
+        '201':
+          description: Bed reserved successfully (15-minute hold active)
+        '409':
+          description: No free beds available in requested ward
+
+  /api/v1/bed-requests/my:
+    get:
+      summary: Get authenticated patient's bed requests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Patient's bed requests list
+
+  /api/v1/bed-requests/hospital/{id}:
+    get:
+      summary: Get incoming hospital bed requests
+      description: Hospital staff only. Masked ABHA displayed only if patient consented.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED, ADMITTED, CANCELLED, EXPIRED]
+      responses:
+        '200':
+          description: Incoming bed requests list
+
+  /api/v1/bed-requests/{id}/decide:
+    post:
+      summary: Staff decision on bed request (APPROVE or REJECT)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [APPROVE, REJECT]
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Request status updated
+
+  /api/v1/bed-requests/{id}/cancel:
+    post:
+      summary: Patient cancels active bed request
+      description: Decrements reserved counter and restores free bed to pool.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reservation cancelled and bed freed
+
+  /api/v1/bed-requests/{id}/admit:
+    post:
+      summary: Formally admit patient to ward
+      description: Converts hold into official admission (reserved - 1, occupied + 1).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Patient admitted
+
+  # --- EQUIPMENT MODULE ---
+  /api/v1/hospitals/{id}/equipment:
+    get:
+      summary: List equipment for a specific hospital
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [AVAILABLE, IN_USE, MAINTENANCE, FAULTY, OFFLINE] }
+      responses:
+        '200':
+          description: Equipment list
+
+    post:
+      summary: Register new equipment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEquipmentInput'
+      responses:
+        '201':
+          description: Equipment registered
+
+  /api/v1/hospitals/{id}/equipment/summary:
+    get:
+      summary: Aggregated equipment counts by type and operational status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Equipment summary breakdown
+
+  /api/v1/equipment:
+    get:
+      summary: Cross-hospital equipment discovery by radius
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, default: AVAILABLE }
+        - name: lat
+          in: query
+          schema: { type: number }
+        - name: lng
+          in: query
+          schema: { type: number }
+        - name: radiusKm
+          in: query
+          schema: { type: number, default: 30 }
+      responses:
+        '200':
+          description: Nearest matching equipment across hospitals
+
+  /api/v1/equipment/{id}:
+    get:
+      summary: Get equipment detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Equipment detail
+
+  /api/v1/equipment/{id}/status:
+    patch:
+      summary: Update equipment status and append to immutable telemetry log
+      description: |
+        Critical equipment (criticality=CRITICAL) transitioning to OFFLINE, FAULTY, or MAINTENANCE
+        emits an immediate alert:critical-equipment event to the hospital room and logs to audit_log.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [AVAILABLE, IN_USE, MAINTENANCE, FAULTY, OFFLINE]
+                availableAt:
+                  type: string
+                  format: date-time
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+
+  # --- CITY SUMMARY ---
+  /api/v1/city-summary:
+    get:
+      summary: City-wide aggregated bed summary for municipal monitoring
+      responses:
+        '200':
+          description: All verified hospitals with derived free beds
+
+  # --- REALTIME SSE STREAM ---
+  /api/v1/events:
+    get:
+      summary: Server-Sent Events (SSE) fallback stream
+      description: Pushes live beds:update, equipment:update, and request:update telemetry over text/event-stream.
+      parameters:
+        - name: hospitalId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Active SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              example: pass
+            uptimeSeconds:
+              type: integer
+              example: 120
+            timestamp:
+              type: string
+              format: date-time
+
+    ReadyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              example: ready
+            postgres:
+              type: string
+              example: up
+            redis:
+              type: string
+              example: up
+            timestamp:
+              type: string
+              format: date-time
+
+    ErrorEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Schema validation failed
+            details:
+              type: array
+              items:
+                type: object
+        traceId:
+          type: string
+          example: 3b94a61c-8e47-49d6-8472-a0b2dc68f5a2
+
+    GoogleLoginRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+        clientType:
+          type: string
+          enum: [web, android, ios]
+          default: web
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    PreregisterStaffRequest:
+      type: object
+      required: [email, role, hospitalId]
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [HOSPITAL_ADMIN, HOSPITAL_STAFF]
+        hospitalId:
+          type: string
+          format: uuid
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        name:
+          type: string
+        pictureUrl:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [PATIENT, HOSPITAL_ADMIN, HOSPITAL_STAFF, CITY_ADMIN]
+        hospitalId:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED]
+        lastLoginAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+            user:
+              $ref: '#/components/schemas/User'
+
+    RefreshSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+
+    UserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/User'
+
+    StaffResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+            role:
+              type: string
+            hospitalId:
+              type: string
+              format: uuid
+            hospitalName:
+              type: string
+
+    UsersListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        meta:
+          type: object
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
+
+    GenericSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+
+    WardType:
+      type: string
+      enum: [ICU, NICU, PICU, HDU, CCU, GENERAL, SEMI_PRIVATE, PRIVATE, EMERGENCY, ISOLATION]
+
+    HospitalsListResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: array
+          items:
+            type: object
+        meta:
+          type: object
+          properties:
+            page: { type: integer }
+            limit: { type: integer }
+            total: { type: integer }
+            totalPages: { type: integer }
+
+    HospitalDetailResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            type: { type: string }
+            address: { type: string }
+            beds:
+              type: array
+              items: { type: object }
+            equipment:
+              type: array
+              items: { type: object }
+
+    CreateHospitalInput:
+      type: object
+      required: [name, type, registrationNo, address, city, pin, latitude, longitude, phone, email]
+      properties:
+        name: { type: string }
+        type: { type: string, enum: [GOVERNMENT, PRIVATE, TRUST] }
+        registrationNo: { type: string }
+        address: { type: string }
+        city: { type: string }
+        pin: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        phone: { type: string }
+        email: { type: string, format: email }
+        emergency24x7: { type: boolean, default: true }
+        traumaLevel: { type: integer, minimum: 1, maximum: 5, default: 3 }
+        specialties: { type: array, items: { type: string } }
+        facilities: { type: array, items: { type: string } }
+
+    BedsListResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              ward_type: { $ref: '#/components/schemas/WardType' }
+              total: { type: integer }
+              occupied: { type: integer }
+              reserved: { type: integer }
+              cleaning: { type: integer }
+              maintenance: { type: integer }
+              free: { type: integer, description: 'Derived: total - occupied - reserved - cleaning - maintenance' }
+              has_ventilator_beds: { type: integer }
+              version: { type: integer }
+
+    AdjustBedCountersInput:
+      type: object
+      properties:
+        total: { type: integer }
+        occupied: { type: integer }
+        reserved: { type: integer }
+        cleaning: { type: integer }
+        maintenance: { type: integer }
+        reason: { type: string }
+
+    PutBedCountersInput:
+      type: object
+      required: [total, occupied, reserved, cleaning, maintenance]
+      properties:
+        total: { type: integer, minimum: 0 }
+        occupied: { type: integer, minimum: 0 }
+        reserved: { type: integer, minimum: 0 }
+        cleaning: { type: integer, minimum: 0 }
+        maintenance: { type: integer, minimum: 0 }
+        hasVentilatorBeds: { type: integer, minimum: 0 }
+        reason: { type: string }
+
+    CreateBedRequestInput:
+      type: object
+      required: [hospitalId, wardType]
+      properties:
+        hospitalId: { type: string, format: uuid }
+        wardType: { $ref: '#/components/schemas/WardType' }
+        urgency: { type: string, enum: [NORMAL, URGENT, CRITICAL], default: NORMAL }
+        conditionId: { type: string, format: uuid }
+        note: { type: string, maxLength: 500 }
+        shareAbha: { type: boolean, default: false }
+
+    CreateEquipmentInput:
+      type: object
+      required: [type, name, serialNo]
+      properties:
+        type: { type: string }
+        name: { type: string }
+        model: { type: string }
+        serialNo: { type: string }
+        status: { type: string, enum: [AVAILABLE, IN_USE, MAINTENANCE, FAULTY, OFFLINE], default: AVAILABLE }
+        criticality: { type: string, enum: [LOW, NORMAL, HIGH, CRITICAL], default: NORMAL }
+        availableAt: { type: string, format: date-time }
+
+

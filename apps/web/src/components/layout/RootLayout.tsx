@@ -1,0 +1,47 @@
+import React, { useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Header } from './Header';
+import { Navigation } from './Navigation';
+import { OfflineBanner } from './OfflineBanner';
+import { useAuthStore } from '../../lib/auth/auth-store';
+
+export const RootLayout: React.FC = () => {
+  const { checkSession, user, isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const needsProfile =
+      user.role === 'PATIENT' && (user.needsProfileSetup || user.profileComplete === false);
+    if (needsProfile && location.pathname !== '/onboarding' && location.pathname !== '/login') {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [isAuthenticated, user, location.pathname, navigate]);
+
+  return (
+    <div className="ll-shell flex flex-col antialiased">
+      <OfflineBanner />
+
+      <div className="flex-1 flex w-full min-h-screen">
+        <Navigation />
+
+        <div className="flex-1 flex flex-col min-w-0 bg-[#F8FAFC] lg:bg-transparent">
+          <Header />
+
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="flex-1 w-full max-w-[1200px] mx-auto px-4 sm:px-5 lg:px-8 pt-3 lg:pt-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-10 focus:outline-none"
+          >
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+};

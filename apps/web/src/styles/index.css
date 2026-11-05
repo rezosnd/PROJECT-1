@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-page: #F3F5F7;
+  --color-surface: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-card-soft: #F0F2F5;
+  --color-ink: #111111;
+  --color-muted: #6B7280;
+  --color-hairline: #E5E7EB;
+  --color-navy: #0A2540;
+  --color-blue: #1D4ED8;
+  --color-teal: #0F766E;
+  --color-green: #059669;
+  --color-orange: #D97706;
+  --color-red: #DC2626;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-page);
+    color: var(--color-ink);
+    font-family: 'DM Sans', 'Noto Sans Devanagari', 'Noto Sans Oriya', sans-serif;
+    font-feature-settings: 'ss01' on, 'cv11' on;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .font-display {
+    font-family: Sora, 'DM Sans', sans-serif;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .ll-shell {
+    @apply min-h-screen bg-page text-ink;
+  }
+
+  .ll-panel {
+    @apply bg-surface border border-hairline/80 shadow-soft;
+    border-radius: 28px;
+  }
+
+  .ll-card {
+    @apply bg-surface border border-hairline/70 shadow-soft;
+    border-radius: 22px;
+  }
+
+  .ll-kicker {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-muted;
+  }
+
+  .ll-search {
+    @apply w-full h-12 rounded-2xl bg-card-soft border border-transparent px-4 text-sm text-ink
+      placeholder:text-muted/80 focus:bg-white focus:border-hairline focus:outline-none transition;
+  }
+
+  .ll-nav-item {
+    @apply flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-semibold text-muted
+      hover:text-ink hover:bg-card-soft transition-colors;
+  }
+
+  .ll-nav-item-active {
+    @apply bg-card-soft text-ink font-bold;
+  }
+
+  .ll-app-screen {
+    @apply max-w-lg mx-auto lg:max-w-3xl;
+  }
+}
+
+@keyframes number-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.animate-number-pulse {
+  animation: number-pulse 0.4s ease-out;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #EFEFEF 25%, #F7F7F7 50%, #EFEFEF 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

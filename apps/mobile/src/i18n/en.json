@@ -1,0 +1,136 @@
+{
+  "common": {
+    "emergencyCall": "Call 112",
+    "emergencyNotice": "In an emergency call 112",
+    "notMedicalDevice": "LifeLink is a distributed systems prototype for KIIT. Not a certified medical device.",
+    "loading": "Loading live telemetry...",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "back": "Back",
+    "details": "Details",
+    "free": "free",
+    "beds": "beds",
+    "offlineNotice": "Offline — showing cached telemetry",
+    "livePaused": "Live updates paused",
+    "updatedAgo": "Updated {{count}}s ago"
+  },
+  "auth": {
+    "loginTitle": "Login",
+    "welcomeBack": "Welcome back",
+    "subtitle": "Sign in with your Google account to access live bed reservations and ABHA integration.",
+    "continueGoogle": "Continue with Google",
+    "terms": "By signing in, you agree to LifeLink's Prototype Guidelines. Zero PII or phone numbers stored.",
+    "privacy": "Privacy Policy",
+    "signOut": "Sign Out"
+  },
+  "home": {
+    "title": "Find Available Beds",
+    "subtitle": "Real-time critical care inventory across Bhubaneswar hospitals",
+    "searchPlaceholder": "Search condition (e.g. stroke, dengue, premature baby)...",
+    "detectLocation": "Use my location",
+    "orManualPin": "Drop pin on map",
+    "severityTitle": "Triage Severity Level",
+    "findBeds": "Find Beds Now",
+    "severityLevels": {
+      "1": "Mild / General",
+      "2": "Moderate Observation",
+      "3": "Urgent Care",
+      "4": "High Dependency",
+      "5": "Critical / Intensive Care"
+    }
+  },
+  "results": {
+    "title": "Hospital Matches",
+    "foundCount": "{{count}} hospitals equipped for {{condition}}",
+    "listTab": "List View",
+    "mapTab": "Map View",
+    "filters": "Filters",
+    "scoreLabel": "Match Score",
+    "freeNow": "{{count}} {{ward}} free now",
+    "forecast": "{{prob}}% chance of free bed in 3h",
+    "confidence": {
+      "HIGH": "High Confidence",
+      "MEDIUM": "Medium Confidence",
+      "LOW": "Low Confidence"
+    },
+    "requestBed": "Request Bed",
+    "notSuitable": "Not suitable ({{count}} facilities)",
+    "noMatches": "No hospitals currently have matching capacity",
+    "tryExpanding": "Try expanding search radius or adjusting severity."
+  },
+  "detail": {
+    "tabs": {
+      "beds": "Beds",
+      "equipment": "Equipment",
+      "overview": "Overview"
+    },
+    "freeBeds": "Free Beds",
+    "forecastTitle": "Availability Forecast (+1h, +3h, +6h)",
+    "requestBedCTA": "Request 15-Min Bed Hold"
+  },
+  "requests": {
+    "title": "My Requests",
+    "subtitle": "Track your emergency bed hold reservations",
+    "holdCountdown": "Hold expires in",
+    "cancelHold": "Cancel Hold",
+    "status": {
+      "PENDING": "Pending Intake",
+      "HOLD": "15-Min Hold Active",
+      "APPROVED": "Reservation Approved",
+      "ADMITTED": "Patient Admitted",
+      "REJECTED": "Facility at Capacity",
+      "EXPIRED": "Hold Expired",
+      "CANCELLED": "Cancelled by Patient"
+    },
+    "empty": "No active bed requests",
+    "emptyDesc": "When you request a bed, your 15-minute hold timer and intake confirmation appear here."
+  },
+  "equipment": {
+    "title": "Equipment Finder",
+    "subtitle": "Live diagnostic and life-support readiness across city",
+    "selectType": "Choose diagnostic type",
+    "operational": "Operational",
+    "inUse": "In Use",
+    "maintenance": "Maintenance",
+    "availableAt": "Available at {{time}}"
+  },
+  "abha": {
+    "title": "Ayushman Bharat (ABHA)",
+    "subtitle": "ABDM digital health credentials and consent linkage",
+    "sandboxBadge": "ABDM Verified",
+    "createTab": "Create ABHA",
+    "linkTab": "Link Existing",
+    "enterAadhaar": "12-Digit Aadhaar Number",
+    "enterOtp": "Enter 6-Digit OTP",
+    "consentDisclaimer": "Aadhaar number is used strictly for identity verification and is NEVER stored or logged.",
+    "unlink": "Unlink ABHA",
+    "unlinkConfirm": "Are you sure you want to decouple your ABHA credentials?"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "App Language",
+    "biometrics": "Biometric App Lock",
+    "notifications": "In-app Status Alerts",
+    "version": "Prototype Version"
+  },
+  "profile": {
+    "title": "Account & Profile",
+    "subtitle": "Verified Google Identity and Health Integration",
+    "abhaSection": "Ayushman Bharat Health Account (ABHA)",
+    "abhaLinked": "ABHA linked",
+    "abhaMissing": "Tap photo → Link ABHA + QR",
+    "signOut": "Sign Out of LifeLink"
+  },
+  "requestBed": {
+    "title": "Request Emergency Bed",
+    "holdNotice": "Submitting places a verified 15-minute hold on this bed. A confirmation email is sent to your registered inbox.",
+    "freeNow": "{{count}} beds free right now",
+    "noneFree": "No beds free right now",
+    "chanceHint": "Easy read: about {{pct}}% chance a {{ward}} bed is free in ~3 hours.",
+    "confirm": "Hold bed (15 min)",
+    "noFreeCta": "Request anyway"
+  }
+}
+

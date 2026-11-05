@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: cityhealth-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cityhealth}
+      POSTGRES_USER: ${POSTGRES_USER:-cityhealth_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cityhealth_secret_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cityhealth_user} -d ${POSTGRES_DB:-cityhealth}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - cityhealth-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: cityhealth-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - cityhealth-network
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    container_name: cityhealth-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-cityhealth_user}:${POSTGRES_PASSWORD:-cityhealth_secret_password}@postgres:5432/${POSTGRES_DB:-cityhealth}
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-prod_access_secret_super_secure_random_change_me_1234567890}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-prod_refresh_secret_super_secure_random_change_me_1234567890}
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-mock-google-web-client-id.apps.googleusercontent.com}
+      GOOGLE_ANDROID_CLIENT_ID: ${GOOGLE_ANDROID_CLIENT_ID:-mock-google-android-client-id.apps.googleusercontent.com}
+      GOOGLE_IOS_CLIENT_ID: ${GOOGLE_IOS_CLIENT_ID:-mock-google-ios-client-id.apps.googleusercontent.com}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-cityadmin.bhubaneswar@gmail.com}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cityhealth-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  cityhealth-network:
+    driver: bridge
+
