@@ -128,22 +128,19 @@ export const HomePage: React.FC = () => {
       title: 'Bed match',
       grade: freeBeds > 20 ? 'A' : freeBeds > 8 ? 'B+' : 'C',
       note: freeBeds > 20 ? 'Strong city capacity' : 'Check nearby wards',
-      bg: 'bg-[#DFF5A8]',
-      accent: 'text-[#0B3D1A]',
+      tint: 'rgba(223, 245, 168, 0.72)',
     },
     {
       title: 'ABHA',
       grade: abhaReady ? 'A' : '—',
       note: abhaReady ? 'Ready for intake' : 'Link to speed triage',
-      bg: 'bg-[#C8E86A]',
-      accent: 'text-[#0B3D1A]',
+      tint: 'rgba(200, 232, 106, 0.72)',
     },
     {
       title: 'Requests',
       grade: pendingHolds === 0 ? 'A' : String(pendingHolds),
       note: pendingHolds === 0 ? 'No open holds' : 'Active 15-min holds',
-      bg: 'bg-[#B4DC4A]',
-      accent: 'text-[#0B3D1A]',
+      tint: 'rgba(180, 220, 74, 0.72)',
     },
   ];
 
@@ -167,7 +164,7 @@ export const HomePage: React.FC = () => {
               if (e.key === 'Enter') launchSearch(selectedTag, 4, searchText.trim() || selectedTag);
             }}
             placeholder="Search beds, hospitals, doctors…"
-            className="w-full h-12 rounded-full bg-white border border-hairline pl-11 pr-4 text-sm text-ink placeholder:text-muted/70 shadow-soft focus:outline-none focus:ring-2 focus:ring-[#A8E017]/40 focus:border-[#0B3D1A]/30"
+            className="w-full h-12 rounded-full ll-glass-strong pl-11 pr-4 text-sm text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-[#A8E017]/35 border border-white/60"
           />
         </div>
 
@@ -175,7 +172,7 @@ export const HomePage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/requests')}
-            className="relative w-11 h-11 rounded-full bg-white border border-hairline flex items-center justify-center text-ink hover:bg-[#F4F7F2] transition"
+            className="relative w-11 h-11 rounded-full ll-glass border border-white/60 flex items-center justify-center text-ink hover:bg-white/70 transition"
             aria-label="Requests"
           >
             <Bell className="w-4 h-4" />
@@ -205,9 +202,9 @@ export const HomePage: React.FC = () => {
       {/* Card grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Hero overview card */}
-        <article className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0B3D1A] via-[#14532D] to-[#1B5E2F] text-white p-6 sm:p-7 min-h-[280px] flex flex-col shadow-[0_20px_50px_rgba(11,61,26,0.18)]">
+        <article className="relative overflow-hidden rounded-[28px] ll-glass-dark text-white p-6 sm:p-7 min-h-[280px] flex flex-col">
           <div
-            className="pointer-events-none absolute -right-8 -bottom-10 w-56 h-56 rounded-full opacity-30"
+            className="pointer-events-none absolute -right-8 -bottom-10 w-56 h-56 rounded-full opacity-40"
             style={{ background: 'radial-gradient(circle, #A8E017 0%, transparent 70%)' }}
           />
           <img
@@ -220,7 +217,7 @@ export const HomePage: React.FC = () => {
           <h2 className="mt-2 font-display text-2xl sm:text-[28px] font-extrabold tracking-tight leading-tight max-w-[220px] sm:max-w-[260px]">
             Find beds. Book care. Save time.
           </h2>
-          <p className="mt-3 text-sm text-white/70 max-w-[240px] leading-relaxed">
+          <p className="mt-3 text-sm text-white/75 max-w-[240px] leading-relaxed">
             Live ward capacity across Bhubaneswar — matched to your location and urgency.
           </p>
 
@@ -228,7 +225,7 @@ export const HomePage: React.FC = () => {
             <button
               type="button"
               onClick={() => launchSearch(selectedTag, 4, searchText.trim() || selectedTag)}
-              className="h-11 px-5 rounded-full bg-[#A8E017] text-[#0B3D1A] text-sm font-extrabold inline-flex items-center gap-2 hover:brightness-105 transition shadow-soft"
+              className="h-11 px-5 rounded-full bg-[#A8E017]/90 backdrop-blur-md text-[#0B3D1A] text-sm font-extrabold inline-flex items-center gap-2 hover:bg-[#A8E017] transition shadow-soft border border-white/20"
             >
               Find beds
               <ArrowRight className="w-4 h-4" />
@@ -237,7 +234,7 @@ export const HomePage: React.FC = () => {
               type="button"
               onClick={() => detectLocation()}
               disabled={isDetecting}
-              className="h-11 px-4 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-white inline-flex items-center gap-1.5 hover:bg-white/15 transition disabled:opacity-60"
+              className="h-11 px-4 rounded-full bg-white/10 backdrop-blur-md border border-white/25 text-xs font-bold text-white inline-flex items-center gap-1.5 hover:bg-white/18 transition disabled:opacity-60"
             >
               <MapPin className="w-3.5 h-3.5" />
               {isDetecting ? 'Locating…' : 'My location'}
@@ -246,7 +243,7 @@ export const HomePage: React.FC = () => {
         </article>
 
         {/* Current situation card */}
-        <article className="rounded-[28px] bg-white border border-hairline p-6 sm:p-7 shadow-soft min-h-[280px]">
+        <article className="rounded-[28px] ll-glass-strong border border-white/55 p-6 sm:p-7 min-h-[280px]">
           <div className="flex items-start justify-between gap-3 mb-5">
             <div>
               <h3 className="font-display text-lg font-bold text-ink">Current situation</h3>
@@ -311,7 +308,7 @@ export const HomePage: React.FC = () => {
         </article>
 
         {/* Care snapshot — green shade pills */}
-        <article className="rounded-[28px] bg-white border border-hairline p-6 sm:p-7 shadow-soft">
+        <article className="rounded-[28px] ll-glass-strong border border-white/55 p-6 sm:p-7">
           <h3 className="font-display text-lg font-bold text-ink">Care snapshot</h3>
           <p className="text-xs text-muted mt-0.5 mb-5">Your readiness across GetMyHospital</p>
 
@@ -319,10 +316,11 @@ export const HomePage: React.FC = () => {
             {careCards.map((c) => (
               <div
                 key={c.title}
-                className={`${c.bg} rounded-[22px] px-3 py-4 text-center min-h-[120px] flex flex-col items-center justify-center`}
+                className="rounded-[22px] px-3 py-4 text-center min-h-[120px] flex flex-col items-center justify-center border border-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-md"
+                style={{ background: c.tint }}
               >
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#0B3D1A]/70">{c.title}</p>
-                <p className={`mt-2 font-display text-3xl font-extrabold ${c.accent}`}>{c.grade}</p>
+                <p className="mt-2 font-display text-3xl font-extrabold text-[#0B3D1A]">{c.grade}</p>
                 <p className="mt-2 text-[10px] font-semibold text-[#0B3D1A]/65 leading-snug">{c.note}</p>
               </div>
             ))}
@@ -338,13 +336,13 @@ export const HomePage: React.FC = () => {
         </article>
 
         {/* Doctors / activity */}
-        <article className="rounded-[28px] bg-white border border-hairline p-6 sm:p-7 shadow-soft">
+        <article className="rounded-[28px] ll-glass-strong border border-white/55 p-6 sm:p-7">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
               <h3 className="font-display text-lg font-bold text-ink">Top doctors</h3>
               <p className="text-xs text-muted mt-0.5">Nearby specialists</p>
             </div>
-            <div className="flex gap-1 p-1 rounded-full bg-[#F4F7F2]">
+            <div className="flex gap-1 p-1 rounded-full ll-glass border border-white/50">
               {['Week', 'Month'].map((label, i) => (
                 <span
                   key={label}

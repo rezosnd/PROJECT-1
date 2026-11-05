@@ -121,8 +121,8 @@ export const HospitalDashboardPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto pb-10 text-left space-y-6">
       {/* Command header */}
-      <section className="rounded-[28px] overflow-hidden border border-[var(--color-brand-forest)]/20 shadow-soft">
-        <div className="bg-[var(--color-brand-forest)] text-white px-5 sm:px-7 py-6 sm:py-7">
+      <section className="rounded-[28px] overflow-hidden border border-white/20 shadow-[0_16px_48px_rgba(11,61,26,0.18)]">
+        <div className="ll-glass-dark text-white px-5 sm:px-7 py-6 sm:py-7">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-brand-lime)]">
@@ -205,8 +205,8 @@ export const HospitalDashboardPage: React.FC = () => {
               onClick={() => changeTab(tab.id)}
               className={`relative shrink-0 h-10 px-3.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition ${
                 active
-                  ? 'bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)]'
-                  : 'bg-white text-muted border border-hairline hover:text-ink'
+                  ? 'bg-[var(--color-brand-forest)]/90 backdrop-blur-md text-[var(--color-brand-lime)] border border-white/15'
+                  : 'll-glass text-muted border border-white/50 hover:text-ink'
               }`}
             >
               {tab.icon}
@@ -321,7 +321,7 @@ export const HospitalDashboardPage: React.FC = () => {
               return (
                 <div
                   key={key}
-                  className="rounded-2xl border border-hairline bg-white p-5 hover:border-[var(--color-brand-forest)]/25 transition"
+                  className="rounded-2xl ll-glass-strong border border-white/55 p-5 hover:border-[var(--color-brand-forest)]/25 transition"
                 >
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{label}</p>
                   <p className="mt-3 font-display text-3xl font-extrabold text-ink">

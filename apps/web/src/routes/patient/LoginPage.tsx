@@ -134,26 +134,22 @@ export const LoginPage: React.FC = () => {
   const errorMessage = localError || authError;
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[var(--color-page)]">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(900px 420px at 0% -10%, rgba(168,224,23,0.22), transparent 55%), radial-gradient(700px 380px at 100% 0%, rgba(11,61,26,0.10), transparent 50%), linear-gradient(180deg, #F7FAF4 0%, #EEF3EA 100%)',
-        }}
-      />
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="ll-orb w-[460px] h-[460px] bg-[#A8E017]/30 -top-28 -left-16 animate-glass-float" />
+      <div className="ll-orb w-[380px] h-[380px] bg-[#0B3D1A]/12 top-1/3 -right-20" />
+      <div className="ll-orb w-[320px] h-[320px] bg-[#A8E017]/18 bottom-0 left-1/3" />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col lg:flex-row">
         {/* Brand panel */}
         <aside className="hidden lg:flex lg:w-[46%] flex-col justify-between p-10 xl:p-14">
-          <div>
+          <div className="ll-glass-strong rounded-[28px] p-6 border border-white/55 w-fit">
             <BrandMark variant="full" className="h-14 max-w-[280px]" />
             <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-brand-forest)]">
               {BRAND.tagline}
             </p>
           </div>
 
-          <div className="max-w-md">
+          <div className="max-w-md ll-glass rounded-[32px] p-8 border border-white/50 mt-8">
             <h1 className="font-display text-4xl xl:text-5xl font-extrabold tracking-tight text-ink leading-[1.05]">
               Care that finds you a bed — fast.
             </h1>
@@ -168,7 +164,7 @@ export const LoginPage: React.FC = () => {
                 { icon: Lock, label: 'Google OAuth · JWT · ABDM ready' },
               ].map(({ icon: Icon, label }) => (
                 <li key={label} className="flex items-center gap-3 text-sm font-semibold text-ink">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white border border-hairline shadow-soft">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl ll-glass border border-white/60">
                     <Icon className="h-4 w-4 text-[var(--color-brand-forest)]" strokeWidth={2.4} />
                   </span>
                   {label}
@@ -177,7 +173,7 @@ export const LoginPage: React.FC = () => {
             </ul>
           </div>
 
-          <p className="text-xs text-muted">National Health Authority & ABDM aligned</p>
+          <p className="text-xs text-muted mt-6">National Health Authority & ABDM aligned</p>
         </aside>
 
         {/* Auth card */}
@@ -186,16 +182,16 @@ export const LoginPage: React.FC = () => {
             <button
               onClick={() => navigate(-1)}
               aria-label="Go back"
-              className="mb-5 w-11 h-11 rounded-2xl border border-hairline bg-white/90 backdrop-blur flex items-center justify-center text-ink hover:bg-white transition shadow-soft lg:hidden"
+              className="mb-5 w-11 h-11 rounded-2xl ll-glass border border-white/60 flex items-center justify-center text-ink hover:bg-white/70 transition lg:hidden"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
 
-            <div className="mb-6 lg:hidden">
+            <div className="mb-6 lg:hidden ll-glass-strong rounded-2xl p-4 border border-white/55 w-fit">
               <BrandMark variant="full" className="h-11 max-w-[220px]" />
             </div>
 
-            <div className="rounded-[32px] border border-hairline bg-white/95 backdrop-blur shadow-[0_24px_60px_rgba(11,61,26,0.08)] p-6 sm:p-8">
+            <div className="rounded-[32px] ll-glass-strong border border-white/60 p-6 sm:p-8 shadow-[0_24px_60px_rgba(11,61,26,0.10)]">
               <p className="ll-kicker text-[var(--color-brand-forest)]">Secure access</p>
               <h2 className="mt-2 font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
                 Sign in to {BRAND.name}

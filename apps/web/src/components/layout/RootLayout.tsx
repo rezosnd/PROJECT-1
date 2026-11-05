@@ -28,9 +28,11 @@ export const RootLayout: React.FC = () => {
 
   if (isAuthChromeFree) {
     return (
-      <div className="ll-shell min-h-screen antialiased">
+      <div className="ll-shell min-h-screen antialiased overflow-x-hidden">
+        <div className="ll-orb w-[420px] h-[420px] bg-[#A8E017]/25 -top-24 -left-20 animate-glass-float" />
+        <div className="ll-orb w-[360px] h-[360px] bg-[#0B3D1A]/10 top-1/3 -right-24" />
         <OfflineBanner />
-        <main id="main-content" tabIndex={-1} className="min-h-screen focus:outline-none">
+        <main id="main-content" tabIndex={-1} className="relative z-10 min-h-screen focus:outline-none">
           <Outlet />
         </main>
       </div>
@@ -38,13 +40,15 @@ export const RootLayout: React.FC = () => {
   }
 
   return (
-    <div className="ll-shell flex flex-col antialiased">
+    <div className="ll-shell flex flex-col antialiased overflow-x-hidden">
+      <div className="ll-orb w-[480px] h-[480px] bg-[#A8E017]/22 -top-32 left-1/4 animate-glass-float" />
+      <div className="ll-orb w-[380px] h-[380px] bg-[#0B3D1A]/08 bottom-0 right-0" />
       <OfflineBanner />
 
-      <div className="flex-1 flex w-full min-h-screen">
+      <div className="relative z-10 flex-1 flex w-full min-h-screen">
         <Navigation />
 
-        <div className="flex-1 flex flex-col min-w-0 bg-[#F8FAFC] lg:bg-transparent">
+        <div className="flex-1 flex flex-col min-w-0 bg-transparent">
           <Header />
 
           <main

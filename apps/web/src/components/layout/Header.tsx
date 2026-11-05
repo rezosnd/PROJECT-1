@@ -51,12 +51,12 @@ export const Header: React.FC = () => {
   return (
     <>
       {/* Desktop header */}
-      <header className="hidden lg:block sticky top-0 z-30 px-4 sm:px-6 lg:px-8 pt-4 pb-2 bg-page/90 backdrop-blur-md">
-        <div className="max-w-[1200px] mx-auto flex items-center gap-3">
+      <header className="hidden lg:block sticky top-0 z-30 px-4 sm:px-6 lg:px-8 pt-4 pb-2 bg-transparent">
+        <div className="max-w-[1200px] mx-auto flex items-center gap-3 ll-glass-strong rounded-[22px] px-3 py-2.5 border border-white/50">
           <button
             type="button"
             onClick={toggle}
-            className="w-11 h-11 rounded-2xl bg-white border border-hairline flex items-center justify-center text-muted hover:text-ink hover:bg-card-soft transition shadow-soft cursor-pointer shrink-0"
+            className="w-11 h-11 rounded-2xl ll-glass border border-white/60 flex items-center justify-center text-muted hover:text-ink hover:bg-white/50 transition cursor-pointer shrink-0"
             aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'}
             title={collapsed ? 'Open menu' : 'Close menu'}
           >

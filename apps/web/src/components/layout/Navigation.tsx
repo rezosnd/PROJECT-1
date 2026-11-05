@@ -243,7 +243,7 @@ export const Navigation: React.FC = () => {
       {/* Mobile bottom tab bar — matches Expo app */}
       <nav
         aria-label="App tabs"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(15,23,42,0.05)]"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 ll-glass-strong border-t border-white/50 px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
       >
         <div className="flex items-stretch justify-around max-w-lg mx-auto">
           {mobileTabs.map(renderMobileTab)}

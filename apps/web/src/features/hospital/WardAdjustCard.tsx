@@ -75,7 +75,7 @@ export const WardAdjustCard: React.FC<WardAdjustCardProps> = ({
   const freeStatus = localWard.free > 2 ? 'green' : localWard.free > 0 ? 'orange' : 'red';
 
   return (
-    <Card variant="surface" className="text-left border border-hairline bg-white shadow-soft relative overflow-hidden hover:border-[var(--color-brand-forest)]/25 transition-colors">
+    <Card variant="surface" className="text-left ll-glass-strong border border-white/55 relative overflow-hidden hover:border-[var(--color-brand-forest)]/25 transition-colors">
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
           <div className="flex items-center gap-2">
