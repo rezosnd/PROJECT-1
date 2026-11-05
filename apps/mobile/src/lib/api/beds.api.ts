@@ -31,24 +31,47 @@ export interface BedRequest {
   createdAt: string;
 }
 
+function normalizeWard(w: any, hospitalId: string): WardInventory {
+  return {
+    id: w.id,
+    hospitalId: w.hospital_id || hospitalId,
+    wardType: w.ward_type || w.wardType,
+    total: Number(w.total) || 0,
+    occupied: Number(w.occupied) || 0,
+    reserved: Number(w.reserved) || 0,
+    cleaning: Number(w.cleaning) || 0,
+    maintenance: Number(w.maintenance) || 0,
+    hasVentilatorBeds: Number(w.has_ventilator_beds ?? w.hasVentilatorBeds) || 0,
+    free: Number(w.free) || 0,
+    version: Number(w.version) || 1,
+    updatedAt: w.updated_at || w.updatedAt || new Date().toISOString(),
+  };
+}
+
 export const bedsApi = {
   async getHospitalBeds(hospitalId: string): Promise<WardInventory[]> {
     const res = await apiClient.get(`/hospitals/${hospitalId}/beds`);
     const raw = Array.isArray(res.data.data) ? res.data.data : [];
-    return raw.map((w: any) => ({
-      id: w.id,
-      hospitalId: w.hospital_id || hospitalId,
-      wardType: w.ward_type,
-      total: Number(w.total) || 0,
-      occupied: Number(w.occupied) || 0,
-      reserved: Number(w.reserved) || 0,
-      cleaning: Number(w.cleaning) || 0,
-      maintenance: Number(w.maintenance) || 0,
-      hasVentilatorBeds: Number(w.has_ventilator_beds) || 0,
-      free: Number(w.free) || 0,
-      version: Number(w.version) || 1,
-      updatedAt: w.updated_at || new Date().toISOString(),
-    }));
+    return raw.map((w: any) => normalizeWard(w, hospitalId));
+  },
+
+  async syncHospitalBeds(
+    hospitalId: string,
+    etag: string | null
+  ): Promise<{ notModified: boolean; beds?: WardInventory[]; etag: string | null }> {
+    const res = await apiClient.get(`/hospitals/${hospitalId}/beds`, {
+      headers: etag ? { 'If-None-Match': etag } : {},
+      params: etag ? { v: etag } : {},
+      validateStatus: (s) => (s >= 200 && s < 300) || s === 304,
+    });
+    if (res.status === 304) return { notModified: true, etag };
+    const nextEtag = (res.headers?.etag as string) || res.data?.meta?.etag || etag;
+    const raw = Array.isArray(res.data.data) ? res.data.data : [];
+    return {
+      notModified: false,
+      beds: raw.map((w: any) => normalizeWard(w, hospitalId)),
+      etag: nextEtag || null,
+    };
   },
 
   async requestBed(payload: {

@@ -3,10 +3,26 @@ import { bedsService } from './beds.service.js';
 export const bedsController = {
   async getHospitalBeds(req, res, next) {
     try {
-      const beds = await bedsService.getHospitalBeds(req.params.id);
+      const hospitalId = req.params.id;
+      const { etag } = await bedsService.getHospitalBedsEtag(hospitalId);
+      const clientTag =
+        req.headers['if-none-match'] ||
+        (typeof req.query.v === 'string' ? req.query.v : null);
+
+      res.setHeader('ETag', etag);
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+
+      // Ultra-cheap live poll: unchanged inventory → 304 (almost no payload)
+      if (clientTag && clientTag === etag) {
+        return res.status(304).end();
+      }
+
+      const beds = await bedsService.getHospitalBeds(hospitalId);
       res.status(200).json({
         success: true,
-        data: beds
+        data: beds,
+        meta: { etag, live: true }
       });
     } catch (err) {
       next(err);

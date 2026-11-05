@@ -42,7 +42,20 @@ Web / mobile already point at:
 - API: `https://project1-api.vercel.app/api/v1`
 - Health check: `https://project1-api.vercel.app/health`
 
+## Live bed counts (near‑instant without Socket.IO)
+
+Vercel **cannot** keep Socket.IO connections open. Live beds use:
+
+1. **SSE** `GET /api/v1/events?hospitalId=` (Redis pub/sub across instances when `REDIS_URL` is set)
+2. **300ms ETag poll** `GET /hospitals/:id/beds` → **304** if unchanged (almost free)
+
+Set a working `REDIS_URL` (e.g. Upstash / Redis Cloud allowlist Vercel) for push over SSE.
+
+True **0.000 ms** is impossible over the internet. Staff who adjust a ward see the new count in the API response immediately; other clients update within ~0.3s (poll) or faster via SSE.
+
+For classic Socket.IO (~50–200ms), also run this API on Railway/Render/Fly (long‑lived Node).
+
 ## Limits on Vercel
 
-- **Socket.IO realtime will not work** on serverless (use polling / refetch).
-- Background bed-hold / snapshot jobs do **not** run on Vercel — keep a always-on host (Railway/Render/Fly) if you need them.
+- **Socket.IO** does not run on serverless (clients auto‑skip it for `*.vercel.app`).
+- Background bed-hold / snapshot jobs do **not** run on Vercel — keep an always-on host if you need them.

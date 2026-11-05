@@ -11,6 +11,10 @@ export const bedsService = {
     return await bedsRepository.getHospitalBedInventory(pool, hospitalId);
   },
 
+  async getHospitalBedsEtag(hospitalId) {
+    return await bedsRepository.getHospitalBedsEtag(pool, hospitalId);
+  },
+
   /**
    * Distributed Systems Note: Atomic Bed Counter Adjustment with Row Locking.
    * Modifying bed counters executes in a single transaction with SELECT ... FOR UPDATE.

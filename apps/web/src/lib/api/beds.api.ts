@@ -76,6 +76,29 @@ export const bedsApi = {
     return raw.map(normalizeWard);
   },
 
+  /**
+   * Sub-second live sync: 304 when unchanged (If-None-Match / ?v=etag).
+   */
+  async syncHospitalBeds(
+    hospitalId: string,
+    etag: string | null
+  ): Promise<{ notModified: boolean; beds?: WardInventory[]; etag: string | null }> {
+    const res = await apiClient.get(`/hospitals/${hospitalId}/beds`, {
+      headers: etag ? { 'If-None-Match': etag } : {},
+      params: etag ? { v: etag } : {},
+      validateStatus: (s) => (s >= 200 && s < 300) || s === 304,
+    });
+    if (res.status === 304) {
+      return { notModified: true, etag };
+    }
+    const nextEtag =
+      (res.headers?.etag as string) ||
+      (res.data?.meta?.etag as string) ||
+      etag;
+    const raw = Array.isArray(res.data.data) ? res.data.data : [];
+    return { notModified: false, beds: raw.map(normalizeWard), etag: nextEtag || null };
+  },
+
   async adjustBedInventory(
     hospitalId: string,
     wardType: WardType,

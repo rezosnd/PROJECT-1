@@ -18,6 +18,23 @@ export const bedsRepository = {
     return rows;
   },
 
+  /** Cheap fingerprint for sub-second live sync (304 Not Modified). */
+  async getHospitalBedsEtag(db = pool, hospitalId) {
+    const { rows } = await db.query(
+      `SELECT COALESCE(SUM(version), 0)::bigint AS version_sum,
+              COUNT(*)::int AS ward_count,
+              COALESCE(MAX(updated_at), NOW()) AS updated_at
+       FROM bed_inventory
+       WHERE hospital_id = $1`,
+      [hospitalId]
+    );
+    const row = rows[0] || { version_sum: 0, ward_count: 0, updated_at: new Date() };
+    return {
+      etag: `"beds-${hospitalId}-${row.version_sum}-${row.ward_count}"`,
+      updatedAt: row.updated_at,
+    };
+  },
+
   /**
    * Distributed Systems Note: Pessimistic Row Lock (SELECT ... FOR UPDATE).
    * Serializes concurrent bed allocations on the exact ward row at the PostgreSQL storage engine.

@@ -64,8 +64,8 @@ export const ResultsPage: React.FC = () => {
         emergencyOnly: filters.emergencyOnly,
         clientType: 'web',
       }),
-    staleTime: 10000,
-    refetchInterval: 15000,
+    staleTime: 500,
+    refetchInterval: 2000,
   });
 
   const handleRequestBed = (hospitalId: string, wardType: string) => {
