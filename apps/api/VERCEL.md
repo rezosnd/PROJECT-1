@@ -28,12 +28,20 @@ Copy from local `apps/api/.env` at minimum:
 | `ABDM_*` | Same as local |
 | `CLOUDINARY_*` / `SMTP_*` | Same as local |
 
-## 3. Google Console
+## 3. Google Console (fixes “Access blocked”)
 
-Authorized **JavaScript origins** (not LAN IPs):
+Web client → add **both**:
 
+**Authorized redirect URIs**
+- `https://project1-api.vercel.app/api/v1/auth/google/mobile-callback`
+
+**Authorized JavaScript origins**
 - `https://project1-api.vercel.app`
 - `http://localhost:5000` (local only)
+
+**OAuth consent screen → Testing** → add your Gmail as a **Test user**.
+
+Do **not** add LAN IPs (`10.x` / `192.168.x`) — Google rejects them.
 
 ## 4. Clients
 

@@ -107,8 +107,15 @@ if (!parsed.success) {
 export const config = {
   ...parsed.data,
   corsOriginsList: parsed.data.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
-  PUBLIC_API_ORIGIN:
-    parsed.data.PUBLIC_API_ORIGIN ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
-    'https://project1-api.vercel.app',
+  PUBLIC_API_ORIGIN: (() => {
+    const raw =
+      parsed.data.PUBLIC_API_ORIGIN ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+      'https://project1-api.vercel.app';
+    // Never advertise a LAN IP to Google OAuth
+    if (/^(https?:\/\/)?(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/i.test(raw)) {
+      return 'https://project1-api.vercel.app';
+    }
+    return String(raw).replace(/\/$/, '');
+  })(),
 };

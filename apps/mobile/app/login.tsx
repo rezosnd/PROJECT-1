@@ -8,6 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   AppState,
+  Linking as RNLinking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -20,6 +21,9 @@ import Svg, { Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
 WebBrowser.maybeCompleteAuthSession();
+
+/** Always use public HTTPS for Google OAuth (LAN IPs are rejected by Google). */
+const AUTH_BRIDGE_ORIGIN = 'https://project1-api.vercel.app';
 
 function GoogleIcon() {
   return (
@@ -37,7 +41,7 @@ function resolveApiOrigin(): string {
   const apiUrl =
     extra.apiUrl ||
     process.env.EXPO_PUBLIC_API_URL ||
-    'https://project1-api.vercel.app/api/v1';
+    `${AUTH_BRIDGE_ORIGIN}/api/v1`;
   return String(apiUrl).replace(/\/api\/v1\/?$/, '');
 }
 
@@ -60,14 +64,16 @@ export default function LoginScreen() {
 
   const returnUrl = useMemo(() => Linking.createURL('oauth'), []);
   const apiOrigin = useMemo(() => resolveApiOrigin(), []);
+  // Google OAuth always through Vercel HTTPS (valid public TLD)
+  const bridgeOrigin = AUTH_BRIDGE_ORIGIN;
 
   const bridgeUrl = useMemo(() => {
     const params = new URLSearchParams({
       scheme: 'lifelink',
       return_url: returnUrl,
     });
-    return `${apiOrigin}/api/v1/auth/google/mobile?${params.toString()}`;
-  }, [apiOrigin, returnUrl]);
+    return `${bridgeOrigin}/api/v1/auth/google/mobile?${params.toString()}`;
+  }, [bridgeOrigin, returnUrl]);
 
   useEffect(() => {
     logout();
@@ -126,7 +132,6 @@ export default function LoginScreen() {
     finishingRef.current = false;
     setIsLoading(true);
     try {
-      // Prefer system browser / Custom Tabs so Google does not block WebView user-agents
       const result = await WebBrowser.openAuthSessionAsync(bridgeUrl, returnUrl, {
         showInRecents: true,
         preferEphemeralSession: false,
@@ -152,14 +157,11 @@ export default function LoginScreen() {
         return;
       }
 
-      // Fallback: open Chrome fully (helps when AuthSession uses a blocked WebView)
-      await WebBrowser.openBrowserAsync(bridgeUrl, {
-        enableBarCollapsing: true,
-        showInRecents: true,
-      });
+      // Last resort: open system browser
+      await RNLinking.openURL(bridgeUrl);
       Alert.alert(
-        'Finish in Chrome',
-        'Complete Google Sign-In in the browser. LifeLink will open again automatically when done.'
+        'Finish in browser',
+        'Complete Google Sign-In, then return to LifeLink. The app opens automatically when done.'
       );
       setIsLoading(false);
     } catch (err: any) {
@@ -184,13 +186,13 @@ export default function LoginScreen() {
 
       <Text style={styles.title}>Sign in with Google</Text>
       <Text style={styles.subtitle}>
-        Patient app uses your real Gmail only. After sign-in you complete a one-time care profile for hospital bookings.
+        Secure patient login via Gmail. After sign-in, complete your care profile once for faster bed holds.
       </Text>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Continue securely</Text>
         <Text style={styles.cardDesc}>
-          Opens Google in Chrome / Safari, then returns to LifeLink. Avoids Google “Access blocked” WebView errors.
+          Uses HTTPS Google OAuth on {bridgeOrigin.replace('https://', '')} — no LAN IP, no WebView block.
         </Text>
 
         <Pressable
@@ -204,30 +206,37 @@ export default function LoginScreen() {
           accessibilityLabel="Continue with Google"
         >
           {isLoading ? (
-            <ActivityIndicator color="#0F172A" />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <>
-              <GoogleIcon />
+              <View style={styles.googleIconWrap}>
+                <GoogleIcon />
+              </View>
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             </>
           )}
         </Pressable>
 
         <View style={styles.setupBox}>
-          <Text style={styles.setupTitle}>Google rejects LAN IPs as origins</Text>
+          <Text style={styles.setupTitle}>Still see Access blocked?</Text>
           <Text style={styles.setupHint}>
-            Do not add http://10.x.x.x:5000 — Google requires localhost or a public domain.{'\n\n'}
-            Phone testing: run a tunnel to the API, then add that HTTPS URL under Authorized JavaScript origins, and point the app at it.{'\n\n'}
-            Also: OAuth consent → Testing → add your Gmail as a Test user.{'\n'}
-            Current bridge host:{'\n'}
-            <Text style={styles.code}>{apiOrigin}</Text>
+            Google Cloud → your Web client:{'\n'}
+            • Redirect URI:{'\n'}
+            <Text style={styles.code}>
+              {bridgeOrigin}/api/v1/auth/google/mobile-callback
+            </Text>
+            {'\n'}
+            • JS origin: <Text style={styles.code}>{bridgeOrigin}</Text>
+            {'\n'}
+            • OAuth consent → Testing → add your Gmail as Test user{'\n\n'}
+            API host: <Text style={styles.code}>{apiOrigin}</Text>
           </Text>
         </View>
       </View>
 
       <View style={styles.footer}>
         <ShieldCheck size={14} color="#059669" />
-        <Text style={styles.footerText}>Google OAuth · JWT session · ABDM-ready</Text>
+        <Text style={styles.footerText}>Google OAuth · JWT · ABDM-ready</Text>
       </View>
     </View>
   );
@@ -316,18 +325,24 @@ const styles = StyleSheet.create({
     marginTop: 16,
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#0F172A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
+  googleIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   googleButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
   setupBox: {
     marginTop: 14,

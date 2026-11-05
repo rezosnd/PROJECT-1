@@ -1,16 +1,14 @@
 /**
- * Mobile Google Sign-In bridge for Expo.
+ * Mobile Google Sign-In bridge.
  *
- * Prefer Chrome Custom Tabs / SFSafariViewController (not an embedded WebView).
- * GIS button with JavaScript origins — add your API origin under Authorized JavaScript origins.
+ * Primary path: OAuth redirect (id_token) → /api/v1/auth/google/mobile-callback
+ *   Google Console → Web client → Authorized redirect URIs:
+ *     https://project1-api.vercel.app/api/v1/auth/google/mobile-callback
  *
- * Google no longer accepts LAN IPs (10.x / 192.168.x) as JavaScript origins.
- * Use localhost (desktop) or a public HTTPS tunnel (phone):
- *   http://localhost:5000
- *   http://127.0.0.1:5000
- *   https://YOUR-SUBDOMAIN.trycloudflare.com
+ * Fallback: GIS button (needs Authorized JavaScript origins):
+ *     https://project1-api.vercel.app
  *
- * OAuth consent → Testing: add the Gmail you sign in with as a Test user.
+ * OAuth consent → Testing: add your Gmail as a Test user.
  */
 export function renderGoogleMobileHtml({
   clientId,
@@ -20,8 +18,9 @@ export function renderGoogleMobileHtml({
 }) {
   const safeClientId = String(clientId || '').replace(/"/g, '');
   const safeScheme = String(redirectScheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '');
-  const safeOrigin = String(origin || '').replace(/"/g, '');
+  const safeOrigin = String(origin || 'https://project1-api.vercel.app').replace(/\/$/, '').replace(/"/g, '');
   const safeReturn = String(returnUrl || '').replace(/"/g, '');
+  const redirectUri = `${safeOrigin}/api/v1/auth/google/mobile-callback`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -34,7 +33,7 @@ export function renderGoogleMobileHtml({
     * { box-sizing: border-box; }
     body {
       margin: 0; min-height: 100vh; font-family: "Segoe UI", system-ui, sans-serif;
-      background: linear-gradient(165deg, #f8fafc 0%, #eef2f6 100%);
+      background: linear-gradient(165deg, #f8fafc 0%, #e8eef5 100%);
       color: #0f172a; display: flex; align-items: center; justify-content: center; padding: 24px;
     }
     .card {
@@ -48,7 +47,12 @@ export function renderGoogleMobileHtml({
     }
     h1 { margin: 0; font-size: 22px; letter-spacing: -0.03em; }
     p { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: #64748b; }
-    #google-btn { margin-top: 20px; display: flex; justify-content: center; min-height: 44px; }
+    .cta {
+      margin-top: 20px; width: 100%; height: 52px; border: none; border-radius: 999px;
+      background: #0f172a; color: #fff; font-weight: 800; font-size: 15px; cursor: pointer;
+    }
+    .cta:active { opacity: 0.9; }
+    #google-btn { margin-top: 14px; display: flex; justify-content: center; min-height: 44px; }
     .hint { margin-top: 16px; font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.45; }
     .err {
       display: none; margin-top: 14px; padding: 10px 12px; border-radius: 14px;
@@ -63,11 +67,6 @@ export function renderGoogleMobileHtml({
       border: 1px solid #bfdbfe; color: #1e3a8a; font-size: 11px; line-height: 1.45;
     }
     code { font-size: 10px; word-break: break-all; }
-    .manual {
-      margin-top: 12px; width: 100%; height: 44px; border-radius: 999px; border: 1px solid #e2e8f0;
-      background: #0f172a; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
-      display: none;
-    }
   </style>
 </head>
 <body>
@@ -79,34 +78,34 @@ export function renderGoogleMobileHtml({
         <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b">Patient sign-in</p>
       </div>
     </div>
-    <p>Tap Continue with Google. When Google confirms, you return to the LifeLink app automatically.</p>
+    <p>Continue with Google. You will return to the LifeLink app automatically.</p>
+    <button type="button" class="cta" id="oauth-btn">Continue with Google</button>
     <div id="google-btn"></div>
-    <button type="button" id="manual" class="manual">Retry Google Sign-In</button>
     <div id="ok" class="ok">Signed in — returning to LifeLink…</div>
     <div id="err" class="err"></div>
     <div class="setup">
-      <b>Google origin rules</b>:<br/>
-      LAN IPs like <code>http://10.x.x.x:5000</code> are <b>rejected</b> (“must end with a public TLD”).<br/>
-      Add a <b>localhost</b> or <b>HTTPS tunnel</b> origin instead, e.g.<br/>
-      <code>${safeOrigin || 'https://YOUR-TUNNEL.trycloudflare.com'}</code><br/>
-      Also add your Gmail as an OAuth <b>Test user</b>.
+      <b>If Google shows Access blocked</b>:<br/>
+      1) OAuth consent → <b>Testing</b> → add your Gmail as a <b>Test user</b><br/>
+      2) Web client → Authorized <b>redirect URIs</b> add:<br/>
+      <code>${redirectUri}</code><br/>
+      3) Authorized <b>JavaScript origins</b> add:<br/>
+      <code>${safeOrigin}</code>
     </div>
-    <p class="hint">GIS callback · JS origin only · ABDM-ready</p>
+    <p class="hint">OAuth redirect on Vercel · no LAN IP · ABDM-ready</p>
   </main>
   <script>
     (function () {
       var CLIENT_ID = "${safeClientId}";
       var SCHEME = "${safeScheme}";
       var RETURN_URL = "${safeReturn}";
+      var REDIRECT_URI = "${redirectUri}";
       var errEl = document.getElementById('err');
       var okEl = document.getElementById('ok');
-      var manualBtn = document.getElementById('manual');
 
       function showError(msg) {
         errEl.style.display = 'block';
         errEl.innerHTML = msg || 'Google sign-in failed';
         okEl.style.display = 'none';
-        manualBtn.style.display = 'block';
       }
 
       function buildDeepLink(idToken) {
@@ -127,81 +126,89 @@ export function renderGoogleMobileHtml({
         errEl.style.display = 'none';
         var url = buildDeepLink(idToken);
         try { window.location.href = url; } catch (e) {}
-        setTimeout(function () {
-          try { window.location.replace(url); } catch (e) {}
-        }, 250);
-        setTimeout(function () {
-          var a = document.createElement('a');
-          a.href = url;
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          a.click();
-        }, 500);
+        setTimeout(function () { try { window.location.replace(url); } catch (e) {} }, 200);
       }
 
-      function initGis() {
+      function randomNonce() {
+        var bytes = new Uint8Array(16);
+        (window.crypto || window.msCrypto).getRandomValues(bytes);
+        return Array.from(bytes).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      }
+
+      function startOauthRedirect() {
         if (!CLIENT_ID) {
-          showError('Google client ID is not configured on the API server.');
+          showError('Google client ID is not configured on the API.');
           return;
         }
-        google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          use_fedcm_for_prompt: false,
-          itp_support: true,
-          callback: function (response) {
-            finish(response && response.credential);
-          },
-          error_callback: function (err) {
-            var detail = (err && (err.message || err.type || err.reason)) || 'unknown';
-            showError(
-              'Google blocked this sign-in (' + detail + '). ' +
-              'Add your Gmail as an OAuth <b>Test user</b> and ensure JS origin <code>${safeOrigin}</code> is listed.'
-            );
-          }
-        });
-
-        var host = document.getElementById('google-btn');
-        host.innerHTML = '';
-        google.accounts.id.renderButton(host, {
-          theme: 'outline',
-          size: 'large',
-          shape: 'pill',
-          text: 'continue_with',
-          width: 320,
-          logo_alignment: 'left'
-        });
+        var statePayload = btoa(unescape(encodeURIComponent(JSON.stringify({
+          return_url: RETURN_URL,
+          scheme: SCHEME
+        }))));
+        var url = 'https://accounts.google.com/o/oauth2/v2/auth'
+          + '?client_id=' + encodeURIComponent(CLIENT_ID)
+          + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
+          + '&response_type=id_token'
+          + '&scope=' + encodeURIComponent('openid email profile')
+          + '&nonce=' + encodeURIComponent(randomNonce())
+          + '&state=' + encodeURIComponent(statePayload)
+          + '&prompt=select_account';
+        window.location.href = url;
       }
 
-      function boot() {
+      document.getElementById('oauth-btn').addEventListener('click', startOauthRedirect);
+
+      // Auto-start OAuth (most reliable in Chrome Custom Tabs)
+      setTimeout(startOauthRedirect, 350);
+
+      // GIS button as secondary option (if JS origin is configured)
+      function bootGis() {
         if (!window.google || !google.accounts || !google.accounts.id) {
-          setTimeout(boot, 120);
+          setTimeout(bootGis, 150);
           return;
         }
         try {
-          initGis();
-        } catch (e) {
-          showError((e && e.message) || 'Could not start Google Sign-In');
-        }
+          google.accounts.id.initialize({
+            client_id: CLIENT_ID,
+            callback: function (response) { finish(response && response.credential); },
+            use_fedcm_for_prompt: false,
+            auto_select: false
+          });
+          var host = document.getElementById('google-btn');
+          host.innerHTML = '';
+          google.accounts.id.renderButton(host, {
+            theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: 320
+          });
+        } catch (e) { /* GIS optional */ }
       }
-
-      manualBtn.addEventListener('click', function () {
-        errEl.style.display = 'none';
-        boot();
-      });
-
-      boot();
+      bootGis();
     })();
   </script>
 </body>
 </html>`;
 }
 
-export function renderGoogleMobileCallbackHtml({ redirectScheme = 'lifelink', idToken = '', returnUrl = '' }) {
+export function renderGoogleMobileCallbackHtml({
+  redirectScheme = 'lifelink',
+  idToken = '',
+  returnUrl = '',
+  state = '',
+}) {
   const safeScheme = String(redirectScheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '');
   const token = String(idToken || '').replace(/"/g, '');
-  const safeReturn = String(returnUrl || '').replace(/"/g, '');
+  let safeReturn = String(returnUrl || '').replace(/"/g, '');
+  // Recover return_url from OAuth state if needed
+  if (!safeReturn && state) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(escape(atob(String(state)))));
+      if (parsed?.return_url) safeReturn = String(parsed.return_url).replace(/"/g, '');
+      if (parsed?.scheme) {
+        // scheme already in safeScheme default
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -210,7 +217,7 @@ export function renderGoogleMobileCallbackHtml({ redirectScheme = 'lifelink', id
   <title>Returning to LifeLink…</title>
   <style>
     body { font-family: system-ui, sans-serif; display:grid; place-items:center; min-height:100vh; margin:0; background:#f8fafc; color:#0f172a; }
-    p { font-size: 14px; color:#64748b; text-align:center; padding: 0 24px; }
+    p { font-size: 14px; color:#64748b; text-align:center; padding: 0 24px; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -223,15 +230,28 @@ export function renderGoogleMobileCallbackHtml({ redirectScheme = 'lifelink', id
       var hash = window.location.hash ? window.location.hash.substring(1) : '';
       var query = window.location.search ? window.location.search.substring(1) : '';
       var params = new URLSearchParams(hash || query);
+      // Also merge query if hash present
+      if (hash && query) {
+        var qParams = new URLSearchParams(query);
+        qParams.forEach(function (v, k) { if (!params.has(k)) params.set(k, v); });
+      }
       var idToken = preset || params.get('id_token') || params.get('credential');
       var error = params.get('error');
+      var state = params.get('state') || '';
+      if (!RETURN_URL && state) {
+        try {
+          var st = JSON.parse(decodeURIComponent(escape(atob(state))));
+          if (st && st.return_url) RETURN_URL = st.return_url;
+          if (st && st.scheme) SCHEME = st.scheme;
+        } catch (e) {}
+      }
       var msg = document.getElementById('msg');
       if (error) {
-        msg.textContent = 'Google sign-in was cancelled or blocked (' + error + '). Close and try again.';
+        msg.innerHTML = 'Google blocked or cancelled sign-in (<b>' + error + '</b>).<br/>Add redirect URI + Test user in Google Cloud, then try again.';
         return;
       }
       if (!idToken) {
-        msg.textContent = 'No Google credential found. Close this window and try again.';
+        msg.textContent = 'No Google credential found. Close and try again.';
         return;
       }
       var token = encodeURIComponent(idToken);
@@ -240,7 +260,12 @@ export function renderGoogleMobileCallbackHtml({ redirectScheme = 'lifelink', id
         : (SCHEME + '://oauth?id_token=' + token);
       msg.textContent = 'Success — returning to LifeLink…';
       window.location.href = url;
-      setTimeout(function () { window.location.replace(url); }, 300);
+      setTimeout(function () { window.location.replace(url); }, 250);
+      setTimeout(function () {
+        var a = document.createElement('a');
+        a.href = url;
+        a.click();
+      }, 500);
     })();
   </script>
 </body>

@@ -14,12 +14,17 @@ const router = Router();
 const authLimiter = rateLimiter({ max: 20, windowMs: 60000, prefix: 'rl:auth' });
 
 function publicApiOrigin(req) {
-  if (config.PUBLIC_API_ORIGIN) {
+  // Prefer configured public HTTPS origin (Vercel) — Google rejects LAN IPs
+  if (config.PUBLIC_API_ORIGIN && !/^(https?:\/\/)?(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/i.test(config.PUBLIC_API_ORIGIN)) {
     return String(config.PUBLIC_API_ORIGIN).replace(/\/$/, '');
   }
   const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString().split(',')[0].trim();
   const host = (req.headers['x-forwarded-host'] || req.get('host') || `localhost:${config.PORT}`).toString();
-  return `${proto}://${host}`;
+  if (/vercel\.app/i.test(host) || process.env.VERCEL) {
+    return `https://${host.replace(/^https?:\/\//, '')}`;
+  }
+  // Safe default for mobile Google OAuth
+  return 'https://project1-api.vercel.app';
 }
 
 function sendBridgeHtml(res, html) {
@@ -54,7 +59,7 @@ router.get('/google/mobile', (req, res) => {
   sendBridgeHtml(res, html);
 });
 
-// Optional helper if a credential is forwarded
+// OAuth redirect target (id_token may arrive in hash — page JS parses it)
 router.get('/google/mobile-callback', (req, res) => {
   sendBridgeHtml(
     res,
@@ -62,6 +67,7 @@ router.get('/google/mobile-callback', (req, res) => {
       redirectScheme: String(req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink',
       idToken: req.query.id_token || req.query.credential || '',
       returnUrl: typeof req.query.return_url === 'string' ? req.query.return_url : '',
+      state: typeof req.query.state === 'string' ? req.query.state : '',
     })
   );
 });
