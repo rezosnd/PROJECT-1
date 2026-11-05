@@ -55,6 +55,8 @@ const envSchema = z.object({
         process.env.GOOGLE_CLIENT_ID ||
         'mock-google-ios-client-id.apps.googleusercontent.com'
     ),
+  /** Optional — enables auth-code exchange for Expo Go mobile bridge */
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
   PUBLIC_API_ORIGIN: z.string().optional(),
 
   SEED_ADMIN_EMAIL: z.string().email().default('cityadmin.bhubaneswar@gmail.com'),
