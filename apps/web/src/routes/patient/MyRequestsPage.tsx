@@ -74,6 +74,12 @@ const STATUS_META: Record<
     chip: 'bg-white/60 text-muted border-white/70',
     icon: AlertCircle,
   },
+  CANCELLED: {
+    label: 'Cancelled',
+    tone: 'text-muted',
+    chip: 'bg-white/60 text-muted border-white/70',
+    icon: XCircle,
+  },
 };
 
 function HoldCountdown({ expiresAt }: { expiresAt: string | undefined }) {
