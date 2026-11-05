@@ -12,6 +12,24 @@ export function evaluateEquipment(hospitalEquipment = [], equipmentRequirements 
     };
   }
 
+  const inventory = Array.isArray(hospitalEquipment) ? hospitalEquipment : [];
+  // No equipment rows seeded → don't hard-exclude (score mid); inventory still unknown
+  if (inventory.length === 0) {
+    return {
+      score: 0.55,
+      passedMandatory: true,
+      missingMandatory: [],
+      details: equipmentRequirements.map((req) => ({
+        type: (req.value || '').toUpperCase(),
+        required: Number(req.qty || 1),
+        available: 0,
+        mandatory: req.mandatory !== false,
+        fulfilledRatio: 0.55,
+        unknownInventory: true
+      }))
+    };
+  }
+
   const missingMandatory = [];
   const details = [];
   let totalFulfillment = 0;
@@ -22,7 +40,7 @@ export function evaluateEquipment(hospitalEquipment = [], equipmentRequirements 
     const isMandatory = req.mandatory !== false;
 
     // Filter available units
-    const matching = hospitalEquipment.filter(e => {
+    const matching = inventory.filter((e) => {
       const typeMatch = (e.type || '').toUpperCase() === eqType;
       const isAvailable = (e.status || '').toUpperCase() === 'AVAILABLE';
       return typeMatch && isAvailable;

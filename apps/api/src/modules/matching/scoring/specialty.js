@@ -1,6 +1,31 @@
 /**
  * Pure Clinical Specialty Scoring
  */
+
+/** hospitals.specialties may be text[], JSON array, or a single free-text string */
+export function normalizeSpecialtyList(input) {
+  if (!input) return [];
+  if (Array.isArray(input)) {
+    return input.map((s) => String(s).trim()).filter(Boolean);
+  }
+  const raw = String(input).trim();
+  if (!raw) return [];
+  if (raw.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((s) => String(s).trim()).filter(Boolean);
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  // Keep full blob so "… Orthopedics …".includes("ORTHOPEDICS") works,
+  // plus comma/semicolon tokens when present.
+  const parts = raw.split(/[,;/|]+/).map((s) => s.trim()).filter(Boolean);
+  return parts.length ? parts : [raw];
+}
+
 export function evaluateSpecialties(hospitalSpecialties = [], specialtyRequirements = []) {
   if (!specialtyRequirements || specialtyRequirements.length === 0) {
     return {
@@ -11,7 +36,7 @@ export function evaluateSpecialties(hospitalSpecialties = [], specialtyRequireme
   }
 
   const normalizedHospitalSpecialties = new Set(
-    (hospitalSpecialties || []).map(s => String(s).trim().toUpperCase())
+    normalizeSpecialtyList(hospitalSpecialties).map((s) => String(s).trim().toUpperCase())
   );
 
   const missingSpecialties = [];
@@ -21,9 +46,11 @@ export function evaluateSpecialties(hospitalSpecialties = [], specialtyRequireme
     const requiredSpecialty = String(req.value).trim().toUpperCase();
     const isMandatory = req.mandatory !== false;
 
-    // Check exact or partial match (e.g. "Neurology" matches "Neurosurgery" or "Neurology")
     const found = Array.from(normalizedHospitalSpecialties).some(
-      hs => hs === requiredSpecialty || hs.includes(requiredSpecialty) || requiredSpecialty.includes(hs)
+      (hs) =>
+        hs === requiredSpecialty ||
+        hs.includes(requiredSpecialty) ||
+        requiredSpecialty.includes(hs)
     );
 
     if (found) {
@@ -41,4 +68,3 @@ export function evaluateSpecialties(hospitalSpecialties = [], specialtyRequireme
     missingSpecialties
   };
 }
-

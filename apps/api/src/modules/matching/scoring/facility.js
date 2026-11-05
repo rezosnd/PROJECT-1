@@ -1,6 +1,8 @@
 /**
  * Pure Hospital Facility & Infrastructure Scoring
  */
+import { normalizeSpecialtyList } from './specialty.js';
+
 export function evaluateFacilities(hospitalFacilities = [], facilityRequirements = []) {
   if (!facilityRequirements || facilityRequirements.length === 0) {
     return {
@@ -11,7 +13,7 @@ export function evaluateFacilities(hospitalFacilities = [], facilityRequirements
   }
 
   const normalizedFacilities = new Set(
-    (hospitalFacilities || []).map(f => String(f).trim().toUpperCase())
+    normalizeSpecialtyList(hospitalFacilities).map((f) => String(f).trim().toUpperCase())
   );
 
   const missingFacilities = [];
@@ -22,7 +24,10 @@ export function evaluateFacilities(hospitalFacilities = [], facilityRequirements
     const isMandatory = req.mandatory !== false;
 
     const found = Array.from(normalizedFacilities).some(
-      hf => hf === requiredFacility || hf.includes(requiredFacility) || requiredFacility.includes(hf)
+      (hf) =>
+        hf === requiredFacility ||
+        hf.includes(requiredFacility) ||
+        requiredFacility.includes(hf)
     );
 
     if (found) {
@@ -40,4 +45,3 @@ export function evaluateFacilities(hospitalFacilities = [], facilityRequirements
     missingFacilities
   };
 }
-
