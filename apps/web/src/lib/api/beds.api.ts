@@ -34,6 +34,7 @@ export interface BedRequest {
   hospitalId: string;
   patientId: string;
   patientName?: string;
+  patientEmail?: string;
   wardType: WardType;
   urgency: 'IMMEDIATE' | 'HIGH' | 'MODERATE';
   status: BedRequestStatus;

@@ -21,7 +21,8 @@ import {
   Clock,
 } from 'lucide-react';
 
-type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }> };
+/** Use ElementType so Lucide icons type-check under tsc -b on Vercel */
+type NavItem = { to: string; label: string; icon: React.ElementType };
 
 export const Navigation: React.FC = () => {
   const { user } = useAuthStore();
@@ -46,7 +47,7 @@ export const Navigation: React.FC = () => {
     { to: '/hospital?tab=queue', label: 'Bed Queue', icon: ClipboardList },
     { to: '/hospital?tab=equipment', label: 'Equipment', icon: Stethoscope },
     ...(role === 'HOSPITAL_ADMIN'
-      ? [{ to: '/hospital?tab=staff', label: 'Staff Access', icon: Users }]
+      ? ([{ to: '/hospital?tab=staff', label: 'Staff Access', icon: Users }] as NavItem[])
       : []),
     { to: '/profile', label: 'Account', icon: User },
   ];

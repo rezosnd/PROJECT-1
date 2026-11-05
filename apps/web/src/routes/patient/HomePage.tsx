@@ -216,7 +216,7 @@ export const HomePage: React.FC = () => {
               }`}
             >
               <img
-                src={doc.avatar}
+                src={doc.avatarUrl}
                 alt={doc.name}
                 className="w-16 h-16 rounded-2xl object-cover border border-black/5 shrink-0"
               />

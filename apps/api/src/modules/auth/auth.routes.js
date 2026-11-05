@@ -12,26 +12,14 @@ import {
 import { config } from '../../config/index.js';
 import { logger } from '../../infra/logger.js';
 import adminRoutes from '../admin/admin.routes.js';
+import { GOOGLE_AUTH_PUBLIC_ORIGIN, resolveGoogleAuthOrigin } from './auth-origin.js';
 
 const router = Router();
 const authLimiter = rateLimiter({ max: 20, windowMs: 60000, prefix: 'rl:auth' });
 
-function publicApiOrigin(req) {
-  if (
-    config.PUBLIC_API_ORIGIN &&
-    !/^(https?:\/\/)?(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/i.test(config.PUBLIC_API_ORIGIN)
-  ) {
-    return String(config.PUBLIC_API_ORIGIN).replace(/\/$/, '');
-  }
-  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http')
-    .toString()
-    .split(',')[0]
-    .trim();
-  const host = (req.headers['x-forwarded-host'] || req.get('host') || `localhost:${config.PORT}`).toString();
-  if (/vercel\.app/i.test(host) || process.env.VERCEL) {
-    return `https://${host.replace(/^https?:\/\//, '')}`;
-  }
-  return 'https://project1-api.vercel.app';
+/** Always the production alias for Google OAuth (never preview/LAN host). */
+function publicApiOrigin() {
+  return resolveGoogleAuthOrigin(config.PUBLIC_API_ORIGIN || GOOGLE_AUTH_PUBLIC_ORIGIN);
 }
 
 function sendBridgeHtml(res, html) {
@@ -80,10 +68,11 @@ async function exchangeGoogleAuthCode({ code, codeVerifier, redirectUri }) {
 
 // Expo Go bridge — starts auth-code + PKCE against HTTPS redirect URI
 router.get('/google/mobile', (req, res) => {
-  const origin = publicApiOrigin(req);
+  const origin = publicApiOrigin();
   const scheme = String(req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
   const returnUrl = typeof req.query.return_url === 'string' ? req.query.return_url : '';
-  const autoStart = req.query.auto !== '0';
+  // Expo Go: do not auto-jump into Google (shows "request is invalid" if URI not set yet)
+  const autoStart = req.query.auto === '1';
   sendBridgeHtml(
     res,
     renderGoogleMobileHtml({
@@ -92,6 +81,7 @@ router.get('/google/mobile', (req, res) => {
       origin,
       returnUrl,
       autoStart,
+      hasClientSecret: Boolean(config.GOOGLE_CLIENT_SECRET),
     })
   );
 });
@@ -101,7 +91,7 @@ router.get('/google/mobile', (req, res) => {
  * Server exchanges code → id_token, then deep-links back to Expo Go.
  */
 router.get('/google/mobile-callback', async (req, res) => {
-  const origin = publicApiOrigin(req);
+  const origin = publicApiOrigin();
   const redirectUri = `${origin}/api/v1/auth/google/mobile-callback`;
   const state = decodeGoogleMobileState(req.query.state);
   const returnUrl = state?.return_url || (typeof req.query.return_url === 'string' ? req.query.return_url : '');

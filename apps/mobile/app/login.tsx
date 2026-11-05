@@ -53,12 +53,11 @@ export default function LoginScreen() {
   const finishingRef = useRef(false);
 
   const returnUrl = useMemo(() => Linking.createURL('oauth'), []);
-
   const bridgeUrl = useMemo(() => {
     const params = new URLSearchParams({
       scheme: 'lifelink',
       return_url: returnUrl,
-      auto: '1',
+      auto: '0',
     });
     return `${AUTH_BRIDGE_ORIGIN}/api/v1/auth/google/mobile?${params.toString()}`;
   }, [returnUrl]);
@@ -82,7 +81,7 @@ export default function LoginScreen() {
       finishingRef.current = false;
       Alert.alert(
         'Sign-in failed',
-        err.response?.data?.error?.message || err.message || 'Could not verify Google account with LifeLink API'
+        err.response?.data?.error?.message || err.message || 'Could not verify Google account'
       );
     } finally {
       setIsLoading(false);
@@ -117,7 +116,6 @@ export default function LoginScreen() {
     finishingRef.current = false;
     setIsLoading(true);
     try {
-      // Custom Tabs / SFSafariViewController — not a WebView (avoids disallowed_useragent)
       const result = await WebBrowser.openAuthSessionAsync(bridgeUrl, returnUrl, {
         showInRecents: true,
         preferEphemeralSession: false,
@@ -127,58 +125,54 @@ export default function LoginScreen() {
       if (result.type === 'success') {
         const idToken = extractIdToken(result.url);
         if (!idToken) {
-          Alert.alert(
-            'Almost there',
-            'Google signed in but no token returned. Close the browser tab and tap Continue again.'
-          );
+          Alert.alert('Almost there', 'No token returned. Close the browser and tap Continue again.');
           setIsLoading(false);
           return;
         }
         await completeWithToken(idToken);
         return;
       }
-
       if (result.type === 'cancel' || result.type === 'dismiss') {
         setIsLoading(false);
         return;
       }
-
       await RNLinking.openURL(bridgeUrl);
-      Alert.alert(
-        'Finish in browser',
-        'Complete Google Sign-In, then return to Expo Go. LifeLink opens automatically.'
-      );
+      Alert.alert('Finish in browser', 'Complete Google Sign-In, then return to Expo Go / LifeLink.');
       setIsLoading(false);
     } catch (err: any) {
-      Alert.alert('Google Sign-In', err?.message || 'Could not open Google');
+      Alert.alert('Google Sign-In', err?.message || 'Could not open Google sign-in');
       setIsLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.bgOrbA} />
-      <View style={styles.bgOrbB} />
-
       <View style={styles.container}>
         <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back">
           <ArrowLeft size={20} color="#0F172A" />
         </Pressable>
 
-        <View style={styles.hero}>
+        <View style={styles.heroCard}>
           <View style={styles.logoMark}>
-            <Activity size={24} color="#FFFFFF" strokeWidth={2.5} />
+            <Activity size={22} color="#FFFFFF" strokeWidth={2.5} />
           </View>
           <Text style={styles.brand}>LifeLink</Text>
           <Text style={styles.brandSub}>Emergency Health Grid</Text>
+          <Text style={styles.heroLine}>
+            Secure patient access for real-time ICU beds, ABHA linkage, and hospital triage.
+          </Text>
         </View>
 
+        <Text style={styles.title}>Sign in</Text>
+        <Text style={styles.subtitle}>
+          Use your Google account. Works with Expo Go over HTTPS — no LAN IP origins.
+        </Text>
+
         <View style={styles.card}>
-          <Text style={styles.cardEyebrow}>Secure access</Text>
-          <Text style={styles.cardTitle}>Sign in with Google</Text>
-          <Text style={styles.cardDesc}>
-            Expo Go uses HTTPS OAuth on project1-api.vercel.app — no LAN IP, no auth.expo.io.
-          </Text>
+          <View style={styles.lockRow}>
+            <Lock size={14} color="#059669" />
+            <Text style={styles.lockText}>Encrypted session · ABDM-ready</Text>
+          </View>
 
           <Pressable
             onPress={handleGoogleSignIn}
@@ -191,7 +185,7 @@ export default function LoginScreen() {
               <ActivityIndicator color="#0F172A" />
             ) : (
               <>
-                <View style={styles.googleIconWrap}>
+                <View style={styles.gIcon}>
                   <GoogleIcon />
                 </View>
                 <Text style={styles.googleButtonText}>Continue with Google</Text>
@@ -199,33 +193,31 @@ export default function LoginScreen() {
             )}
           </Pressable>
 
-          <View style={styles.trustRow}>
-            <Lock size={12} color="#059669" />
-            <Text style={styles.trustText}>OpenID · JWT session · ABDM-ready</Text>
-          </View>
+          <Text style={styles.helper}>
+            On the next screen, tap Google → choose your Gmail → return to the app.
+          </Text>
         </View>
 
-        <View style={styles.checklist}>
-          <Text style={styles.checkTitle}>If Google still says Access blocked</Text>
-          <Text style={styles.checkItem}>1. Google Cloud → Web client</Text>
-          <Text style={styles.checkItem}>
-            2. Redirect URI ={'\n'}
+        <View style={styles.setupBox}>
+          <Text style={styles.setupTitle}>Still “Access blocked”?</Text>
+          <Text style={styles.setupHint}>
+            Google Cloud → Web client:{'\n'}
+            • JS origin{'\n'}
+            <Text style={styles.code}>{AUTH_BRIDGE_ORIGIN}</Text>
+            {'\n'}
+            • Redirect URI{'\n'}
             <Text style={styles.code}>
               {AUTH_BRIDGE_ORIGIN}/api/v1/auth/google/mobile-callback
             </Text>
-          </Text>
-          <Text style={styles.checkItem}>
-            3. JS origin = <Text style={styles.code}>{AUTH_BRIDGE_ORIGIN}</Text>
-          </Text>
-          <Text style={styles.checkItem}>4. Consent → Testing → add your Gmail as Test user</Text>
-          <Text style={styles.checkItem}>
-            5. Vercel env: <Text style={styles.code}>GOOGLE_CLIENT_SECRET</Text> = Web client secret
+            {'\n'}
+            • Consent → Testing → add your Gmail as Test user{'\n'}
+            • Vercel env: GOOGLE_CLIENT_SECRET = Web client secret
           </Text>
         </View>
 
         <View style={styles.footer}>
           <ShieldCheck size={14} color="#059669" />
-          <Text style={styles.footerText}>Works in Expo Go · Chrome Custom Tabs</Text>
+          <Text style={styles.footerText}>Google OAuth · JWT · Expo Go</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -234,30 +226,10 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F8FAFC' },
-  bgOrbA: {
-    position: 'absolute',
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: '#DBEAFE',
-    top: -80,
-    left: -60,
-    opacity: 0.7,
-  },
-  bgOrbB: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: '#ECFCCB',
-    top: 40,
-    right: -70,
-    opacity: 0.65,
-  },
   container: {
     flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'ios' ? 8 : 28,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 8 : 24,
     paddingBottom: 24,
   },
   backButton: {
@@ -270,119 +242,109 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hero: { marginTop: 28, marginBottom: 22 },
-  logoMark: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
+  heroCard: {
+    marginTop: 20,
     backgroundColor: '#0F172A',
+    borderRadius: 28,
+    padding: 22,
+  },
+  logoMark: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
   },
   brand: {
     fontFamily: typography.fontFamilies.display,
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -1,
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
   },
   brandSub: {
-    marginTop: 6,
+    marginTop: 4,
     fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 22,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
-  },
-  cardEyebrow: {
-    fontSize: 11,
-    fontWeight: '800',
+    color: '#94A3B8',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: '#94A3B8',
   },
-  cardTitle: {
-    marginTop: 8,
+  heroLine: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#CBD5E1',
+  },
+  title: {
+    marginTop: 22,
     fontFamily: typography.fontFamilies.display,
     fontSize: 24,
     fontWeight: '800',
     color: '#0F172A',
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
-  cardDesc: {
-    marginTop: 8,
+  subtitle: {
+    marginTop: 6,
     fontSize: 14,
     lineHeight: 20,
     color: '#64748B',
   },
+  card: {
+    marginTop: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 18,
+  },
+  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
+  lockText: { fontSize: 12, fontWeight: '700', color: '#059669' },
   googleButton: {
-    marginTop: 20,
-    height: 56,
+    height: 54,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
   },
-  googleIconWrap: {
+  gIcon: {
     width: 28,
     height: 28,
     borderRadius: 14,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  trustRow: {
+  googleButtonText: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
+  helper: { marginTop: 12, fontSize: 12, lineHeight: 17, color: '#94A3B8', textAlign: 'center' },
+  setupBox: {
     marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  trustText: { fontSize: 11, fontWeight: '600', color: '#64748B' },
-  checklist: {
-    marginTop: 18,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 22,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 16,
+    borderColor: '#BFDBFE',
   },
-  checkTitle: { fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 8 },
-  checkItem: { fontSize: 11, lineHeight: 17, color: '#475569', marginBottom: 4 },
+  setupTitle: { fontSize: 12, fontWeight: '800', color: '#1E3A8A', marginBottom: 6 },
+  setupHint: { fontSize: 11, lineHeight: 16, color: '#1E40AF' },
   code: {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: 10,
     fontWeight: '700',
-    color: '#1D4ED8',
   },
   footer: {
     marginTop: 'auto',
-    paddingTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingTop: 16,
   },
   footerText: { fontSize: 11, color: '#64748B', fontWeight: '600' },
 });
