@@ -21,7 +21,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({
       <img
         src={BRAND.logoMark}
         alt={BRAND.name}
-        className={`${markClassName} rounded-2xl object-cover bg-black shrink-0 ${className}`}
+        className={`${markClassName} object-contain shrink-0 ${className}`}
       />
     );
   }
@@ -31,7 +31,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({
       <img
         src={BRAND.logoFull}
         alt={`${BRAND.name} — ${BRAND.tagline}`}
-        className={`h-10 w-auto max-w-[220px] object-contain ${className}`}
+        className={`h-10 w-auto max-w-[220px] object-contain bg-transparent ${className}`}
       />
     );
   }
@@ -41,7 +41,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({
       <img
         src={BRAND.logoMark}
         alt=""
-        className={`${markClassName} rounded-2xl object-cover bg-black shrink-0`}
+        className={`${markClassName} object-contain shrink-0 bg-transparent`}
       />
       <div className="min-w-0">
         <div

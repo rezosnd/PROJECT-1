@@ -100,7 +100,7 @@ function buildFormalEmailWrapper({
                   <!-- Brand Logo -->
                   <td align="left" style="vertical-align: middle;">
                     <a href="${headerLinkUrl}" style="text-decoration:none;">
-                      <img src="${logoFull}" alt="${BRAND_NAME}" width="200" height="48" style="display:block; width:200px; max-width:70%; height:auto; border:0; background:#000000; border-radius:10px;" />
+                      <img src="${logoFull}" alt="${BRAND_NAME}" width="200" height="48" style="display:block; width:200px; max-width:70%; height:auto; border:0; background:transparent;" />
                     </a>
                     <!-- Fallback mark for clients that block remote images -->
                     <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">

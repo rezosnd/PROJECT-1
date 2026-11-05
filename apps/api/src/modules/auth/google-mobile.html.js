@@ -48,7 +48,7 @@ export function renderGoogleMobileHtml({
       box-shadow: 0 24px 60px rgba(15,23,42,.08);
     }
     .logo-img {
-      width: 100%; max-width: 280px; height: auto; border-radius: 18px; background: #000;
+      width: 100%; max-width: 280px; height: auto; background: transparent;
       display: block; margin: 0 auto;
     }
     .brand { margin-top: 18px; font-size: 22px; font-weight: 800; letter-spacing: -0.04em; text-align:center; }
@@ -283,7 +283,7 @@ export function renderGoogleMobileCallbackHtml({
   <div class="box">
     <h1 id="title">Signing you in…</h1>
     <p id="msg">Returning to the GetMyHospital app.</p>
-    <a id="open" class="btn" href="${primary.replace(/"/g, '')}" style="display:none">Tap to open GetMyHospital</a>
+    <a id="open" class="btn" href="${primary.replace(/"/g, '')}" style="display:none">Open GetMyHospital</a>
     <a id="alt" class="ghost" href="#" style="display:none">Try alternate link</a>
     <p class="hint" id="hint" style="display:none">If nothing happens, tap the button above. Keep Expo Go in recent apps.</p>
   </div>

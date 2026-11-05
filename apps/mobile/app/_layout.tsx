@@ -53,16 +53,22 @@ export default function RootLayout() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === 'login' || segments[0] === 'splash';
+    const inAuthGroup =
+      segments[0] === 'login' || segments[0] === 'splash' || segments[0] === 'oauth';
     const onOnboarding = segments[0] === 'onboarding';
-    const needsProfile = Boolean(user?.needsProfileSetup || (user?.role === 'PATIENT' && user?.profileComplete === false));
+    const needsProfile = Boolean(
+      user?.needsProfileSetup || (user?.role === 'PATIENT' && user?.profileComplete === false)
+    );
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/splash');
     } else if (isAuthenticated && needsProfile && !onOnboarding) {
       router.replace('/onboarding');
     } else if (isAuthenticated && !needsProfile && (inAuthGroup || onOnboarding)) {
-      router.replace('/(tabs)');
+      // Stay on oauth briefly until it navigates; otherwise go home
+      if (segments[0] !== 'oauth') {
+        router.replace('/(tabs)');
+      }
     }
   }, [isAuthenticated, isLoading, segments, user]);
 
@@ -81,6 +87,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
           <Stack.Screen name="splash" options={{ animation: 'fade' }} />
           <Stack.Screen name="login" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="oauth" options={{ animation: 'fade' }} />
           <Stack.Screen name="onboarding" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore, UserRole } from '../../lib/auth/auth-store';
-import { Card } from '../../components/ui/Card';
 import {
   ArrowLeft,
   User,
@@ -10,8 +9,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
+  BedDouble,
+  Activity,
+  Lock,
 } from 'lucide-react';
 import { BrandMark } from '../../components/brand/BrandMark';
+import { BRAND } from '../../lib/brand';
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
@@ -44,8 +47,8 @@ export const LoginPage: React.FC = () => {
     selectedPortal === 'CITY_ADMIN'
       ? 'CITY_ADMIN'
       : selectedPortal === 'HOSPITAL'
-      ? hospitalRoleType
-      : 'PATIENT';
+        ? hospitalRoleType
+        : 'PATIENT';
 
   const targetHospital = selectedPortal === 'HOSPITAL' ? selectedHospitalId : null;
 
@@ -68,7 +71,6 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, user, navigate, from]);
 
-  // Official Google Identity Services only — no demo / fake accounts
   useEffect(() => {
     let checkInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -108,7 +110,7 @@ export const LoginPage: React.FC = () => {
           shape: 'pill',
           text: 'continue_with',
           logo_alignment: 'left',
-          width: 360,
+          width: 320,
         });
 
         setGisRendered(true);
@@ -132,191 +134,216 @@ export const LoginPage: React.FC = () => {
   const errorMessage = localError || authError;
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center p-4 bg-page">
-      <div className="w-full max-w-md space-y-6 text-left">
-        <button
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-          className="w-11 h-11 rounded-2xl border border-hairline bg-white flex items-center justify-center text-ink hover:bg-card-soft transition shadow-soft"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
+    <div className="min-h-screen relative overflow-hidden bg-[var(--color-page)]">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(900px 420px at 0% -10%, rgba(168,224,23,0.22), transparent 55%), radial-gradient(700px 380px at 100% 0%, rgba(11,61,26,0.10), transparent 50%), linear-gradient(180deg, #F7FAF4 0%, #EEF3EA 100%)',
+        }}
+      />
 
-        <div className="rounded-[28px] bg-black border border-hairline p-5 shadow-soft">
-          <BrandMark variant="full" className="h-12 max-w-full" />
-        </div>
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col lg:flex-row">
+        {/* Brand panel */}
+        <aside className="hidden lg:flex lg:w-[46%] flex-col justify-between p-10 xl:p-14">
+          <div>
+            <BrandMark variant="full" className="h-14 max-w-[280px]" />
+            <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-brand-forest)]">
+              {BRAND.tagline}
+            </p>
+          </div>
 
-        <div className="space-y-2">
-          <p className="ll-kicker">GetMyHospital access</p>
-          <h1 className="text-3xl font-extrabold font-display text-ink tracking-tight">
-            Sign in with Google
-          </h1>
-          <p className="text-sm text-muted">
-            Real Gmail only. Roles come from staff pre-registration — no demo accounts.
-          </p>
-        </div>
+          <div className="max-w-md">
+            <h1 className="font-display text-4xl xl:text-5xl font-extrabold tracking-tight text-ink leading-[1.05]">
+              Care that finds you a bed — fast.
+            </h1>
+            <p className="mt-4 text-base text-muted leading-relaxed">
+              Live ICU capacity, ABHA-ready identity, and hospital triage in one secure grid for Bhubaneswar.
+            </p>
 
-        <div className="flex p-1 bg-card-soft rounded-2xl border border-hairline gap-1">
-          <button
-            type="button"
-            onClick={() => setSelectedPortal('PATIENT')}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-              selectedPortal === 'PATIENT'
-                ? 'bg-ink text-white font-bold shadow-soft'
-                : 'text-muted hover:text-ink'
-            }`}
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Patient</span>
-          </button>
+            <ul className="mt-8 space-y-3">
+              {[
+                { icon: BedDouble, label: 'Real-time ward & ICU availability' },
+                { icon: Activity, label: '15-minute hold & hospital queue' },
+                { icon: Lock, label: 'Google OAuth · JWT · ABDM ready' },
+              ].map(({ icon: Icon, label }) => (
+                <li key={label} className="flex items-center gap-3 text-sm font-semibold text-ink">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white border border-hairline shadow-soft">
+                    <Icon className="h-4 w-4 text-[var(--color-brand-forest)]" strokeWidth={2.4} />
+                  </span>
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setSelectedPortal('HOSPITAL')}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-              selectedPortal === 'HOSPITAL'
-                ? 'bg-ink text-white font-bold shadow-soft'
-                : 'text-muted hover:text-ink'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Hospital</span>
-          </button>
+          <p className="text-xs text-muted">National Health Authority & ABDM aligned</p>
+        </aside>
 
-          <button
-            type="button"
-            onClick={() => setSelectedPortal('CITY_ADMIN')}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-              selectedPortal === 'CITY_ADMIN'
-                ? 'bg-ink text-white font-bold shadow-soft'
-                : 'text-muted hover:text-ink'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span>City Admin</span>
-          </button>
-        </div>
+        {/* Auth card */}
+        <main className="flex flex-1 items-center justify-center p-4 sm:p-8">
+          <div className="w-full max-w-[440px]">
+            <button
+              onClick={() => navigate(-1)}
+              aria-label="Go back"
+              className="mb-5 w-11 h-11 rounded-2xl border border-hairline bg-white/90 backdrop-blur flex items-center justify-center text-ink hover:bg-white transition shadow-soft lg:hidden"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
 
-        <Card variant="surface" className="p-7 shadow-float space-y-5">
-          {errorMessage && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2 text-xs text-red-600 font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
+            <div className="mb-6 lg:hidden">
+              <BrandMark variant="full" className="h-11 max-w-[220px]" />
             </div>
-          )}
 
-          {selectedPortal === 'PATIENT' && (
-            <div className="p-3.5 bg-blue-50/70 border border-blue-100 rounded-2xl">
-              <h2 className="text-xs font-bold text-blue-900">Patient access</h2>
-              <p className="text-xs text-blue-700/80 mt-1 leading-relaxed">
-                Find live beds, request a 15-minute hold, and link your ABHA with your real Google account.
+            <div className="rounded-[32px] border border-hairline bg-white/95 backdrop-blur shadow-[0_24px_60px_rgba(11,61,26,0.08)] p-6 sm:p-8">
+              <p className="ll-kicker text-[var(--color-brand-forest)]">Secure access</p>
+              <h2 className="mt-2 font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+                Sign in to {BRAND.name}
+              </h2>
+              <p className="mt-2 text-sm text-muted leading-relaxed">
+                Use your Google account. Staff roles require prior registration by your hospital or city admin.
               </p>
-            </div>
-          )}
 
-          {selectedPortal === 'HOSPITAL' && (
-            <div className="space-y-4">
-              <div className="p-3.5 bg-teal-50/70 border border-teal-100 rounded-2xl">
-                <h2 className="text-xs font-bold text-teal-900">Hospital staff</h2>
-                <p className="text-xs text-teal-700/80 mt-1 leading-relaxed">
-                  Your Gmail must be pre-registered by a hospital or city admin. Sign in with that same Google account.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Facility (for first-time staff binding)</label>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {HOSPITALS.map((h) => (
-                    <button
-                      key={h.id}
-                      type="button"
-                      onClick={() => setSelectedHospitalId(h.id)}
-                      className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all ${
-                        selectedHospitalId === h.id
-                          ? 'border-navy bg-navy/5 text-navy font-bold shadow-xs'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="text-xs font-semibold">{h.name}</span>
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                          selectedHospitalId === h.id ? 'bg-navy text-white' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {h.badge}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Expected role</label>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="mt-6 grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-[var(--color-card-soft)] border border-hairline">
+                {(
+                  [
+                    { id: 'PATIENT' as const, label: 'Patient', Icon: User },
+                    { id: 'HOSPITAL' as const, label: 'Hospital', Icon: Building2 },
+                    { id: 'CITY_ADMIN' as const, label: 'City', Icon: Shield },
+                  ] as const
+                ).map(({ id, label, Icon }) => (
                   <button
+                    key={id}
                     type="button"
-                    onClick={() => setHospitalRoleType('HOSPITAL_STAFF')}
-                    className={`py-2 px-3 rounded-xl border text-center text-xs font-semibold transition-all ${
-                      hospitalRoleType === 'HOSPITAL_STAFF'
-                        ? 'border-teal-600 bg-teal-50 text-teal-800 font-bold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    onClick={() => setSelectedPortal(id)}
+                    className={`py-2.5 px-2 rounded-xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
+                      selectedPortal === id
+                        ? 'bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)] shadow-soft'
+                        : 'text-muted hover:text-ink'
                     }`}
                   >
-                    Ward Staff
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{label}</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setHospitalRoleType('HOSPITAL_ADMIN')}
-                    className={`py-2 px-3 rounded-xl border text-center text-xs font-semibold transition-all ${
-                      hospitalRoleType === 'HOSPITAL_ADMIN'
-                        ? 'border-purple-600 bg-purple-50 text-purple-800 font-bold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    Hospital Admin
-                  </button>
+                ))}
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {errorMessage && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2 text-xs text-red-700 font-medium">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {selectedPortal === 'PATIENT' && (
+                  <div className="rounded-2xl border border-[#D8E0D4] bg-[#F4F7F2] p-3.5">
+                    <p className="text-xs font-bold text-[var(--color-brand-forest)]">Patient portal</p>
+                    <p className="mt-1 text-xs text-muted leading-relaxed">
+                      Find live beds, place a 15-minute hold, and link ABHA with your Google identity.
+                    </p>
+                  </div>
+                )}
+
+                {selectedPortal === 'HOSPITAL' && (
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-[#D8E0D4] bg-[#F4F7F2] p-3.5">
+                      <p className="text-xs font-bold text-[var(--color-brand-forest)]">Hospital staff</p>
+                      <p className="mt-1 text-xs text-muted leading-relaxed">
+                        Your Gmail must already be registered under Staff Access.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wide text-muted mb-2">
+                        Facility
+                      </label>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        {HOSPITALS.map((h) => (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => setSelectedHospitalId(h.id)}
+                            className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all ${
+                              selectedHospitalId === h.id
+                                ? 'border-[var(--color-brand-forest)] bg-[var(--color-brand-forest)]/5 text-ink font-bold'
+                                : 'border-hairline bg-white text-ink/80 hover:bg-card-soft'
+                            }`}
+                          >
+                            <span className="text-xs font-semibold truncate pr-2">{h.name}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-card-soft text-muted shrink-0">
+                              {h.badge}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(
+                        [
+                          { id: 'HOSPITAL_STAFF' as const, label: 'Ward Staff' },
+                          { id: 'HOSPITAL_ADMIN' as const, label: 'Admin' },
+                        ] as const
+                      ).map(({ id, label }) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setHospitalRoleType(id)}
+                          className={`py-2.5 px-3 rounded-xl border text-center text-xs font-bold transition-all ${
+                            hospitalRoleType === id
+                              ? 'border-[var(--color-brand-forest)] bg-[var(--color-brand-forest)] text-[var(--color-brand-lime)]'
+                              : 'border-hairline bg-white text-muted hover:text-ink'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedPortal === 'CITY_ADMIN' && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-3.5">
+                    <p className="text-xs font-bold text-amber-900">City command</p>
+                    <p className="mt-1 text-xs text-amber-800/80 leading-relaxed">
+                      Only the municipal admin Gmail can open City Command.
+                    </p>
+                  </div>
+                )}
+
+                <div className="pt-1 space-y-3">
+                  {isLoggingIn && (
+                    <div className="text-center text-xs font-semibold text-muted py-1">
+                      Verifying Google account…
+                    </div>
+                  )}
+                  <div
+                    id="google-signin-btn"
+                    className="w-full flex justify-center items-center min-h-[44px]"
+                  />
+                  {!gisRendered && (
+                    <p className="text-center text-xs text-muted">Loading secure Google Sign-In…</p>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-hairline flex items-start gap-2 text-xs text-muted">
+                  <CheckCircle2 className="w-4 h-4 text-[var(--color-brand-forest)] shrink-0 mt-0.5" />
+                  <span className="leading-snug">
+                    Google verifies identity. {BRAND.name} never stores your password.
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-muted">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[var(--color-brand-forest)]" />
+                  <span>OAuth · JWT · ABDM</span>
                 </div>
               </div>
             </div>
-          )}
 
-          {selectedPortal === 'CITY_ADMIN' && (
-            <div className="p-3.5 bg-amber-50/70 border border-amber-100 rounded-2xl">
-              <h2 className="text-xs font-bold text-amber-900">City command</h2>
-              <p className="text-xs text-amber-700/80 mt-1 leading-relaxed">
-                Only the seeded municipal admin Gmail can open City Command. Sign in with that Google account.
-              </p>
-            </div>
-          )}
-
-          <div className="pt-2 space-y-3">
-            {isLoggingIn && (
-              <div className="text-center text-xs font-semibold text-muted py-2">Verifying Google account…</div>
-            )}
-
-            <div id="google-signin-btn" className="w-full flex justify-center items-center min-h-[44px]" />
-
-            {!gisRendered && (
-              <p className="text-center text-xs text-muted">Loading secure Google Sign-In…</p>
-            )}
+            <p className="mt-5 text-center text-[11px] text-muted px-2">
+              Hospital staff: ask your admin to pre-register your Gmail before signing in.
+            </p>
           </div>
-
-          <div className="pt-4 border-t border-slate-100 flex items-start gap-2 text-xs text-slate-600">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-            <span className="leading-snug">
-              Google verifies your identity. GetMyHospital never stores your password. New patients get a welcome email after first sign-in.
-            </span>
-          </div>
-
-          <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-500 pt-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Google OAuth • JWT session • ABDM ready</span>
-          </div>
-        </Card>
-
-        <p className="text-center text-[11px] text-muted px-2">
-          Hospital staff: ask your admin to pre-register your Gmail under Staff Access before signing in.
-        </p>
+        </main>
       </div>
     </div>
   );

@@ -91,7 +91,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: BRAND.colors.page,
     justifyContent: 'space-between',
     paddingHorizontal: spacing.screenPadding,
     paddingTop: 72,
@@ -104,6 +104,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginBottom: 18,
+    backgroundColor: 'transparent',
   },
   logoFull: {
     width: '92%',
@@ -112,14 +113,14 @@ const styles = StyleSheet.create({
   tagline: {
     fontFamily: typography.fontFamilies.bodyBold,
     fontSize: 11,
-    color: BRAND.colors.lime,
+    color: BRAND.colors.forest,
     letterSpacing: 1.4,
     textAlign: 'center',
   },
   subtitle: {
     fontFamily: typography.fontFamilies.body,
     fontSize: typography.sizes.bodySmall,
-    color: '#CBD5E1',
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
     marginTop: 12,
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontFamily: typography.fontFamilies.bodyBold,
     fontSize: typography.sizes.caption,
-    color: '#94A3B8',
+    color: colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -145,24 +146,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#111827',
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.pill,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: '#1F2937',
+    borderColor: colors.hairline,
   },
   langPillActive: {
-    borderColor: BRAND.colors.lime,
-    backgroundColor: '#0B3D1A',
+    borderColor: BRAND.colors.forest,
+    backgroundColor: '#EEF6E4',
   },
   langText: {
     fontFamily: typography.fontFamilies.bodyBold,
     fontSize: typography.sizes.body,
-    color: '#E2E8F0',
+    color: colors.ink,
   },
   langTextActive: {
-    color: BRAND.colors.lime,
+    color: BRAND.colors.forest,
   },
   footer: {
     width: '100%',
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
   prototypeNotice: {
     fontFamily: typography.fontFamilies.body,
     fontSize: typography.sizes.badge,
-    color: '#64748B',
+    color: colors.muted,
     textAlign: 'center',
     marginTop: 14,
   },

@@ -238,15 +238,14 @@ export default function LoginScreen() {
           </Pressable>
 
           <Text style={styles.helper}>
-            If you see “Success — Opening GetMyHospital”, tap Tap to open GetMyHospital on that screen.
+            After Google Success, tap Open GetMyHospital — Expo will finish sign-in on a secure handoff screen.
           </Text>
         </View>
 
         <View style={styles.setupBox}>
-          <Text style={styles.setupTitle}>Still stuck on Success?</Text>
+          <Text style={styles.setupTitle}>Blue “Something went wrong”?</Text>
           <Text style={styles.setupHint}>
-            Reload this Expo Go project after the API deploys, then try again. Use the black Tap to
-            open GetMyHospital button on the success page — do not wait on the white screen.
+            Reload this Expo project (shake → Reload) so the new /oauth handoff route is installed, then try Google again.
           </Text>
         </View>
 
@@ -279,19 +278,22 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     marginTop: 20,
-    backgroundColor: '#000000',
+    backgroundColor: '#FFFFFF',
     borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     padding: 22,
   },
   heroLogo: {
     width: '100%',
     height: 64,
+    backgroundColor: 'transparent',
   },
   brandSub: {
     marginTop: 12,
     fontSize: 10,
     fontWeight: '800',
-    color: '#A8E017',
+    color: '#0B3D1A',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 13,
     lineHeight: 19,
-    color: '#CBD5E1',
+    color: '#64748B',
   },
   title: {
     marginTop: 22,

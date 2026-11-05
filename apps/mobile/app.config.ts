@@ -12,7 +12,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   splash: {
     image: './assets/splash.png',
     resizeMode: 'contain',
-    backgroundColor: '#000000',
+    backgroundColor: '#F4F7F2',
   },
   ios: {
     supportsTablet: true,
@@ -27,7 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#000000',
+      backgroundColor: '#F4F7F2',
     },
     package: 'com.getmyhospital.app',
     permissions: [
