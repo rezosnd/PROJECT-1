@@ -4,6 +4,8 @@ export interface MatchedHospitalItem {
   hospital: {
     id: string;
     name: string;
+    type?: string;
+    city?: string;
     address: string;
     phone: string;
     emergency24x7: boolean;
@@ -11,6 +13,7 @@ export interface MatchedHospitalItem {
     latitude: number;
     longitude: number;
     specialties?: string[];
+    photoUrl?: string;
     doctorName?: string;
     doctorSpecialty?: string;
     doctorFee?: number;
@@ -74,35 +77,34 @@ export const matchingApi = {
     });
 
     const data = res.data.data;
-    const doctorsMeta = [
-      { name: 'Dr. Tripathi', specialty: 'General Dentist', fee: 1100, icon: 'tooth' as const, color: '#B4F481', img: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=300&h=300&fit=crop' },
-      { name: 'Dr. Shah', specialty: 'Cardiologist', fee: 1500, icon: 'heart' as const, color: '#FCE354', img: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=300&h=300&fit=crop' },
-      { name: 'Dr. Fernandes', specialty: 'Neurologist', fee: 2300, icon: 'brain' as const, color: '#B4F481', img: 'https://images.unsplash.com/photo-1594824813518-a6f987be7d25?w=300&h=300&fit=crop' },
-      { name: 'Dr. Tamakuwala', specialty: 'Nephrologist', fee: 2000, icon: 'kidney' as const, color: '#FCE354', img: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&h=300&fit=crop' },
-      { name: 'Dr. Mohapatra', specialty: 'Critical Care Specialist', fee: 1800, icon: 'activity' as const, color: '#B4F481', img: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=300&h=300&fit=crop' }
+    const cardMeta = [
+      { type: 'Multi-specialty', icon: 'heart' as const, color: '#FCE354', img: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=400&h=400&fit=crop' },
+      { type: 'Trauma & Emergency', icon: 'activity' as const, color: '#B4F481', img: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&h=400&fit=crop' },
+      { type: 'Critical Care', icon: 'brain' as const, color: '#B4F481', img: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=400&fit=crop' },
+      { type: 'Cardiac Center', icon: 'heart' as const, color: '#FCE354', img: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=400&h=400&fit=crop' },
+      { type: 'City Hospital', icon: 'activity' as const, color: '#E9D5FF', img: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=400&h=400&fit=crop' },
     ];
 
     const hospitals: MatchedHospitalItem[] = (data.matches || []).map((m: any, idx: number) => {
-      const doc = doctorsMeta[idx % doctorsMeta.length];
+      const meta = cardMeta[idx % cardMeta.length];
       return {
         hospital: {
           id: m.hospitalId,
           name: m.hospitalName,
+          type: m.hospitalType || meta.type,
+          city: m.city || undefined,
           address: m.address,
           phone: m.phone,
           emergency24x7: true,
           ratingAvg: Number(m.ratingAvg) || 4.5,
           latitude: m.location?.latitude || lat,
           longitude: m.location?.longitude || lng,
-          specialties: [doc.specialty, 'Emergency Care', 'Critical Care'],
-          doctorName: doc.name,
-          doctorSpecialty: doc.specialty,
-          doctorFee: doc.fee,
-          doctorRating: Number(m.ratingAvg) || 4.5,
-          doctorAvatar: doc.img,
-          doctorHeroImage: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=600&h=800&fit=crop',
-          specialtyType: doc.icon,
-          cardColor: doc.color,
+          specialties: m.specialties || [meta.type, 'Emergency Care', 'Critical Care'],
+          photoUrl: m.photoUrl || meta.img,
+          doctorAvatar: m.photoUrl || meta.img,
+          doctorHeroImage: m.photoUrl || meta.img,
+          specialtyType: meta.icon,
+          cardColor: meta.color,
         },
         distanceKm: m.distanceKm,
         etaMinutes: m.etaMinutes,
