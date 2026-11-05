@@ -19,16 +19,23 @@ export interface BedRequest {
   id: string;
   hospitalId: string;
   hospitalName?: string;
-  patientId: string;
+  hospitalAddress?: string | null;
+  hospitalPhone?: string | null;
+  hospitalCity?: string | null;
+  hospitalLatitude?: number | null;
+  hospitalLongitude?: number | null;
+  patientId?: string;
   patientName?: string;
   wardType: string;
   urgency: 'IMMEDIATE' | 'HIGH' | 'MODERATE';
   status: 'PENDING' | 'HOLD' | 'APPROVED' | 'ADMITTED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED';
-  note?: string;
-  shareAbha: boolean;
+  note?: string | null;
+  shareAbha?: boolean;
   maskedAbha?: string;
-  holdExpiresAt: string;
+  holdExpiresAt?: string;
+  remainingSeconds?: number;
   createdAt: string;
+  reason?: string | null;
 }
 
 function normalizeWard(w: any, hospitalId: string): WardInventory {

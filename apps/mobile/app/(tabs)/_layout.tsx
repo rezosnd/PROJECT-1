@@ -1,8 +1,8 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { Home, Building2, Stethoscope, Clock, User } from 'lucide-react-native';
-import { colors, typography, radius } from '../../src/theme/tokens';
+import { Home, Building2, Clock, User } from 'lucide-react-native';
+import { typography } from '../../src/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function TabItem({
@@ -77,9 +77,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="equipment"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabItem icon={Stethoscope} label="Equipment" focused={focused} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -108,7 +106,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     height: 48,
-    width: 60,
+    width: 64,
   },
   tabLabel: {
     fontFamily: typography.fontFamilies.body,
@@ -122,9 +120,8 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#0B3D1A',
     position: 'absolute',
     bottom: -2,
   },
 });
-

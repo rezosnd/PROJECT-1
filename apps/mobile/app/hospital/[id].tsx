@@ -12,13 +12,12 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { hospitalsApi } from '../../src/lib/api/hospitals.api';
-import { equipmentApi } from '../../src/lib/api/equipment.api';
 import { forecastApi } from '../../src/lib/api/forecast.api';
 import { useLiveBeds } from '../../src/hooks/useLiveBeds';
 import { useElapsedTime } from '../../src/hooks/useElapsedTime';
 import { RequestBedBottomSheet } from '../../src/features/patient/RequestBedBottomSheet';
 import { EmergencyFooter } from '../../src/components/ui/EmergencyFooter';
-import { colors, radius, typography } from '../../src/theme/tokens';
+import { colors, typography } from '../../src/theme/tokens';
 import {
   ChevronLeft,
   Bookmark,
@@ -28,46 +27,36 @@ import {
   Star,
   Calendar,
   Check,
-  ChevronRight,
-  ShieldCheck,
   Phone,
-  BedDouble,
-  Activity,
+  Navigation,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 export default function HospitalDetailScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const hospitalId = id || 'hosp-002';
 
-  const [activeTab, setActiveTab] = useState<'info' | 'location' | 'reviews' | 'slots'>('location');
+  const [activeTab, setActiveTab] = useState<'info' | 'location' | 'reviews' | 'slots'>('info');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [requestSheetOpen, setRequestSheetOpen] = useState(false);
   const [selectedWardForRequest, setSelectedWardForRequest] = useState('ICU');
 
-  // Live telemetry hook
   const { data: wards = [], isLive, lastUpdated } = useLiveBeds(hospitalId);
   const updatedAgo = useElapsedTime(lastUpdated);
 
-  // Hospital query
   const { data: hospital } = useQuery({
     queryKey: ['hospital', hospitalId],
     queryFn: () => hospitalsApi.getHospitalById(hospitalId),
   });
 
-  // Equipment query
-  const { data: equipment = [] } = useQuery({
-    queryKey: ['hospital-equipment', hospitalId],
-    queryFn: () => equipmentApi.getHospitalEquipment(hospitalId),
-  });
-
-  // Forecast query
-  const { data: forecastData } = useQuery({
+  useQuery({
     queryKey: ['hospital-forecast', hospitalId],
     queryFn: () => forecastApi.getForecast(hospitalId, 'ICU'),
   });
@@ -103,8 +92,7 @@ export default function HospitalDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* TOP FLOATING NAVIGATION BAR */}
-      <View style={styles.topNav}>
+      <View style={[styles.topNav, { top: insets.top + 8 }]}>
         <Pressable
           onPress={() => router.back()}
           style={styles.circleNavBtn}
@@ -113,17 +101,22 @@ export default function HospitalDetailScreen() {
           <ChevronLeft size={22} color="#0F172A" />
         </Pressable>
 
-        <Pressable
-          onPress={handleBookmarkToggle}
-          style={styles.circleNavBtn}
-          accessibilityLabel="Bookmark specialist"
-        >
-          <Bookmark
-            size={20}
-            color="#0F172A"
-            fill={isBookmarked ? '#0F172A' : 'transparent'}
-          />
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable onPress={handleCall} style={styles.circleNavBtn} accessibilityLabel="Call hospital">
+            <Phone size={18} color="#0F172A" />
+          </Pressable>
+          <Pressable
+            onPress={handleBookmarkToggle}
+            style={styles.circleNavBtn}
+            accessibilityLabel="Bookmark specialist"
+          >
+            <Bookmark
+              size={20}
+              color="#0F172A"
+              fill={isBookmarked ? '#0F172A' : 'transparent'}
+            />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -239,13 +232,11 @@ export default function HospitalDetailScreen() {
             </Pressable>
           </View>
 
-          {/* TAB 1: INFO / WARDS & TELEMETRY */}
           {activeTab === 'info' && (
             <View style={styles.tabContentBlock}>
-              <Text style={styles.sectionHeader}>Hospital Capacity & Equipment</Text>
+              <Text style={styles.sectionHeader}>{hospital?.name || 'Live bed capacity'}</Text>
               <Text style={styles.facilityAddress}>{hospital?.address}</Text>
 
-              {/* Ward Mini Badges — live free counts */}
               <View style={styles.wardsGrid}>
                 {wards.map((w) => {
                   const free =
@@ -261,7 +252,7 @@ export default function HospitalDetailScreen() {
                     >
                       <Text style={styles.wardMiniType}>{w.wardType}</Text>
                       <Text style={[styles.wardMiniFree, { color: freeColor }]}>
-                        {free > 0 ? `${free} free now` : 'Full'}
+                        {free > 0 ? `${free} free` : 'Full'}
                       </Text>
                       <Text style={styles.wardMiniTotal}>of {w.total} beds</Text>
                     </Pressable>
@@ -269,20 +260,13 @@ export default function HospitalDetailScreen() {
                 })}
               </View>
               <Text style={styles.liveHint}>
-                {isLive ? '● Live bed counts' : '○ Cached'} · tap a ward to request · {updatedAgo}
+                {isLive ? '● Live beds' : '○ Cached'} · tap a ward to hold · {updatedAgo}
               </Text>
 
-              {/* Equipment list */}
-              {equipment.length > 0 && (
-                <View style={styles.equipmentRow}>
-                  {equipment.map((eq: any) => (
-                    <View key={eq.id} style={styles.eqPill}>
-                      <Activity size={12} color="#111111" />
-                      <Text style={styles.eqPillText}>{eq.type}: {eq.status}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
+              <Pressable onPress={handleOpenMap} style={styles.navigateRow}>
+                <Navigation size={15} color="#111111" />
+                <Text style={styles.navigateText}>Go to hospital on Maps</Text>
+              </Pressable>
             </View>
           )}
 
@@ -394,11 +378,11 @@ export default function HospitalDetailScreen() {
           import('../../src/lib/ui/flash-store').then(({ useFlashStore }) => {
             useFlashStore.getState().push({
               title: 'Bed hold confirmed',
-              body: 'Formal confirmation email is on its way. Open My Requests anytime.',
+              body: 'Track it in My Requests. When the hospital confirms, tap Go to hospital.',
               tone: 'success',
             });
           });
-          router.replace('/(tabs)');
+          router.replace('/(tabs)/requests');
         }}
       />
 
@@ -695,23 +679,19 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 12,
   },
-  equipmentRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  eqPill: {
+  navigateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  eqPillText: {
-    fontFamily: typography.fontFamilies.bodyMedium,
-    fontSize: 11,
+  navigateText: {
+    fontFamily: typography.fontFamilies.bodyBold,
+    fontSize: 13,
+    fontWeight: '800',
     color: '#111111',
   },
   reviewSummaryRow: {

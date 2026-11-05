@@ -23,11 +23,9 @@ import {
   ChevronRight,
   ShieldCheck,
   Phone,
-  Clock,
-  Sparkles,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { getDoctorById, TOP_DOCTORS } from '../../src/lib/doctors-data';
+import { getDoctorById } from '../../src/lib/doctors-data';
 import { SpecialtyIcon } from '../../src/components/graphics/SpecialtyIcons';
 
 const { width } = Dimensions.get('window');
@@ -65,9 +63,18 @@ export default function DoctorDetailScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setBookingConfirmed(true);
     Alert.alert(
-      'Appointment Confirmed! 🎉',
-      `Your priority appointment with ${doctor.name} at ${doctor.hospitalName} has been confirmed for ${selectedDay === 'today' ? 'Today' : 'Tomorrow'} at ${selectedSlot}.\n\nABHA health record linking is active. Confirmation sent to your registered email & SMS.`,
-      [{ text: 'View in Requests', onPress: () => router.push('/(tabs)/requests') }]
+      'Appointment confirmed',
+      `Your visit with ${doctor.name} at ${doctor.hospitalName} is set for ${selectedDay === 'today' ? 'Today' : 'Tomorrow'} at ${selectedSlot}.`,
+      [
+        {
+          text: 'Go to hospital',
+          onPress: () =>
+            Linking.openURL(
+              `https://www.google.com/maps/search/?api=1&query=${doctor.latitude},${doctor.longitude}`
+            ),
+        },
+        { text: 'Done', style: 'cancel' },
+      ]
     );
   };
 
@@ -432,31 +439,47 @@ export default function DoctorDetailScreen() {
             </View>
           )}
 
-          {/* FLOATING ACTION CONTROL BAR (MATCHES [ ✓ ] > > [ ✓ ] BOTTOM SLIDER) */}
-          <Pressable
-            onPress={handleConfirmAppointment}
-            style={({ pressed }) => [
-              styles.sliderBarContainer,
-              pressed && { opacity: 0.9, transform: [{ scale: 0.985 }] },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Confirm doctor appointment"
-          >
-            {/* Left White Button [ ✓ ] */}
-            <View style={styles.sliderWhiteCircle}>
-              <Check size={22} color="#111111" strokeWidth={3} />
-            </View>
-
-            {/* Center Slider Arrows */}
-            <View style={styles.sliderArrowsWrapper}>
-              <Text style={styles.sliderArrowText}>›   ›</Text>
-            </View>
-
-            {/* Right Action Target Button [ ✓ ] */}
-            <View style={styles.sliderDarkCircle}>
-              <Check size={20} color="#FFFFFF" strokeWidth={2.5} />
-            </View>
-          </Pressable>
+          {bookingConfirmed ? (
+            <Pressable
+              onPress={handleOpenMap}
+              style={({ pressed }) => [
+                styles.sliderBarContainer,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.985 }] },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Go to hospital"
+            >
+              <View style={styles.sliderWhiteCircle}>
+                <MapPin size={20} color="#111111" strokeWidth={2.5} />
+              </View>
+              <View style={styles.sliderArrowsWrapper}>
+                <Text style={styles.goHospitalLabel}>Go to hospital</Text>
+              </View>
+              <View style={styles.sliderDarkCircle}>
+                <ChevronRight size={20} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={handleConfirmAppointment}
+              style={({ pressed }) => [
+                styles.sliderBarContainer,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.985 }] },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Confirm doctor appointment"
+            >
+              <View style={styles.sliderWhiteCircle}>
+                <Check size={22} color="#111111" strokeWidth={3} />
+              </View>
+              <View style={styles.sliderArrowsWrapper}>
+                <Text style={styles.sliderArrowText}>›   ›</Text>
+              </View>
+              <View style={styles.sliderDarkCircle}>
+                <Check size={20} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -909,6 +932,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     letterSpacing: 4,
+  },
+  goHospitalLabel: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
   sliderDarkCircle: {
     width: 50,

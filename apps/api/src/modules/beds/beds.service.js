@@ -358,13 +358,20 @@ export const bedsService = {
       id: r.id,
       hospitalId: r.hospital_id,
       hospitalName: r.hospital_name,
+      hospitalAddress: r.hospital_address || null,
+      hospitalPhone: r.hospital_phone || null,
+      hospitalCity: r.hospital_city || null,
+      hospitalLatitude: r.hospital_latitude != null ? Number(r.hospital_latitude) : null,
+      hospitalLongitude: r.hospital_longitude != null ? Number(r.hospital_longitude) : null,
       wardType: r.ward_type,
       urgency: r.urgency,
+      note: r.note || r.reason || null,
+      shareAbha: Boolean(r.share_abha),
       status: r.status,
       holdExpiresAt: r.hold_expires_at,
       remainingSeconds: r.remaining_seconds,
       createdAt: r.created_at,
-      reason: r.reason
+      reason: r.reason,
     }));
   },
 

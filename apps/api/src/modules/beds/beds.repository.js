@@ -166,7 +166,11 @@ export const bedsRepository = {
 
   async findBedRequestsByPatient(db = pool, patientId) {
     const { rows } = await db.query(
-      `SELECT br.id, br.hospital_id, h.name as hospital_name, br.ward_type, br.urgency,
+      `SELECT br.id, br.hospital_id, h.name as hospital_name, h.address as hospital_address,
+              h.phone as hospital_phone, h.city as hospital_city,
+              ST_Y(h.location::geometry) as hospital_latitude,
+              ST_X(h.location::geometry) as hospital_longitude,
+              br.ward_type, br.urgency, br.note, br.share_abha,
               br.status, br.hold_expires_at, br.created_at, br.reason,
               GREATEST(0, ROUND(EXTRACT(EPOCH FROM (br.hold_expires_at - NOW())))) as remaining_seconds
        FROM bed_requests br
