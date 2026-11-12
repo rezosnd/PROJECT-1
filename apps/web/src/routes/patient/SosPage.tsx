@@ -8,9 +8,8 @@ import { useAuthStore } from '../../lib/auth/auth-store';
 
 export const SosPage: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
-  const { location, detectLocation } = useGeolocation();
-  const coords = { latitude: location.lat, longitude: location.lng };
-  const geoError = location.error;
+  const { lat, lng, error: geoError, detectLocation } = useGeolocation();
+  const coords = { latitude: lat, longitude: lng };
   const [note, setNote] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
   const qc = useQueryClient();
