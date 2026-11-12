@@ -31,11 +31,17 @@ export const ProfilePage: React.FC = () => {
     refetchOnWindowFocus: true,
   });
 
-  const { data: careQr } = useQuery({
+  const {
+    data: careQr,
+    isLoading: careQrLoading,
+    isError: careQrError,
+    refetch: refetchCareQr,
+  } = useQuery({
     queryKey: ['care-qr'],
     queryFn: () => referralsApi.getMyQr(),
     enabled: Boolean(isAuthenticated && user?.role === 'PATIENT'),
     staleTime: 120_000,
+    retry: 2,
   });
 
   if (!isAuthenticated || !user) {
@@ -168,7 +174,29 @@ export const ProfilePage: React.FC = () => {
         </section>
 
         <aside className="lg:col-span-2 space-y-3">
-          {careQr ? <CareQrCard qr={careQr} /> : null}
+          {careQr ? (
+            <CareQrCard qr={careQr} />
+          ) : user.role === 'PATIENT' ? (
+            <div className="rounded-[28px] ll-glass-strong border border-[#A8E017]/25 p-5 space-y-3">
+              <h3 className="font-display font-bold text-ink">Care QR</h3>
+              {careQrLoading ? (
+                <p className="text-sm text-muted">Generating your doctor-scan QR…</p>
+              ) : careQrError ? (
+                <>
+                  <p className="text-sm text-muted">Could not load Care QR. Check your connection and try again.</p>
+                  <button
+                    type="button"
+                    onClick={() => refetchCareQr()}
+                    className="h-10 px-4 rounded-full bg-ink text-white text-sm font-semibold"
+                  >
+                    Retry
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-muted">Care QR will appear here after your profile is ready.</p>
+              )}
+            </div>
+          ) : null}
 
           {abhaProfile ? (
             <AbhaCard

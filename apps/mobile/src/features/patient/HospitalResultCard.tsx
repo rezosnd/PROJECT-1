@@ -60,7 +60,17 @@ export const HospitalResultCard: React.FC<HospitalResultCardProps> = ({
   const insuranceBadge = (() => {
     const cov = item.insuranceCoverage;
     if (!cov) return null;
-    if (cov === 'COVERED') return { label: 'Covered', bg: '#DCFCE7', color: '#166534' };
+    if (cov === 'COVERED') {
+      const discount = Number((item as any).insuranceDiscountPercent) || 0;
+      const cashless = Boolean((item as any).insuranceCashless);
+      const extra =
+        discount > 0
+          ? ` · ${discount}% benefit`
+          : cashless
+            ? ' · cashless'
+            : '';
+      return { label: `Covered${extra}`, bg: '#DCFCE7', color: '#166534' };
+    }
     if (cov === 'NONE_DECLARED') return { label: 'Self-pay', bg: '#F1F5F9', color: '#475569' };
     return { label: 'Check cashless', bg: '#FEF3C7', color: '#92400E' };
   })();

@@ -33,11 +33,24 @@ npm run dev:mobile
 npm run dev:doctor
 ```
 
-| Feature | Web | Mobile |
-|---------|-----|--------|
+| Feature | Web | Mobile / apps |
+|---------|-----|----------------|
 | CityHealth AI | `/ai` | `/ai` from Home |
+| SOS ambulance (FCFS) | `/sos` | `/sos` + Home **SOS** |
 | Blood bank | `/blood` | Blood tab |
-| Equipment | Hospital detail → Equipment | Hospital detail → Equipment |
-| Hospital blood desk | `/hospital?tab=blood-queue` | (use web) |
+| Equipment | Hospital detail | Hospital detail |
+| Doctor referrals desk | `/hospital?tab=referrals` | Doctor app |
+| Emergency SOS desk | `/hospital?tab=sos` | Ambulance app |
+| Ambulance fleet app | — | `npm run dev:ambulance` |
 
-Docs: `apps/api/docs/cityhealth-ai.md`
+```bash
+npm run migrate:up   # includes 017 SOS / ambulance
+npm run seed         # BBSR hospitals + 8 online ambulances
+npm run dev:ambulance
+```
+
+Ambulance login (after seed): pre-register Gmail e.g. `ambulance1.bbsr@gmail.com` then Google sign-in with role AMBULANCE.
+
+Push: Expo Push works out of the box; set `FIREBASE_SERVICE_ACCOUNT_JSON` for native FCM.
+
+Docs: `apps/api/docs/cityhealth-ai.md` · Launch notes: `docs/LAUNCH_READINESS.md`

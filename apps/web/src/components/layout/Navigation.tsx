@@ -18,6 +18,7 @@ import {
   Clock,
   Droplets,
   Sparkles,
+  Siren,
 } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
 
@@ -37,6 +38,7 @@ export const Navigation: React.FC = () => {
     { to: '/results', label: 'Find Beds', icon: Search },
     { to: '/blood', label: 'Blood Bank', icon: Droplets },
     { to: '/ai', label: 'CityHealth AI', icon: Sparkles },
+    { to: '/sos', label: 'SOS', icon: Siren },
     { to: '/doctors', label: 'Top Doctors', icon: Stethoscope },
     { to: '/equipment', label: 'Equipment', icon: Activity },
     { to: '/requests', label: 'My Requests', icon: ClipboardList },
@@ -47,6 +49,8 @@ export const Navigation: React.FC = () => {
     { to: '/hospital?tab=queue', label: 'Bed Queue', icon: ClipboardList },
     { to: '/hospital?tab=blood', label: 'Blood Bank', icon: Droplets },
     { to: '/hospital?tab=blood-queue', label: 'Blood Desk', icon: Droplets },
+    { to: '/hospital?tab=referrals', label: 'Doctor Referrals', icon: Stethoscope },
+    { to: '/hospital?tab=sos', label: 'Emergency SOS', icon: Siren },
     { to: '/hospital?tab=equipment', label: 'Equipment', icon: Stethoscope },
     ...(role === 'HOSPITAL_ADMIN'
       ? ([{ to: '/hospital?tab=staff', label: 'Staff Access', icon: Users }] as NavItem[])

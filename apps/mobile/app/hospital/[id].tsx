@@ -43,7 +43,7 @@ export default function HospitalDetailScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const hospitalId = id || 'hosp-002';
+  const hospitalId = id || '';
 
   const [activeTab, setActiveTab] = useState<'info' | 'location' | 'equipment' | 'slots'>('info');
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -275,6 +275,38 @@ export default function HospitalDetailScreen() {
             <View style={styles.tabContentBlock}>
               <Text style={styles.sectionHeader}>{hospital?.name || 'Live bed capacity'}</Text>
               <Text style={styles.facilityAddress}>{hospital?.address}</Text>
+
+              {Array.isArray((hospital as any)?.insuranceNetwork) &&
+              (hospital as any).insuranceNetwork.length > 0 ? (
+                <View style={{ marginBottom: 16, gap: 8 }}>
+                  <Text style={[styles.sectionHeader, { fontSize: 14 }]}>Accepted insurance</Text>
+                  {(hospital as any).insuranceNetwork.slice(0, 8).map((n: any) => (
+                    <View
+                      key={n.insurerId}
+                      style={{
+                        backgroundColor: '#F4F7F2',
+                        borderRadius: 14,
+                        padding: 12,
+                        borderWidth: 1,
+                        borderColor: '#D8E0D4',
+                      }}
+                    >
+                      <Text style={{ fontWeight: '800', color: '#0F172A', fontSize: 13 }}>
+                        {n.name}
+                      </Text>
+                      <Text style={{ color: '#64748B', fontSize: 11, fontWeight: '600', marginTop: 2 }}>
+                        {n.cashless ? 'Cashless' : 'Reimbursement'}
+                        {n.discountPercent > 0 ? ` · up to ${n.discountPercent}% benefit` : ''}
+                      </Text>
+                      {Array.isArray(n.benefits) && n.benefits.length > 0 ? (
+                        <Text style={{ color: '#475569', fontSize: 11, marginTop: 4 }}>
+                          {n.benefits.slice(0, 4).join(' · ')}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              ) : null}
 
               <View style={styles.wardsGrid}>
                 {wards.map((w) => {

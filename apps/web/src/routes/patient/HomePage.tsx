@@ -5,7 +5,8 @@ import { useGeolocation } from '../../hooks/useGeolocation';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { abhaApi } from '../../lib/api/abha.api';
 import { bedsApi } from '../../lib/api/beds.api';
-import { TOP_DOCTORS, Doctor } from '../../lib/doctors-data';
+import { mapDirectoryDoctor, Doctor } from '../../lib/doctors-data';
+import { insuranceApi } from '../../lib/api/insurance.api';
 import { DoctorDetailModal } from '../../features/patient/DoctorDetailModal';
 import {
   Search,
@@ -198,13 +199,24 @@ export const HomePage: React.FC = () => {
     staleTime: 30_000,
   });
 
+  const { data: directoryDoctors = [] } = useQuery({
+    queryKey: ['directory-doctors'],
+    queryFn: () => insuranceApi.listDoctors(24),
+    staleTime: 60_000,
+  });
+
+  const topDoctors = useMemo(
+    () => directoryDoctors.map((d, i) => mapDirectoryDoctor(d, i)),
+    [directoryDoctors]
+  );
+
   const displayName = abhaProfile?.name || user?.name || 'Patient';
   const firstName = displayName.split(' ')[0];
 
   const freeBeds = useMemo(() => {
     const s = citySummary as any;
-    if (!s) return 34;
-    return Number(s.freeBeds ?? s.totalFree ?? s.icuFree ?? 34);
+    if (!s) return 0;
+    return Number(s.freeBeds ?? s.totalFree ?? s.icuFree ?? 0);
   }, [citySummary]);
 
   const pendingHolds = myRequests.filter((r: any) => r.status === 'PENDING').length;
@@ -224,7 +236,7 @@ export const HomePage: React.FC = () => {
     { label: 'Free beds', value: String(freeBeds), hint: 'Citywide' },
     { label: 'Open holds', value: String(pendingHolds), hint: pendingHolds ? 'Active' : 'Clear' },
     { label: 'ABHA', value: abhaReady ? 'Ready' : 'Link', hint: abhaReady ? 'Verified' : 'Pending' },
-    { label: 'Doctors', value: String(TOP_DOCTORS.length), hint: 'Nearby' },
+    { label: 'Doctors', value: String(topDoctors.length), hint: 'Network' },
   ];
 
   return (
@@ -265,6 +277,13 @@ export const HomePage: React.FC = () => {
                 className="h-11 px-5 rounded-full bg-[#B9F84B] text-[#0B3D1A] text-sm font-semibold hover:brightness-105 transition"
               >
                 Ask CityHealth AI
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/sos')}
+                className="h-11 px-5 rounded-full bg-[#B91C1C] text-white text-sm font-semibold hover:bg-[#991B1B] transition"
+              >
+                SOS Ambulance
               </button>
               <button
                 type="button"
@@ -463,24 +482,30 @@ export const HomePage: React.FC = () => {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {TOP_DOCTORS.slice(0, 3).map((doc) => (
-            <button
-              key={doc.id}
-              type="button"
-              onClick={() => setSelectedDoctor(doc)}
-              className="rounded-2xl ll-glass border border-white/70 p-3.5 text-left hover:bg-white/75 transition flex items-center gap-3"
-            >
-              <img src={doc.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-ink truncate">{doc.name}</p>
-                <p className="text-xs text-muted truncate">{doc.specialty}</p>
-                <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-ink">
-                  <Star className="w-3.5 h-3.5 fill-[#E89A5C] text-[#E89A5C]" />
-                  {doc.rating.toFixed(1)}
-                </span>
-              </div>
-            </button>
-          ))}
+          {topDoctors.length === 0 ? (
+            <p className="col-span-full text-sm text-muted py-4">
+              Live doctors appear here after hospital admins pre-register DOCTOR accounts.
+            </p>
+          ) : (
+            topDoctors.slice(0, 3).map((doc) => (
+              <button
+                key={doc.id}
+                type="button"
+                onClick={() => setSelectedDoctor(doc)}
+                className="rounded-2xl ll-glass border border-white/70 p-3.5 text-left hover:bg-white/75 transition flex items-center gap-3"
+              >
+                <img src={doc.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-ink truncate">{doc.name}</p>
+                  <p className="text-xs text-muted truncate">{doc.specialty}</p>
+                  <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-ink">
+                    <Star className="w-3.5 h-3.5 fill-[#E89A5C] text-[#E89A5C]" />
+                    {doc.rating.toFixed(1)}
+                  </span>
+                </div>
+              </button>
+            ))
+          )}
         </div>
       </section>
 

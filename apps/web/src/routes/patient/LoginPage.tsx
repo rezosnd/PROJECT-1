@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore, UserRole } from '../../lib/auth/auth-store';
+import { hospitalsApi } from '../../lib/api/hospitals.api';
 import {
   ArrowLeft,
   User,
@@ -15,25 +17,32 @@ const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
   '1050173417910-28c0irqqh1nhaurmognqn01c9ocvo6pb.apps.googleusercontent.com';
 
-const HOSPITALS = [
-  { id: '3256d42a-2dfe-4e1f-9d9d-867997d53d2a', name: 'AIIMS Bhubaneswar' },
-  { id: '0f7fafb8-7f8c-4567-acf1-e9d3ca8847e3', name: 'KIMS Hospital' },
-  { id: 'e66d5397-2a29-4885-a964-56861611786d', name: 'SUM Ultimate Medicare' },
-  { id: '2f462f84-d929-4cc4-8920-3b4bf7803c2e', name: 'Kalinga Hospital' },
-  { id: '4f0a4313-9cfa-475c-8106-66f3d0a676d2', name: 'Capital Hospital (Govt)' },
-  { id: 'b5b618f5-15e9-4731-b342-f9680a48e5eb', name: 'Apollo Bhubaneswar' },
-];
-
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { loginWithGoogleCredential, isAuthenticated, user, error: authError } = useAuthStore();
 
   const [selectedPortal, setSelectedPortal] = useState<'PATIENT' | 'HOSPITAL' | 'CITY_ADMIN'>('PATIENT');
-  const [selectedHospitalId, setSelectedHospitalId] = useState(HOSPITALS[0].id);
+  const [selectedHospitalId, setSelectedHospitalId] = useState('');
   const [hospitalRoleType, setHospitalRoleType] = useState<'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN'>(
     'HOSPITAL_STAFF'
   );
+
+  const { data: hospitalList = [] } = useQuery({
+    queryKey: ['login-hospitals'],
+    queryFn: async () => {
+      const res = await hospitalsApi.getHospitals({ verifiedOnly: true, limit: 100 });
+      const items = Array.isArray(res) ? res : res.items || [];
+      return items.map((h: any) => ({ id: h.id, name: h.name })).filter((h) => h.id && h.name);
+    },
+    staleTime: 120_000,
+  });
+
+  useEffect(() => {
+    if (!selectedHospitalId && hospitalList[0]?.id) {
+      setSelectedHospitalId(hospitalList[0].id);
+    }
+  }, [hospitalList, selectedHospitalId]);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [gisRendered, setGisRendered] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -215,12 +224,17 @@ export const LoginPage: React.FC = () => {
                       value={selectedHospitalId}
                       onChange={(e) => setSelectedHospitalId(e.target.value)}
                       className="w-full h-11 rounded-full bg-white/70 border border-white/80 px-4 text-sm font-medium text-ink focus:outline-none"
+                      disabled={!hospitalList.length}
                     >
-                      {HOSPITALS.map((h) => (
-                        <option key={h.id} value={h.id}>
-                          {h.name}
-                        </option>
-                      ))}
+                      {hospitalList.length === 0 ? (
+                        <option value="">Loading hospitals…</option>
+                      ) : (
+                        hospitalList.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {h.name}
+                          </option>
+                        ))
+                      )}
                     </select>
                     <div className="grid grid-cols-2 gap-2">
                       {(

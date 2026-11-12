@@ -21,8 +21,11 @@ import {
   X,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { TOP_DOCTORS, Doctor } from '../src/lib/doctors-data';
+import { mapDirectoryDoctor, Doctor } from '../src/lib/doctors-data';
+import { insuranceApi } from '../src/lib/api/insurance.api';
 import { SpecialtyIcon } from '../src/components/graphics/SpecialtyIcons';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 export default function TopDoctorsScreen() {
   const router = useRouter();
@@ -30,7 +33,17 @@ export default function TopDoctorsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchVisible, setIsSearchVisible] = useState(false);
 
-  const filteredDoctors = TOP_DOCTORS.filter((doc) => {
+  const { data: directory = [] } = useQuery({
+    queryKey: ['directory-doctors'],
+    queryFn: () => insuranceApi.listDoctors(60),
+    staleTime: 60_000,
+  });
+  const doctors = useMemo(
+    () => directory.map((d, i) => mapDirectoryDoctor(d, i)),
+    [directory]
+  );
+
+  const filteredDoctors = doctors.filter((doc) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (

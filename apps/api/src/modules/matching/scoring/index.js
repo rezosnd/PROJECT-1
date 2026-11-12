@@ -96,7 +96,8 @@ export function scoreHospitalCandidate(hospital, requirements = [], options = {}
   const qualityResult = evaluateQuality(hospital.rating_avg, hospital.trauma_level);
   const insuranceResult = evaluateInsurance(
     hospital.acceptedInsurerIds || hospital.accepted_insurer_ids || [],
-    patientInsurerIds
+    patientInsurerIds,
+    hospital.insuranceNetworkMap || null
   );
 
   const insuranceWeight = weights.insurance ?? 0;
@@ -150,6 +151,9 @@ export function scoreHospitalCandidate(hospital, requirements = [], options = {}
     distanceKm: proxResult.distanceKm,
     etaMinutes: proxResult.etaMinutes,
     insuranceCoverage: insuranceResult.coverage,
+    insuranceDiscountPercent: insuranceResult.bestDiscountPercent || 0,
+    insuranceBenefits: insuranceResult.benefits || [],
+    insuranceCashless: Boolean(insuranceResult.cashless),
   };
 }
 

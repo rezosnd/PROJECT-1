@@ -2,7 +2,7 @@
   "common": {
     "emergencyCall": "Call 112",
     "emergencyNotice": "In an emergency call 112",
-    "notMedicalDevice": "GetMyHospital is a care-matching prototype. Not a certified medical device.",
+    "notMedicalDevice": "GetMyHospital helps match you to available care. Not a certified medical device.",
     "loading": "Loading live telemetry...",
     "retry": "Try again",
     "cancel": "Cancel",
@@ -113,7 +113,7 @@
     "language": "App Language",
     "biometrics": "Biometric App Lock",
     "notifications": "In-app Status Alerts",
-    "version": "Prototype Version"
+    "version": "Version"
   },
   "profile": {
     "title": "Account & Profile",

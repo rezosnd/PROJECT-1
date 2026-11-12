@@ -20,6 +20,9 @@ function toInputs(policies: PatientInsurancePolicy[] | InsurancePolicyInput[] | 
   return policies.map((p) => ({
     insurerId: p.insurerId,
     policyNumber: p.policyNumber ?? null,
+    memberId: p.memberId ?? null,
+    planName: p.planName ?? null,
+    validUntil: p.validUntil ? String(p.validUntil).slice(0, 10) : null,
     isPrimary: Boolean(p.isPrimary),
   }));
 }
@@ -67,18 +70,30 @@ export const InsurancePolicyEditor: React.FC<InsurancePolicyEditorProps> = ({
       if (next.length === 1) next = [{ ...next[0], isPrimary: true }];
     } else {
       const isFirst = selected.length === 0;
-      next = [...selected, { insurerId, policyNumber: null, isPrimary: isFirst }];
+      next = [
+        ...selected,
+        {
+          insurerId,
+          policyNumber: null,
+          memberId: null,
+          planName: null,
+          validUntil: null,
+          isPrimary: isFirst,
+        },
+      ];
     }
     setSelected(next);
     emit(next, false);
   };
 
-  const setPolicyNumber = (insurerId: string, policyNumber: string) => {
-    const next = selected.map((s) =>
-      s.insurerId === insurerId ? { ...s, policyNumber: policyNumber.trim() || null } : s
-    );
+  const patchPolicy = (insurerId: string, patch: Partial<InsurancePolicyInput>) => {
+    const next = selected.map((s) => (s.insurerId === insurerId ? { ...s, ...patch } : s));
     setSelected(next);
     emit(next, selfPay);
+  };
+
+  const setPolicyNumber = (insurerId: string, policyNumber: string) => {
+    patchPolicy(insurerId, { policyNumber: policyNumber.trim() || null });
   };
 
   const setPrimary = (insurerId: string) => {
@@ -159,12 +174,32 @@ export const InsurancePolicyEditor: React.FC<InsurancePolicyEditorProps> = ({
                       </Text>
                     </Pressable>
                   </View>
-                  <Text style={styles.fieldLabel}>Policy number (optional)</Text>
+                  <Text style={styles.fieldLabel}>Policy number</Text>
                   <TextInput
                     style={styles.input}
                     value={pol.policyNumber || ''}
                     onChangeText={(t) => setPolicyNumber(pol.insurerId, t)}
                     placeholder="e.g. 12345678"
+                    placeholderTextColor="#94A3B8"
+                  />
+                  <Text style={[styles.fieldLabel, { marginTop: 8 }]}>Member ID</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={pol.memberId || ''}
+                    onChangeText={(t) =>
+                      patchPolicy(pol.insurerId, { memberId: t.trim() || null })
+                    }
+                    placeholder="Beneficiary / member ID"
+                    placeholderTextColor="#94A3B8"
+                  />
+                  <Text style={[styles.fieldLabel, { marginTop: 8 }]}>Plan name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={pol.planName || ''}
+                    onChangeText={(t) =>
+                      patchPolicy(pol.insurerId, { planName: t.trim() || null })
+                    }
+                    placeholder="e.g. Gold Plus"
                     placeholderTextColor="#94A3B8"
                   />
                 </View>

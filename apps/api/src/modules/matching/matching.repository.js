@@ -42,7 +42,19 @@ export const matchingRepository = {
            FROM hospital_insurers hi
            WHERE hi.hospital_id = h.id),
           ARRAY[]::text[]
-        ) AS accepted_insurer_ids
+        ) AS accepted_insurer_ids,
+        COALESCE(
+          (SELECT json_agg(json_build_object(
+              'insurerId', hi.insurer_id::text,
+              'cashless', hi.cashless,
+              'discountPercent', COALESCE(hi.discount_percent, 0),
+              'benefits', COALESCE(hi.benefits, '[]'::jsonb),
+              'planLabel', hi.plan_label
+            ))
+           FROM hospital_insurers hi
+           WHERE hi.hospital_id = h.id),
+          '[]'::json
+        ) AS insurance_network
       FROM hospitals h
       WHERE h.status = 'VERIFIED'
         AND ST_DWithin(h.location, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography, $3)

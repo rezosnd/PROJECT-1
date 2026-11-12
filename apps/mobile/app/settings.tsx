@@ -57,7 +57,7 @@ export default function SettingsScreen() {
               <Info size={18} color={colors.navy} />
               <Text style={styles.rowLabel}>{t('settings.version', 'Version')}</Text>
             </View>
-            <Text style={styles.versionText}>1.0.0-prototype</Text>
+            <Text style={styles.versionText}>GetMyHospital 1.0.0</Text>
           </View>
         </Card>
       </View>

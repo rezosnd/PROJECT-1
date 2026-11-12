@@ -103,6 +103,20 @@ export const matchingService = {
     // 4. Evaluate each candidate hospital against clinical requirements
     for (const hospital of candidates) {
       hospital.acceptedInsurerIds = hospital.accepted_insurer_ids || [];
+      const networkList = Array.isArray(hospital.insurance_network)
+        ? hospital.insurance_network
+        : [];
+      const networkMap = new Map();
+      for (const n of networkList) {
+        if (!n?.insurerId) continue;
+        networkMap.set(String(n.insurerId), {
+          cashless: Boolean(n.cashless),
+          discountPercent: Number(n.discountPercent) || 0,
+          benefits: Array.isArray(n.benefits) ? n.benefits : [],
+          planLabel: n.planLabel || null,
+        });
+      }
+      hospital.insuranceNetworkMap = networkMap;
       const scoreResult = scoreHospitalCandidate(hospital, condition.requirements, {
         distanceMeters: Number(hospital.distance_meters || 0),
         severity: effectiveSeverity,
@@ -137,6 +151,9 @@ export const matchingService = {
           allocatedWard: scoreResult.selectedWard,
           freeBedsNow: scoreResult.freeCount,
           insuranceCoverage: scoreResult.insuranceCoverage || null,
+          insuranceDiscountPercent: scoreResult.insuranceDiscountPercent || 0,
+          insuranceBenefits: scoreResult.insuranceBenefits || [],
+          insuranceCashless: Boolean(scoreResult.insuranceCashless),
           location: {
             latitude: Number(hospital.latitude),
             longitude: Number(hospital.longitude)

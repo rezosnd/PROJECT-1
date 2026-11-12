@@ -115,8 +115,7 @@ export default function AmbulanceLogin() {
         )}
       </Pressable>
       <Text style={styles.hint}>
-        Your email must be pre-registered as AMBULANCE by City Admin (e.g. ambulance1.bbsr@gmail.com
-        after seed).
+        Sign in with a Gmail that City Admin pre-registered as AMBULANCE for your unit.
       </Text>
     </SafeAreaView>
   );

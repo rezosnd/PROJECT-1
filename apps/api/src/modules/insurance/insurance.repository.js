@@ -64,24 +64,41 @@ export const insuranceRepository = {
   async listHospitalInsurers(db = pool, hospitalId) {
     const { rows } = await db.query(
       `SELECT hi.hospital_id, hi.insurer_id, hi.cashless, hi.notes,
-              i.code, i.name, i.type
+              hi.discount_percent, hi.benefits, hi.plan_label, hi.updated_at,
+              i.code, i.name, i.type, i.logo_url, i.active
        FROM hospital_insurers hi
        JOIN insurers i ON i.id = hi.insurer_id
        WHERE hi.hospital_id = $1
-       ORDER BY i.name ASC`,
+       ORDER BY i.type ASC, i.name ASC`,
       [hospitalId]
     );
     return rows;
   },
 
-  async setHospitalInsurers(db = pool, hospitalId, insurerIds = [], { cashless = true } = {}) {
+  async setHospitalInsurers(db = pool, hospitalId, networks = []) {
     await db.query('DELETE FROM hospital_insurers WHERE hospital_id = $1', [hospitalId]);
-    for (const insurerId of insurerIds) {
+    for (const n of networks) {
+      const benefits = Array.isArray(n.benefits) ? n.benefits : [];
       await db.query(
-        `INSERT INTO hospital_insurers (hospital_id, insurer_id, cashless)
-         VALUES ($1, $2, $3)
-         ON CONFLICT DO NOTHING`,
-        [hospitalId, insurerId, cashless]
+        `INSERT INTO hospital_insurers
+           (hospital_id, insurer_id, cashless, notes, discount_percent, benefits, plan_label, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, NOW())
+         ON CONFLICT (hospital_id, insurer_id) DO UPDATE SET
+           cashless = EXCLUDED.cashless,
+           notes = EXCLUDED.notes,
+           discount_percent = EXCLUDED.discount_percent,
+           benefits = EXCLUDED.benefits,
+           plan_label = EXCLUDED.plan_label,
+           updated_at = NOW()`,
+        [
+          hospitalId,
+          n.insurerId,
+          n.cashless !== false,
+          n.notes || null,
+          Number(n.discountPercent) || 0,
+          JSON.stringify(benefits),
+          n.planLabel || null,
+        ]
       );
     }
     return this.listHospitalInsurers(db, hospitalId);
@@ -101,5 +118,21 @@ export const insuranceRepository = {
       map.set(r.hospital_id, new Set(r.insurer_ids || []));
     }
     return map;
+  },
+
+  async listDoctorsDirectory(db = pool, { limit = 40 } = {}) {
+    const { rows } = await db.query(
+      `SELECT u.id, u.name, u.email, u.picture_url, u.doctor_specialty, u.doctor_license_no,
+              u.hospital_id, h.name AS hospital_name, h.address AS hospital_address,
+              h.city AS hospital_city, h.phone AS hospital_phone,
+              h.latitude, h.longitude, h.rating_avg, h.photo_url AS hospital_photo
+       FROM users u
+       LEFT JOIN hospitals h ON h.id = u.hospital_id
+       WHERE u.role = 'DOCTOR' AND u.status = 'ACTIVE'
+       ORDER BY u.doctor_specialty NULLS LAST, u.name ASC
+       LIMIT $1`,
+      [Math.min(Math.max(limit, 1), 100)]
+    );
+    return rows;
   },
 };

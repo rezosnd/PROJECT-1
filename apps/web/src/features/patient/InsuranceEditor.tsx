@@ -19,6 +19,9 @@ interface InsuranceEditorProps {
 type DraftPolicy = {
   insurerId: string;
   policyNumber: string;
+  memberId: string;
+  planName: string;
+  validUntil: string;
   isPrimary: boolean;
 };
 
@@ -57,6 +60,9 @@ export const InsuranceEditor: React.FC<InsuranceEditorProps> = ({
       saved.map((p) => ({
         insurerId: p.insurerId,
         policyNumber: p.policyNumber || '',
+        memberId: p.memberId || '',
+        planName: p.planName || '',
+        validUntil: p.validUntil ? String(p.validUntil).slice(0, 10) : '',
         isPrimary: Boolean(p.isPrimary),
       }))
     );
@@ -73,18 +79,26 @@ export const InsuranceEditor: React.FC<InsuranceEditorProps> = ({
         return next;
       }
       const isFirst = prev.length === 0;
-      return [...prev, { insurerId: insurer.id, policyNumber: '', isPrimary: isFirst }];
+      return [
+        ...prev,
+        {
+          insurerId: insurer.id,
+          policyNumber: '',
+          memberId: '',
+          planName: '',
+          validUntil: '',
+          isPrimary: isFirst,
+        },
+      ];
     });
   };
 
-  const setPolicyNumber = (insurerId: string, policyNumber: string) => {
-    setDrafts((prev) => prev.map((d) => (d.insurerId === insurerId ? { ...d, policyNumber } : d)));
+  const patchDraft = (insurerId: string, patch: Partial<DraftPolicy>) => {
+    setDrafts((prev) => prev.map((d) => (d.insurerId === insurerId ? { ...d, ...patch } : d)));
   };
 
   const setPrimary = (insurerId: string) => {
-    setDrafts((prev) =>
-      prev.map((d) => ({ ...d, isPrimary: d.insurerId === insurerId }))
-    );
+    setDrafts((prev) => prev.map((d) => ({ ...d, isPrimary: d.insurerId === insurerId })));
   };
 
   const saveMutation = useMutation({
@@ -94,6 +108,9 @@ export const InsuranceEditor: React.FC<InsuranceEditorProps> = ({
         : drafts.map((d) => ({
             insurerId: d.insurerId,
             policyNumber: d.policyNumber.trim() || null,
+            memberId: d.memberId.trim() || null,
+            planName: d.planName.trim() || null,
+            validUntil: d.validUntil.trim() || null,
             isPrimary: d.isPrimary,
           }));
       return insuranceApi.saveMine(policies);
@@ -119,7 +136,8 @@ export const InsuranceEditor: React.FC<InsuranceEditorProps> = ({
           <h2 className="font-display text-lg font-bold text-ink">Insurance</h2>
           {!compact && (
             <p className="text-sm text-muted mt-1">
-              Used to rank hospitals that accept your insurer. Policy numbers are optional.
+              Rank hospitals that accept your insurer, show cashless benefits and package discounts.
+              Policy details help doctors at scan time.
             </p>
           )}
         </div>
@@ -190,12 +208,32 @@ export const InsuranceEditor: React.FC<InsuranceEditorProps> = ({
                         {d.isPrimary ? 'Primary' : 'Set primary'}
                       </button>
                     </div>
-                    <input
-                      className="w-full h-10 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 text-sm font-semibold text-ink"
-                      placeholder="Policy number (optional)"
-                      value={d.policyNumber}
-                      onChange={(e) => setPolicyNumber(d.insurerId, e.target.value)}
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        className="w-full h-10 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 text-sm font-semibold text-ink"
+                        placeholder="Policy number"
+                        value={d.policyNumber}
+                        onChange={(e) => patchDraft(d.insurerId, { policyNumber: e.target.value })}
+                      />
+                      <input
+                        className="w-full h-10 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 text-sm font-semibold text-ink"
+                        placeholder="Member / beneficiary ID"
+                        value={d.memberId}
+                        onChange={(e) => patchDraft(d.insurerId, { memberId: e.target.value })}
+                      />
+                      <input
+                        className="w-full h-10 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 text-sm font-semibold text-ink"
+                        placeholder="Plan name"
+                        value={d.planName}
+                        onChange={(e) => patchDraft(d.insurerId, { planName: e.target.value })}
+                      />
+                      <input
+                        type="date"
+                        className="w-full h-10 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 text-sm font-semibold text-ink"
+                        value={d.validUntil}
+                        onChange={(e) => patchDraft(d.insurerId, { validUntil: e.target.value })}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -214,9 +252,7 @@ export const InsuranceEditor: React.FC<InsuranceEditorProps> = ({
             </Button>
           </div>
 
-          {!selfPay && saved.length > 0 && (
-            <SavedPoliciesList policies={saved} />
-          )}
+          {!selfPay && saved.length > 0 && <SavedPoliciesList policies={saved} />}
         </>
       )}
     </section>
@@ -231,6 +267,7 @@ function SavedPoliciesList({ policies }: { policies: PatientInsurancePolicy[] })
         {policies.map((p) => (
           <li key={p.id || p.insurerId} className="text-xs font-semibold text-ink">
             {p.insurerName || p.insurerId}
+            {p.planName ? ` · ${p.planName}` : ''}
             {p.policyNumber ? ` · ${p.policyNumber}` : ''}
             {p.isPrimary ? (
               <span className="ml-1 text-[10px] font-bold text-[#0B3D1A]">PRIMARY</span>

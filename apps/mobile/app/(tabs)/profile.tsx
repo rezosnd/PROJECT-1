@@ -439,9 +439,11 @@ export default function ProfileScreen() {
                     maxLength={6}
                     style={[styles.input, styles.otpInput]}
                   />
-                  <Pressable onPress={() => setLinkOtp('123456')} style={styles.sandboxChip}>
-                    <Text style={styles.sandboxChipText}>Use sandbox 123456</Text>
-                  </Pressable>
+                  {testOtpHint ? (
+                    <Pressable onPress={() => setLinkOtp(testOtpHint)} style={styles.sandboxChip}>
+                      <Text style={styles.sandboxChipText}>Use sandbox {testOtpHint}</Text>
+                    </Pressable>
+                  ) : null}
                   <Button onPress={handleLinkVerify} isLoading={isSubmitting} style={styles.primaryBtn}>
                     Verify & link
                   </Button>

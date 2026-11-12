@@ -41,4 +41,9 @@ export const referralsApi = {
     const res = await apiClient.get('/referrals/me');
     return res.data.data || [];
   },
+
+  async hospitalInbox(hospitalId: string): Promise<PatientReferral[]> {
+    const res = await apiClient.get(`/referrals/hospital/${hospitalId}`);
+    return res.data.data || [];
+  },
 };

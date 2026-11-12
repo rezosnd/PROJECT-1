@@ -38,7 +38,7 @@ export const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onSelect }) => {
           {doctor.specialty}
         </p>
         <p className="text-sm font-extrabold text-[#111111] mt-2">
-          ₹ {doctor.fee.toFixed(2)}
+          {doctor.fee > 0 ? `₹ ${doctor.fee.toFixed(2)}` : 'Care QR referral'}
         </p>
 
         <button

@@ -42,6 +42,11 @@ export const AbhaPage: React.FC = () => {
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [selectedAddress, setSelectedAddress] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sandboxOtp, setSandboxOtp] = useState<string | null>(null);
+  const showAbdmSandboxUi =
+    Boolean(sandboxOtp) ||
+    import.meta.env.VITE_ABDM_SANDBOX_UI === 'true' ||
+    import.meta.env.DEV === true;
 
   // Fetch verified profile
   const { data: profile, isLoading } = useQuery({
@@ -99,6 +104,8 @@ export const AbhaPage: React.FC = () => {
       // Privacy invariant: zero Aadhaar retention in memory or forms
       setRawAadhaar('');
       setStep('otp');
+      if ((res as any).testOtp) setSandboxOtp(String((res as any).testOtp));
+      else setSandboxOtp(null);
       const sandboxHint = (res as any).testOtp
         ? ` Sandbox OTP: ${(res as any).testOtp}`
         : '';
@@ -194,6 +201,8 @@ export const AbhaPage: React.FC = () => {
       const res = await abhaApi.initLink(existingAbhaId);
       setTxnId(res.txnId);
       setStep('otp');
+      if (res.testOtp) setSandboxOtp(String(res.testOtp));
+      else setSandboxOtp(null);
       addToast({
         type: 'info',
         title: res.testOtp ? 'Sandbox OTP ready' : 'OTP sent to your phone',
@@ -357,16 +366,18 @@ export const AbhaPage: React.FC = () => {
           {/* CREATE FLOW: STEP 2 (AADHAAR ENTRY) */}
           {activeTab === 'create' && step === 'aadhaar' && (
             <form onSubmit={handleRequestCreateOtp} className="space-y-4 animate-in fade-in">
-              <div className="flex items-center justify-between p-3 bg-blue-50/70 border border-blue-100 rounded-2xl text-xs text-blue-900">
-                <span><strong>ABDM Sandbox:</strong> For testing without live Aadhaar SMS, use <code>999999999999</code></span>
-                <button
-                  type="button"
-                  onClick={() => setRawAadhaar('999999999999')}
-                  className="font-bold text-blue hover:underline text-xs shrink-0"
-                >
-                  Autofill Sandbox ID
-                </button>
-              </div>
+              {showAbdmSandboxUi && (
+                <div className="flex items-center justify-between p-3 bg-blue-50/70 border border-blue-100 rounded-2xl text-xs text-blue-900">
+                  <span><strong>ABDM Sandbox:</strong> For testing without live Aadhaar SMS, use <code>999999999999</code></span>
+                  <button
+                    type="button"
+                    onClick={() => setRawAadhaar('999999999999')}
+                    className="font-bold text-blue hover:underline text-xs shrink-0"
+                  >
+                    Autofill Sandbox ID
+                  </button>
+                </div>
+              )}
 
               <Input
                 label={t('abha.aadhaarLabel')}
@@ -410,13 +421,15 @@ export const AbhaPage: React.FC = () => {
                       ? 'Enter the UIDAI OTP from your Aadhaar-linked phone, plus a mobile for ABHA.'
                       : 'Enter the 6-digit OTP from your ABHA-linked mobile SMS (not email).'}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setOtp('123456')}
-                    className="inline-flex items-center h-9 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold transition"
-                  >
-                    Use sandbox OTP 123456
-                  </button>
+                  {showAbdmSandboxUi && (
+                    <button
+                      type="button"
+                      onClick={() => setOtp(sandboxOtp || '123456')}
+                      className="inline-flex items-center h-9 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold transition"
+                    >
+                      Use sandbox OTP {sandboxOtp || '123456'}
+                    </button>
+                  )}
                 </div>
               </div>
 

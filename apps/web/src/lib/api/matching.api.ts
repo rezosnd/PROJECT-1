@@ -49,6 +49,9 @@ export interface MatchedHospital {
   }>;
   explanation: string;
   insuranceCoverage?: InsuranceCoverageLevel | null;
+  insuranceDiscountPercent?: number;
+  insuranceBenefits?: string[];
+  insuranceCashless?: boolean;
 }
 
 export interface MatchExcludedHospital {
@@ -118,6 +121,9 @@ export const matchingApi = {
         matchedEquipment: m.matchedEquipment || [],
         explanation: m.explanation || `${wardType} available. Real-time verified.`,
         insuranceCoverage: m.insuranceCoverage ?? null,
+        insuranceDiscountPercent: Number(m.insuranceDiscountPercent) || 0,
+        insuranceBenefits: Array.isArray(m.insuranceBenefits) ? m.insuranceBenefits : [],
+        insuranceCashless: Boolean(m.insuranceCashless),
       };
     });
 

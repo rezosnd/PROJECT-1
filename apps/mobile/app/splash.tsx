@@ -81,7 +81,7 @@ export default function SplashScreen() {
           Continue
         </Button>
         <Text style={styles.prototypeNotice}>
-          {BRAND.name} · National Health Authority & ABDM Compliant
+          {BRAND.name} · Care matching for Bhubaneswar
         </Text>
       </View>
     </View>

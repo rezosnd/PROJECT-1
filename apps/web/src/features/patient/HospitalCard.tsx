@@ -98,6 +98,10 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
               >
                 <ShieldCheck className="w-3 h-3" />
                 {insuranceBadge.label}
+                {coverage === 'COVERED' && (match.insuranceDiscountPercent || 0) > 0
+                  ? ` · ${match.insuranceDiscountPercent}% benefit`
+                  : ''}
+                {coverage === 'COVERED' && match.insuranceCashless ? ' · cashless' : ''}
               </span>
             )}
           </div>

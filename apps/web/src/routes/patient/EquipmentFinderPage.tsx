@@ -116,7 +116,7 @@ export const EquipmentFinderPage: React.FC = () => {
 
                 <p className="text-xs text-muted flex items-center gap-2">
                   <Building2 className="w-3.5 h-3.5 text-navy shrink-0" />
-                  <span className="font-semibold text-ink">{item.hospitalName || 'AIIMS Bhubaneswar'}</span>
+                  <span className="font-semibold text-ink">{item.hospitalName || 'Hospital'}</span>
                   <span>•</span>
                   <MapPin className="w-3.5 h-3.5 text-red shrink-0" />
                   <span>{item.hospitalAddress || 'Bhubaneswar'}</span>

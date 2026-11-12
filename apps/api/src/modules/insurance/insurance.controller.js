@@ -30,7 +30,32 @@ export const insuranceController = {
 
   async hospitalInsurers(req, res, next) {
     try {
-      const data = await insuranceService.getHospitalInsurers(req.params.hospitalId || req.params.id);
+      const hospitalId = req.params.hospitalId || req.params.id;
+      const data = await insuranceService.getHospitalInsurers(hospitalId);
+      res.json({ success: true, data, traceId: req.traceId });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async saveHospitalInsurers(req, res, next) {
+    try {
+      const hospitalId = req.params.hospitalId || req.params.id;
+      const data = await insuranceService.saveHospitalInsurers(
+        hospitalId,
+        req.body.networks || [],
+        req.user
+      );
+      res.json({ success: true, data, traceId: req.traceId });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async listDoctors(req, res, next) {
+    try {
+      const limit = Number(req.query.limit) || 40;
+      const data = await insuranceService.listDoctorsDirectory(limit);
       res.json({ success: true, data, traceId: req.traceId });
     } catch (err) {
       next(err);

@@ -21,21 +21,10 @@ import {
   Droplets,
 } from 'lucide-react';
 
-const HOSPITAL_NAMES: Record<string, string> = {
-  '3256d42a-2dfe-4e1f-9d9d-867997d53d2a': 'AIIMS Bhubaneswar',
-  '0f7fafb8-7f8c-4567-acf1-e9d3ca8847e3': 'KIMS Hospital',
-  'e66d5397-2a29-4885-a964-56861611786d': 'SUM Ultimate Medicare',
-  '2f462f84-d929-4cc4-8920-3b4bf7803c2e': 'Kalinga Hospital',
-  '4f0a4313-9cfa-475c-8106-66f3d0a676d2': 'Capital Hospital',
-  'b5b618f5-15e9-4731-b342-f9680a48e5eb': 'Apollo Bhubaneswar',
-  'ca3d4caa': 'Nearby hospital',
-};
-
-function hospitalLabel(id: string) {
-  if (HOSPITAL_NAMES[id]) return HOSPITAL_NAMES[id];
-  const partial = Object.entries(HOSPITAL_NAMES).find(([k]) => id.startsWith(k.slice(0, 8)));
-  if (partial) return partial[1];
-  return `Hospital · ${id.slice(0, 8)}`;
+function hospitalLabel(r: { hospitalName?: string | null; hospitalId?: string }) {
+  if (r.hospitalName) return r.hospitalName;
+  if (r.hospitalId) return `Hospital · ${String(r.hospitalId).slice(0, 8)}`;
+  return 'Hospital';
 }
 
 const STATUS_META: Record<
@@ -233,7 +222,7 @@ export const MyRequestsPage: React.FC = () => {
               </div>
               <p className="text-xs text-muted mt-1 flex items-center gap-1.5 min-w-0">
                 <Building2 className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{hospitalLabel(r.hospitalId)}</span>
+                <span className="truncate">{hospitalLabel(r)}</span>
               </p>
               <p className="text-[11px] text-muted/90 mt-0.5">
                 Requested{' '}

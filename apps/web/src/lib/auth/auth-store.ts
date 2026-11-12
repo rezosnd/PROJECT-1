@@ -129,13 +129,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   loginWithCustomCredentials: async () => {
-    const message = 'Demo email login is disabled. Sign in with Google.';
+    const message = 'Email/password login is not available. Sign in with Google.';
     set({ isLoading: false, error: message });
     throw new Error(message);
   },
 
   loginAsMockRole: async () => {
-    const message = 'Demo role login is disabled. Sign in with your real Google account.';
+    const message = 'Sign in with your Google account registered for this role.';
     set({ isLoading: false, error: message });
     throw new Error(message);
   },

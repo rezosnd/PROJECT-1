@@ -2,7 +2,7 @@
   "emergency": {
     "strip": "In an emergency call 112",
     "call": "Call 112",
-    "disclaimer": "Emergency triage advisory only. Synthetic prototype data - not a certified medical device."
+    "disclaimer": "Emergency triage advisory only. Not a certified medical device. In an emergency call 112."
   },
   "nav": {
     "home": "Home",

@@ -111,7 +111,7 @@ export default function DoctorLogin() {
         )}
       </Pressable>
       <Text style={styles.hint}>
-        Pre-register as DOCTOR via City Admin (e.g. doctor.aiims@gmail.com after seed).
+        Sign in with a Gmail that City Admin or Hospital Admin pre-registered as DOCTOR.
       </Text>
     </SafeAreaView>
   );

@@ -8,9 +8,11 @@ import { RequestQueueTable } from '../../features/hospital/RequestQueueTable';
 import { EquipmentManagerTable } from '../../features/hospital/EquipmentManagerTable';
 import { BloodBankPanel } from '../../features/hospital/BloodBankPanel';
 import { BloodRequestQueue } from '../../features/hospital/BloodRequestQueue';
+import { ReferralInbox } from '../../features/hospital/ReferralInbox';
+import { SosInbox } from '../../features/hospital/SosInbox';
 import { ShortcutsModal } from '../../features/hospital/ShortcutsModal';
 import { StatusDot } from '../../components/ui/StatusDot';
-import { Activity, RefreshCw, HelpCircle, BedDouble, Stethoscope, Clock, UserPlus, Droplets } from 'lucide-react';
+import { Activity, RefreshCw, HelpCircle, BedDouble, Stethoscope, Clock, UserPlus, Droplets, Siren, BadgePercent } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { hospitalsApi } from '../../lib/api/hospitals.api';
 import { forecastApi } from '../../lib/api/forecast.api';
@@ -19,20 +21,31 @@ import { equipmentApi } from '../../lib/api/equipment.api';
 import { bloodApi } from '../../lib/api/blood.api';
 import { socketManager } from '../../lib/socket/socket-client';
 import { StaffPreRegForm } from '../../features/admin/StaffPreRegForm';
+import { InsuranceNetworkPanel } from '../../features/hospital/InsuranceNetworkPanel';
 
-type HospitalTab = 'wards' | 'queue' | 'blood' | 'blood-queue' | 'equipment' | 'forecast' | 'staff';
+type HospitalTab =
+  | 'wards'
+  | 'queue'
+  | 'blood'
+  | 'blood-queue'
+  | 'referrals'
+  | 'sos'
+  | 'equipment'
+  | 'insurance'
+  | 'forecast'
+  | 'staff';
 
 export const HospitalDashboardPage: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const defaultHospitalId =
-    import.meta.env.VITE_USE_MOCKS === 'true' ? 'hosp-001' : '3256d42a-2dfe-4e1f-9d9d-867997d53d2a';
-  const hospitalId = user?.hospitalId || defaultHospitalId;
+  const hospitalId = user?.hospitalId || '';
   const sessionReady = Boolean(isAuthenticated && !isLoading && hospitalId);
   const tabFromUrl = (searchParams.get('tab') as HospitalTab) || 'wards';
   const [activeTab, setActiveTab] = useState<HospitalTab>(tabFromUrl);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const canManageStaff = user?.role === 'HOSPITAL_ADMIN' || user?.role === 'CITY_ADMIN';
+  const canManageInsurance =
+    user?.role === 'HOSPITAL_ADMIN' || user?.role === 'HOSPITAL_STAFF' || user?.role === 'CITY_ADMIN';
 
   useEffect(() => {
     const t = (searchParams.get('tab') as HospitalTab) || 'wards';
@@ -141,12 +154,28 @@ export const HospitalDashboardPage: React.FC = () => {
       icon: <Droplets className="w-4.5 h-4.5" />,
       badge: pendingBlood || undefined,
     },
+    { id: 'referrals', label: 'Doctor referrals', icon: <Stethoscope className="w-4.5 h-4.5" /> },
+    { id: 'sos', label: 'Emergency SOS', icon: <Siren className="w-4.5 h-4.5" /> },
     { id: 'equipment', label: 'Equipment', icon: <Stethoscope className="w-4.5 h-4.5" /> },
+    ...(canManageInsurance
+      ? [{ id: 'insurance' as const, label: 'Insurance', icon: <BadgePercent className="w-4.5 h-4.5" /> }]
+      : []),
     { id: 'forecast', label: 'Forecast', icon: <Activity className="w-4.5 h-4.5" /> },
     ...(canManageStaff
       ? [{ id: 'staff' as const, label: 'Staff', icon: <UserPlus className="w-4.5 h-4.5" /> }]
       : []),
   ];
+
+  if (!isLoading && isAuthenticated && !hospitalId && user?.role !== 'CITY_ADMIN') {
+    return (
+      <div className="max-w-lg mx-auto py-16 text-center space-y-3">
+        <h1 className="font-display text-2xl font-bold text-ink">Hospital not assigned</h1>
+        <p className="text-sm text-muted">
+          Your account needs a hospital affiliation. Ask City Admin to pre-register your Gmail with a hospital.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto pb-10 text-left space-y-6">
@@ -314,6 +343,30 @@ export const HospitalDashboardPage: React.FC = () => {
         </section>
       )}
 
+      {activeTab === 'referrals' && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="font-display text-lg font-bold text-ink">Doctor referrals</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Inbound clinical referrals — emergency tags when urgency / notes indicate critical care.
+            </p>
+          </div>
+          <ReferralInbox hospitalId={hospitalId} />
+        </section>
+      )}
+
+      {activeTab === 'sos' && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="font-display text-lg font-bold text-ink">Emergency SOS</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Patient SOS near your hospital and units that accepted — first ambulance to accept wins.
+            </p>
+          </div>
+          <SosInbox hospitalId={hospitalId} />
+        </section>
+      )}
+
       {activeTab === 'queue' && (
         <section className="space-y-3">
           <RequestQueueTable
@@ -340,6 +393,10 @@ export const HospitalDashboardPage: React.FC = () => {
             onUpdated={() => refetchEquipment()}
           />
         </section>
+      )}
+
+      {activeTab === 'insurance' && canManageInsurance && (
+        <InsuranceNetworkPanel hospitalId={hospitalId} />
       )}
 
       {activeTab === 'forecast' && (

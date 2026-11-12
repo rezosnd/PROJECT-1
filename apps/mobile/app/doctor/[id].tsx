@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Image,
   Dimensions,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,8 +24,10 @@ import {
   Phone,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { getDoctorById } from '../../src/lib/doctors-data';
+import { getDoctorById, mapDirectoryDoctor } from '../../src/lib/doctors-data';
 import { SpecialtyIcon } from '../../src/components/graphics/SpecialtyIcons';
+import { useQuery } from '@tanstack/react-query';
+import { insuranceApi } from '../../src/lib/api/insurance.api';
 
 const { width } = Dimensions.get('window');
 
@@ -33,9 +36,39 @@ export default function DoctorDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const doctor = getDoctorById(id || 'doc-002');
-  const [activeTab, setActiveTab] = useState<'info' | 'location' | 'reviews' | 'referral'>('location');
+  const { data: directory = [], isLoading } = useQuery({
+    queryKey: ['directory-doctors'],
+    queryFn: () => insuranceApi.listDoctors(80),
+    staleTime: 60_000,
+  });
+  const doctors = useMemo(
+    () => directory.map((d, i) => mapDirectoryDoctor(d, i)),
+    [directory]
+  );
+  const doctor = getDoctorById(id || '', doctors);
+  const [activeTab, setActiveTab] = useState<'info' | 'location' | 'reviews' | 'referral'>('referral');
   const [isBookmarked, setIsBookmarked] = useState(false);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color="#A8E017" />
+      </View>
+    );
+  }
+
+  if (!doctor) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Text style={{ color: '#fff', fontWeight: '700', textAlign: 'center' }}>
+          Doctor not found on the live network.
+        </Text>
+        <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Text style={{ color: '#A8E017', fontWeight: '800' }}>Go back</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   const handleBookmarkToggle = () => {
     Haptics.selectionAsync();
@@ -308,9 +341,9 @@ export default function DoctorDetailScreen() {
                 </View>
 
                 <View style={styles.reviewItem}>
-                  <Text style={styles.reviewerName}>Ananya Patel • 2 days ago</Text>
+                  <Text style={styles.reviewerName}>Patient reviews</Text>
                   <Text style={styles.reviewBody}>
-                    &ldquo;Dr. Shah is extremely thorough. Explains the diagnosis calmly and the hospital staff ensured zero wait time.&rdquo;
+                    Verified consultation reviews will appear here as patients complete Care QR visits with this doctor.
                   </Text>
                 </View>
               </View>

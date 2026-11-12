@@ -574,7 +574,7 @@ export const CONDITIONS = [
 ];
 
 async function seed() {
-  console.log('[Seed] Seeding synthetic data for Bhubaneswar health network...');
+    console.log('[Seed] Seeding Bhubaneswar health network (hospitals, beds, ambulances, AI knowledge)...');
   await client.connect();
 
   try {
@@ -773,27 +773,32 @@ async function seed() {
       `, logParams);
     }
 
-    // 5. Seed Pre-registered Staff + Doctors for the first two hospitals
+    // 5. Bootstrap pre-registered staff (disable with SEED_BOOTSTRAP_STAFF=false for production)
     if (hospitalIds.length >= 2) {
-      console.log('[Seed] Setting up sample pre-registered staff & doctors...');
+      const seedBootstrapStaff = String(process.env.SEED_BOOTSTRAP_STAFF || 'true').toLowerCase() !== 'false';
       const kims = hospitalIds.find((x) => /KIMS/i.test(x.name)) || hospitalIds[4];
       const apollo = hospitalIds.find((x) => /Apollo/i.test(x.name)) || hospitalIds[1];
-      const sampleStaff = [
-        { email: 'staff.aiims@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: hospitalIds[0].id },
-        { email: 'admin.aiims@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: hospitalIds[0].id },
-        { email: 'staff.apollo@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: apollo.id },
-        { email: 'admin.apollo@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: apollo.id },
-        { email: 'staff.kims@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: kims.id },
-        { email: 'admin.kims@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: kims.id },
-        { email: 'doctor.aiims@gmail.com', role: 'DOCTOR', hospitalId: hospitalIds[0].id, specialty: 'Emergency Medicine', licenseNo: 'OD-EM-1001' },
-        { email: 'doctor.kims@gmail.com', role: 'DOCTOR', hospitalId: kims.id, specialty: 'Cardiology', licenseNo: 'OD-CARD-2044' },
-        { email: 'doctor.refer@gmail.com', role: 'DOCTOR', hospitalId: null, specialty: 'General Medicine', licenseNo: 'OD-GM-3300' },
-        { email: 'ambulance1.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: hospitalIds[0].id, specialty: 'BBSR-ALS-01', licenseNo: 'OD02AB1001', vehicleNo: 'OD02AB1001', ambulanceType: 'ALS' },
-        { email: 'ambulance2.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: apollo.id, specialty: 'BBSR-ALS-02', licenseNo: 'OD02AB1002', vehicleNo: 'OD02AB1002', ambulanceType: 'ALS' },
-        { email: 'ambulance3.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: kims.id, specialty: 'BBSR-ICU-01', licenseNo: 'OD02AB1003', vehicleNo: 'OD02AB1003', ambulanceType: 'ICU' },
-        { email: 'ambulance4.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: null, specialty: 'BBSR-BLS-01', licenseNo: 'OD02AB1004', vehicleNo: 'OD02AB1004', ambulanceType: 'BLS' },
-        { email: 'ambulance5.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: hospitalIds[2].id, specialty: 'BBSR-ALS-03', licenseNo: 'OD02AB1005', vehicleNo: 'OD02AB1005', ambulanceType: 'ALS' },
-      ];
+      const sampleStaff = seedBootstrapStaff
+        ? [
+            { email: process.env.SEED_STAFF_EMAIL || 'staff.aiims@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: hospitalIds[0].id },
+            { email: process.env.SEED_ADMIN_HOSPITAL_EMAIL || 'admin.aiims@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: hospitalIds[0].id },
+            { email: 'staff.apollo@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: apollo.id },
+            { email: 'admin.apollo@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: apollo.id },
+            { email: 'staff.kims@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: kims.id },
+            { email: 'admin.kims@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: kims.id },
+            { email: process.env.SEED_DOCTOR_EMAIL || 'doctor.aiims@gmail.com', role: 'DOCTOR', hospitalId: hospitalIds[0].id, specialty: 'Emergency Medicine', licenseNo: 'OD-EM-1001' },
+            { email: 'doctor.kims@gmail.com', role: 'DOCTOR', hospitalId: kims.id, specialty: 'Cardiology', licenseNo: 'OD-CARD-2044' },
+            { email: 'doctor.refer@gmail.com', role: 'DOCTOR', hospitalId: null, specialty: 'General Medicine', licenseNo: 'OD-GM-3300' },
+            { email: 'ambulance1.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: hospitalIds[0].id, specialty: 'BBSR-ALS-01', licenseNo: 'OD02AB1001', vehicleNo: 'OD02AB1001', ambulanceType: 'ALS' },
+            { email: 'ambulance2.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: apollo.id, specialty: 'BBSR-ALS-02', licenseNo: 'OD02AB1002', vehicleNo: 'OD02AB1002', ambulanceType: 'ALS' },
+            { email: 'ambulance3.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: kims.id, specialty: 'BBSR-ICU-01', licenseNo: 'OD02AB1003', vehicleNo: 'OD02AB1003', ambulanceType: 'ICU' },
+            { email: 'ambulance4.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: null, specialty: 'BBSR-BLS-01', licenseNo: 'OD02AB1004', vehicleNo: 'OD02AB1004', ambulanceType: 'BLS' },
+            { email: 'ambulance5.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: hospitalIds[2].id, specialty: 'BBSR-ALS-03', licenseNo: 'OD02AB1005', vehicleNo: 'OD02AB1005', ambulanceType: 'ALS' },
+          ]
+        : [];
+      if (sampleStaff.length) {
+        console.log('[Seed] Setting up bootstrap pre-registered staff & doctors...');
+      }
 
       for (const s of sampleStaff) {
         await client.query(`
@@ -889,6 +894,7 @@ async function seed() {
       { code: 'BSKY', name: 'Biju Swasthya Kalyan Yojana (BSKY)', type: 'SCHEME' },
       { code: 'CGHS', name: 'CGHS', type: 'GOVERNMENT' },
       { code: 'ESIC', name: 'ESIC', type: 'GOVERNMENT' },
+      { code: 'ECHS', name: 'ECHS (Ex-Servicemen)', type: 'GOVERNMENT' },
       { code: 'STAR', name: 'Star Health', type: 'PRIVATE' },
       { code: 'HDFC_ERGO', name: 'HDFC Ergo', type: 'PRIVATE' },
       { code: 'ICICI_LOMBARD', name: 'ICICI Lombard', type: 'PRIVATE' },
@@ -897,7 +903,21 @@ async function seed() {
       { code: 'RELIANCE', name: 'Reliance General', type: 'PRIVATE' },
       { code: 'BAJAJ', name: 'Bajaj Allianz', type: 'PRIVATE' },
       { code: 'NEW_INDIA', name: 'New India Assurance', type: 'GOVERNMENT' },
+      { code: 'ORIENTAL', name: 'Oriental Insurance', type: 'GOVERNMENT' },
+      { code: 'UNITED_INDIA', name: 'United India Insurance', type: 'GOVERNMENT' },
+      { code: 'MAX_BUPA', name: 'Max Bupa / Niva partner plans', type: 'PRIVATE' },
+      { code: 'ADITYA_BIRLA', name: 'Aditya Birla Health', type: 'PRIVATE' },
+      { code: 'MANIPAL_CIGNA', name: 'ManipalCigna', type: 'PRIVATE' },
+      { code: 'SBI_GENERAL', name: 'SBI General Health', type: 'PRIVATE' },
+      { code: 'TATA_AIG', name: 'Tata AIG Medicare', type: 'PRIVATE' },
     ];
+
+    const DEFAULT_BENEFITS = {
+      SCHEME: ['Cashless IP', 'Pre-auth support', 'Package rates', 'Emergency cover'],
+      GOVERNMENT: ['Cashless IP', 'OPD referral', 'ICU included', 'Pharmacy on package'],
+      PRIVATE: ['Cashless IP', 'Room rent as per plan', 'Pre/post hospitalisation', 'Ambulance cover'],
+      CORPORATE: ['Cashless IP', 'Corporate TPA desk', 'Day-care procedures'],
+    };
 
     const insurerIds = [];
     for (const ins of INSURERS) {
@@ -932,10 +952,12 @@ async function seed() {
       });
       for (const ins of accepted) {
         await client.query(
-          `INSERT INTO hospital_insurers (hospital_id, insurer_id, cashless)
-           VALUES ($1, $2, TRUE)
-           ON CONFLICT DO NOTHING`,
-          [hid, ins.id]
+          `INSERT INTO hospital_insurers (hospital_id, insurer_id, cashless, notes)
+           VALUES ($1, $2, TRUE, $3)
+           ON CONFLICT (hospital_id, insurer_id) DO UPDATE SET
+             cashless = TRUE,
+             notes = EXCLUDED.notes`,
+          [hid, ins.id, 'Cashless / empanelled for Bhubaneswar operations']
         );
       }
       for (const d of DEPTS) {
@@ -1150,9 +1172,9 @@ async function seed() {
     for (const k of KNOWLEDGE) {
       await client.query(
         `INSERT INTO medical_knowledge (title, content, category, source_name, source_url, language, verification_status)
-         SELECT $1,$2,$3,$4,$5,'en','VERIFIED'
+         SELECT $1::text, $2::text, $3::text, $4::text, $5::text, 'en', 'VERIFIED'
          WHERE NOT EXISTS (
-           SELECT 1 FROM medical_knowledge WHERE title = $1 AND verification_status = 'VERIFIED'
+           SELECT 1 FROM medical_knowledge WHERE title = $1::text AND verification_status = 'VERIFIED'
          )`,
         [k.title, k.content, k.category, k.source_name, k.source_url]
       );

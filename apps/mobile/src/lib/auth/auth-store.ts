@@ -107,19 +107,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signInWithGoogle: async () => {
-    throw new Error('Use the Sign in with Google button — demo Google accounts are disabled.');
+    throw new Error('Use Sign in with Google.');
   },
 
   loginWithCustomCredentials: async () => {
-    throw new Error('Demo email login is disabled. Sign in with a real Google account.');
+    throw new Error('Email login is not available. Sign in with Google.');
   },
 
   registerOrLoginUser: async () => {
-    throw new Error('Demo registration is disabled. Sign in with Google.');
+    throw new Error('Registration uses Google sign-in only.');
   },
 
   loginAsCitizen: async () => {
-    throw new Error('Demo citizen login is disabled. Sign in with Google.');
+    throw new Error('Sign in with Google to continue.');
   },
 
   loginAsStaff: async () => {

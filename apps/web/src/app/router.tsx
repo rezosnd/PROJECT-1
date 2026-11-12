@@ -14,6 +14,7 @@ import { OnboardingPage } from '../routes/patient/OnboardingPage';
 import { TopDoctorsPage } from '../routes/patient/TopDoctorsPage';
 import { BloodBankPage } from '../routes/patient/BloodBankPage';
 import { AiAssistantPage } from '../routes/patient/AiAssistantPage';
+import { SosPage } from '../routes/patient/SosPage';
 import { HospitalDashboardPage } from '../routes/hospital/HospitalDashboardPage';
 import { CityAdminPage } from '../routes/admin/CityAdminPage';
 import { RequireRole } from '../lib/auth/role-guard';
@@ -37,6 +38,11 @@ export const router = createBrowserRouter([
         element: <HospitalDetailPage />,
       },
       {
+        // Patient hospital profile — links use /hospital/:id (staff dashboard stays at /hospital)
+        path: 'hospital/:id',
+        element: <HospitalDetailPage />,
+      },
+      {
         path: 'equipment',
         element: <EquipmentFinderPage />,
       },
@@ -47,6 +53,10 @@ export const router = createBrowserRouter([
       {
         path: 'ai',
         element: <AiAssistantPage />,
+      },
+      {
+        path: 'sos',
+        element: <SosPage />,
       },
       {
         path: 'requests',

@@ -75,9 +75,8 @@ export const authService = {
       // 3. Role binding — production-safe (no self-elevate via requestedRole)
       const prereg = await authRepository.findPreregisteredStaff(client, googleProfile.email);
       const emailLc = googleProfile.email.toLowerCase();
-      const isSeedAdmin =
-        emailLc === String(config.SEED_ADMIN_EMAIL || '').toLowerCase() ||
-        emailLc === 'cityadmin.bhubaneswar@gmail.com';
+      const seedAdmin = String(config.SEED_ADMIN_EMAIL || '').toLowerCase().trim();
+      const isSeedAdmin = Boolean(seedAdmin) && emailLc === seedAdmin;
 
       let targetRole = 'PATIENT';
       let targetHospitalId = null;

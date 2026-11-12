@@ -31,6 +31,31 @@ export type InsurancePolicyInput = {
   isPrimary?: boolean;
 };
 
+export interface HospitalInsuranceNetwork {
+  insurerId: string;
+  code: string;
+  name: string;
+  type: string;
+  cashless: boolean;
+  discountPercent: number;
+  benefits: string[];
+  planLabel?: string | null;
+  notes?: string | null;
+}
+
+export interface DirectoryDoctor {
+  id: string;
+  name: string;
+  specialty: string;
+  pictureUrl?: string | null;
+  hospitalId?: string | null;
+  hospitalName?: string | null;
+  hospitalAddress?: string | null;
+  city?: string | null;
+  phone?: string | null;
+  ratingAvg?: number | null;
+}
+
 export const insuranceApi = {
   async listInsurers(): Promise<Insurer[]> {
     const res = await apiClient.get('/insurance');
@@ -44,6 +69,16 @@ export const insuranceApi = {
 
   async saveMyPolicies(policies: InsurancePolicyInput[]): Promise<PatientInsurancePolicy[]> {
     const res = await apiClient.put('/insurance/me', { policies });
+    return res.data.data ?? [];
+  },
+
+  async getHospitalNetwork(hospitalId: string): Promise<HospitalInsuranceNetwork[]> {
+    const res = await apiClient.get(`/insurance/hospitals/${hospitalId}`);
+    return res.data.data ?? [];
+  },
+
+  async listDoctors(limit = 40): Promise<DirectoryDoctor[]> {
+    const res = await apiClient.get('/insurance/doctors', { params: { limit } });
     return res.data.data ?? [];
   },
 };

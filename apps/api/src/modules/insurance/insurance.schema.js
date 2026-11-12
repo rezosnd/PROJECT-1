@@ -17,3 +17,29 @@ export const savePatientInsuranceSchema = z.object({
       .default([]),
   }),
 });
+
+const benefitItem = z.string().trim().min(1).max(160);
+
+export const hospitalNetworkItemSchema = z.object({
+  insurerId: z.string().uuid(),
+  cashless: z.boolean().optional().default(true),
+  discountPercent: z.number().min(0).max(100).optional().default(0),
+  benefits: z.array(benefitItem).max(24).optional().default([]),
+  planLabel: z.string().max(255).optional().nullable(),
+  notes: z.string().max(1000).optional().nullable(),
+});
+
+export const saveHospitalNetworkSchema = z.object({
+  params: z.object({
+    hospitalId: z.string().uuid(),
+  }),
+  body: z.object({
+    networks: z.array(hospitalNetworkItemSchema).max(40).default([]),
+  }),
+});
+
+export const hospitalIdParamsSchema = z.object({
+  params: z.object({
+    hospitalId: z.string().uuid(),
+  }),
+});

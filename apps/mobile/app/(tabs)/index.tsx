@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -30,7 +30,8 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
-import { TOP_DOCTORS, Doctor } from '../../src/lib/doctors-data';
+import { mapDirectoryDoctor } from '../../src/lib/doctors-data';
+import { insuranceApi } from '../../src/lib/api/insurance.api';
 import { SpecialtyIcon } from '../../src/components/graphics/SpecialtyIcons';
 import { FlashBanner } from '../../src/components/ui/FlashBanner';
 import { useAuthStore } from '../../src/lib/auth/auth-store';
@@ -55,6 +56,15 @@ export default function HomeScreen() {
     queryKey: ['abha-profile'],
     queryFn: () => abhaApi.getProfile(),
   });
+  const { data: directoryDoctors = [] } = useQuery({
+    queryKey: ['directory-doctors'],
+    queryFn: () => insuranceApi.listDoctors(24),
+    staleTime: 60_000,
+  });
+  const topDoctors = useMemo(
+    () => directoryDoctors.map((d, i) => mapDirectoryDoctor(d, i)),
+    [directoryDoctors]
+  );
   const avatarUri = abhaProfile?.photoUrl || user?.abhaPhotoUrl || user?.pictureUrl || null;
 
   const handleLaunchSearch = (conditionSlug = selectedTag, severity = 4) => {
@@ -102,6 +112,16 @@ export default function HomeScreen() {
           </View>
         </Pressable>
 
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            router.push('/sos');
+          }}
+          style={styles.sosTopBtn}
+          accessibilityLabel="Open SOS ambulance"
+        >
+          <Text style={styles.sosTopBtnText}>SOS</Text>
+        </Pressable>
         <EmergencyCallButton size="sm" />
       </View>
 
@@ -218,8 +238,12 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* 4 TOP DOCTORS MAPPED FROM REFERENCE DESIGN */}
-        {TOP_DOCTORS.map((doc) => (
+        {topDoctors.length === 0 ? (
+          <Text style={{ color: '#64748B', fontSize: 13, fontWeight: '600', marginBottom: 12 }}>
+            Network doctors appear after DOCTOR accounts are pre-registered.
+          </Text>
+        ) : null}
+        {topDoctors.slice(0, 4).map((doc) => (
           <Pressable
             key={doc.id}
             onPress={() => {
@@ -251,7 +275,7 @@ export default function HomeScreen() {
               <Text style={styles.docNameText} numberOfLines={1}>{doc.name}</Text>
               <Text style={styles.docSpecText} numberOfLines={1}>{doc.specialty}</Text>
               <Text style={styles.docFeeText}>
-                ₹ {doc.fee.toFixed(2)}
+                {doc.fee > 0 ? `₹ ${doc.fee.toFixed(2)}` : 'Care QR referral'}
               </Text>
 
               <Pressable
@@ -404,6 +428,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#2563EB',
+  },
+  sosTopBtn: {
+    backgroundColor: '#B91C1C',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginRight: 6,
+  },
+  sosTopBtnText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 12,
+    letterSpacing: 0.8,
   },
   aiEntryCard: {
     flexDirection: 'row',

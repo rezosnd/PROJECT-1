@@ -39,6 +39,7 @@ export type BedRequestStatus =
 export interface BedRequest {
   id: string;
   hospitalId: string;
+  hospitalName?: string;
   patientId: string;
   patientName?: string;
   patientEmail?: string;
@@ -148,7 +149,24 @@ export const bedsApi = {
 
   async getMyRequests(): Promise<BedRequest[]> {
     const res = await apiClient.get('/bed-requests/me');
-    return res.data.data;
+    const rows = res.data.data || [];
+    return rows.map((row: any) => ({
+      id: row.id,
+      hospitalId: row.hospital_id || row.hospitalId,
+      hospitalName: row.hospital_name || row.hospitalName || null,
+      patientId: row.patient_id || row.patientId,
+      patientName: row.patient_name || row.patientName,
+      patientEmail: row.patient_email || row.patientEmail,
+      wardType: row.ward_type || row.wardType,
+      urgency: row.urgency,
+      status: row.status,
+      note: row.note,
+      shareAbha: Boolean(row.share_abha ?? row.shareAbha),
+      maskedAbha: row.masked_abha || row.maskedAbha,
+      holdExpiresAt: row.hold_expires_at || row.holdExpiresAt,
+      admittedAt: row.admitted_at || row.admittedAt,
+      createdAt: row.created_at || row.createdAt,
+    }));
   },
 
   async getHospitalQueue(hospitalId: string): Promise<BedRequest[]> {
