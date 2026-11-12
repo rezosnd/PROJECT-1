@@ -5,22 +5,47 @@ import { pool } from '../../infra/db.js';
 let firebaseApp = null;
 let messaging = null;
 
+function parseServiceAccount(raw) {
+  if (!raw) return null;
+  let cred = raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('{')) {
+      cred = JSON.parse(trimmed);
+    } else {
+      // Support base64-encoded JSON (safer for Vercel env UI)
+      const decoded = Buffer.from(trimmed, 'base64').toString('utf8');
+      cred = JSON.parse(decoded);
+    }
+  }
+  if (!cred?.client_email || !cred?.private_key || !cred?.project_id) {
+    throw new Error('Firebase service account missing client_email, private_key, or project_id');
+  }
+  // dotenv / paste often leaves literal \n in the PEM
+  if (typeof cred.private_key === 'string' && cred.private_key.includes('\\n')) {
+    cred.private_key = cred.private_key.replace(/\\n/g, '\n');
+  }
+  return cred;
+}
+
 async function ensureFirebase() {
   if (messaging) return messaging;
   const json = config.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!json) return null;
+  if (!json || !String(json).trim() || String(json).includes('REPLACE_ME')) return null;
   try {
     const admin = await import('firebase-admin');
-    const cred = typeof json === 'string' ? JSON.parse(json) : json;
+    const cred = parseServiceAccount(json);
+    if (!cred) return null;
     if (!admin.default.apps.length) {
       firebaseApp = admin.default.initializeApp({
         credential: admin.default.credential.cert(cred),
+        projectId: cred.project_id,
       });
     } else {
       firebaseApp = admin.default.app();
     }
     messaging = admin.default.messaging(firebaseApp);
-    logger.info('[Push] Firebase Admin ready');
+    logger.info({ projectId: cred.project_id }, '[Push] Firebase Admin ready');
     return messaging;
   } catch (err) {
     logger.warn({ err: err.message }, '[Push] Firebase Admin unavailable');
