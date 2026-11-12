@@ -1,4 +1,5 @@
 import { bedsService } from '../modules/beds/beds.service.js';
+import { bloodService } from '../modules/blood/blood.service.js';
 import { logger } from '../infra/logger.js';
 import { config } from '../config/index.js';
 
@@ -12,6 +13,7 @@ let isRunning = false;
  * Every 30 seconds, this job invokes bedsService.expireOverdueHolds(), which attempts to acquire
  * an advisory lock ('BED_HOLD_EXPIRY_JOB').
  * Only the single replica holding the lock executes the cleanup; other replicas immediately skip.
+ * Also reclaims expired blood-bank holds (30-min window).
  */
 export async function runHoldExpiryCycle() {
   if (isRunning) return;
@@ -21,6 +23,10 @@ export async function runHoldExpiryCycle() {
     const expiredCount = await bedsService.expireOverdueHolds();
     if (expiredCount && expiredCount > 0) {
       logger.info({ expiredCount }, '[Bed Hold Expiry Job] Released expired reservations');
+    }
+    const blood = await bloodService.expireHolds();
+    if (blood?.expired > 0) {
+      logger.info({ expired: blood.expired }, '[Blood Hold Expiry] Released expired blood units');
     }
   } catch (err) {
     logger.error({ err: err.message }, '[Bed Hold Expiry Job] Error running expiry cycle');

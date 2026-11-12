@@ -6,18 +6,21 @@ import { useElapsedTime } from '../../hooks/useElapsedTime';
 import { WardAdjustCard } from '../../features/hospital/WardAdjustCard';
 import { RequestQueueTable } from '../../features/hospital/RequestQueueTable';
 import { EquipmentManagerTable } from '../../features/hospital/EquipmentManagerTable';
+import { BloodBankPanel } from '../../features/hospital/BloodBankPanel';
+import { BloodRequestQueue } from '../../features/hospital/BloodRequestQueue';
 import { ShortcutsModal } from '../../features/hospital/ShortcutsModal';
 import { StatusDot } from '../../components/ui/StatusDot';
-import { Activity, RefreshCw, HelpCircle, BedDouble, Stethoscope, Clock, UserPlus } from 'lucide-react';
+import { Activity, RefreshCw, HelpCircle, BedDouble, Stethoscope, Clock, UserPlus, Droplets } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { hospitalsApi } from '../../lib/api/hospitals.api';
 import { forecastApi } from '../../lib/api/forecast.api';
 import { bedsApi } from '../../lib/api/beds.api';
 import { equipmentApi } from '../../lib/api/equipment.api';
+import { bloodApi } from '../../lib/api/blood.api';
 import { socketManager } from '../../lib/socket/socket-client';
 import { StaffPreRegForm } from '../../features/admin/StaffPreRegForm';
 
-type HospitalTab = 'wards' | 'queue' | 'equipment' | 'forecast' | 'staff';
+type HospitalTab = 'wards' | 'queue' | 'blood' | 'blood-queue' | 'equipment' | 'forecast' | 'staff';
 
 export const HospitalDashboardPage: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
@@ -112,13 +115,31 @@ export const HospitalDashboardPage: React.FC = () => {
   const pendingQueue = queue.filter((r: any) => r.status === 'PENDING').length;
   const expectedFree3h = forecastData?.horizons?.h3?.expectedFree ?? 0;
 
+  const { data: bloodQueue = [] } = useQuery({
+    queryKey: ['blood-queue', hospitalId],
+    queryFn: () => bloodApi.getHospitalQueue(hospitalId),
+    staleTime: 0,
+    refetchInterval: sessionReady ? 2500 : false,
+    enabled: sessionReady,
+  });
+  const pendingBlood = bloodQueue.filter(
+    (r) => r.status === 'PENDING' || r.status === 'APPROVED'
+  ).length;
+
   const tabs: { id: HospitalTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'wards', label: 'Wards', icon: <BedDouble className="w-4.5 h-4.5" /> },
     {
       id: 'queue',
-      label: 'Queue',
+      label: 'Bed queue',
       icon: <Clock className="w-4.5 h-4.5" />,
       badge: pendingQueue || undefined,
+    },
+    { id: 'blood', label: 'Blood bank', icon: <Droplets className="w-4.5 h-4.5" /> },
+    {
+      id: 'blood-queue',
+      label: 'Blood desk',
+      icon: <Droplets className="w-4.5 h-4.5" />,
+      badge: pendingBlood || undefined,
     },
     { id: 'equipment', label: 'Equipment', icon: <Stethoscope className="w-4.5 h-4.5" /> },
     { id: 'forecast', label: 'Forecast', icon: <Activity className="w-4.5 h-4.5" /> },
@@ -278,6 +299,18 @@ export const HospitalDashboardPage: React.FC = () => {
               ))
             )}
           </div>
+        </section>
+      )}
+
+      {activeTab === 'blood' && (
+        <section>
+          <BloodBankPanel hospitalId={hospitalId} />
+        </section>
+      )}
+
+      {activeTab === 'blood-queue' && (
+        <section>
+          <BloodRequestQueue hospitalId={hospitalId} />
         </section>
       )}
 

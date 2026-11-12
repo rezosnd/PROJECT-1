@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,10 @@ import {
   HeartPulse,
   Check,
   ChevronRight,
+  BadgePercent,
 } from 'lucide-react-native';
+import { InsurancePolicyEditor } from '../src/features/patient/InsurancePolicyEditor';
+import type { InsurancePolicyInput } from '../src/lib/api/insurance.api';
 import * as Haptics from 'expo-haptics';
 
 const GENDERS = [
@@ -42,6 +45,7 @@ const STEPS = [
   { id: 'clinical', title: 'Clinical', icon: Droplets },
   { id: 'address', title: 'Address', icon: MapPin },
   { id: 'emergency', title: 'Emergency', icon: Phone },
+  { id: 'insurance', title: 'Insurance', icon: BadgePercent },
 ] as const;
 
 export default function OnboardingScreen() {
@@ -62,6 +66,13 @@ export default function OnboardingScreen() {
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [allergies, setAllergies] = useState('');
   const [medicalNotes, setMedicalNotes] = useState('');
+  const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicyInput[]>([]);
+  const [insuranceSelfPay, setInsuranceSelfPay] = useState(true);
+
+  const handleInsuranceChange = useCallback((policies: InsurancePolicyInput[], selfPay: boolean) => {
+    setInsurancePolicies(policies);
+    setInsuranceSelfPay(selfPay);
+  }, []);
 
   const progress = useMemo(() => ((step + 1) / STEPS.length) * 100, [step]);
 
@@ -121,6 +132,7 @@ export default function OnboardingScreen() {
         allergies: allergies.trim() || null,
         medicalNotes: medicalNotes.trim() || null,
         preferredLanguage: 'en',
+        insurancePolicies: insuranceSelfPay ? [] : insurancePolicies,
       });
       await refreshCurrentUser();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -161,7 +173,7 @@ export default function OnboardingScreen() {
         <View style={styles.heroCard}>
           <View style={styles.badgeRow}>
             <ShieldCheck size={14} color="#0B3D1A" />
-            <Text style={styles.badgeText}>Shared with hospital on bed booking</Text>
+            <Text style={styles.badgeText}>Shared with hospital on bed hold</Text>
           </View>
           <Text style={styles.title}>Your care profile</Text>
           <Text style={styles.subtitle}>
@@ -342,6 +354,17 @@ export default function OnboardingScreen() {
                 maxLength={15}
               />
 
+            </>
+          )}
+
+          {step === 4 && (
+            <>
+              <Text style={styles.sectionTitle}>Insurance (optional)</Text>
+              <Text style={styles.insuranceLead}>
+                Helps rank hospitals that accept your plan. You can skip with self-pay — still shown on bed hold if
+                added later.
+              </Text>
+              <InsurancePolicyEditor selfPayInitially onChange={handleInsuranceChange} />
               <View style={styles.summaryCard}>
                 <Text style={styles.summaryTitle}>Ready to save</Text>
                 <Text style={styles.summaryLine}>{fullName || '—'}</Text>
@@ -352,6 +375,14 @@ export default function OnboardingScreen() {
                 </Text>
                 <Text style={styles.summaryMeta}>
                   Emergency: {emergencyContactName || '—'} · {emergencyContactPhone || '—'}
+                </Text>
+                <Text style={styles.summaryMeta}>
+                  Insurance:{' '}
+                  {insuranceSelfPay
+                    ? 'Self-pay'
+                    : insurancePolicies.length
+                      ? `${insurancePolicies.length} plan(s)`
+                      : 'None selected'}
                 </Text>
               </View>
             </>
@@ -587,6 +618,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '600',
+  },
+  insuranceLead: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 12,
   },
   footer: {
     flexDirection: 'row',

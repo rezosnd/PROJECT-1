@@ -97,6 +97,18 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().default('udmd fcse murp gmdg'),
   FROM_EMAIL: z.string().default('veritasco.tech@gmail.com'),
   FROM_NAME: z.string().default('GetMyHospital'),
+
+  // CityHealth AI (keys stay server-side — never expose to Expo/web)
+  AI_PROVIDER: z.enum(['gemini', 'fallback']).default('gemini'),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-2.0-flash'),
+  AI_TIMEOUT_MS: z.coerce.number().default(25000),
+  OLLAMA_BASE_URL: z.string().optional(),
+  OLLAMA_MODEL: z.string().optional(),
+
+  // Firebase Cloud Messaging (optional — Expo Push works without it)
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  EXPO_ACCESS_TOKEN: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(scrubEmptyEnv(process.env));

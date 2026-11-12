@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { InsuranceCoverageLevel } from './insurance.api';
 
 export interface MatchRequest {
   conditionId?: string;
@@ -47,6 +48,7 @@ export interface MatchedHospital {
     totalCount: number;
   }>;
   explanation: string;
+  insuranceCoverage?: InsuranceCoverageLevel | null;
 }
 
 export interface MatchExcludedHospital {
@@ -114,7 +116,8 @@ export const matchingApi = {
           confidence
         },
         matchedEquipment: m.matchedEquipment || [],
-        explanation: m.explanation || `${wardType} available. Real-time verified.`
+        explanation: m.explanation || `${wardType} available. Real-time verified.`,
+        insuranceCoverage: m.insuranceCoverage ?? null,
       };
     });
 

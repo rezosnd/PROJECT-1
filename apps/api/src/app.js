@@ -23,6 +23,11 @@ import conditionsRoutes from './modules/conditions/conditions.routes.js';
 import matchingRoutes from './modules/matching/matching.routes.js';
 import forecastRoutes from './modules/forecast/forecast.routes.js';
 import abhaRoutes from './modules/abha/abha.routes.js';
+import insuranceRoutes from './modules/insurance/insurance.routes.js';
+import referralsRoutes from './modules/referrals/referrals.routes.js';
+import bloodRoutes from './modules/blood/blood.routes.js';
+import aiRoutes from './modules/ai/ai.routes.js';
+import sosRoutes from './modules/sos/sos.routes.js';
 
 export function createApp() {
   const app = express();
@@ -126,6 +131,11 @@ export function createApp() {
   app.use('/api/v1/match', matchingRoutes);
   app.use('/api/v1/forecast', forecastRoutes);
   app.use('/api/v1/abha', abhaRoutes);
+  app.use('/api/v1/insurance', insuranceRoutes);
+  app.use('/api/v1/referrals', referralsRoutes);
+  app.use('/api/v1/blood', bloodRoutes);
+  app.use('/api/v1/ai', aiRoutes);
+  app.use('/api/v1/sos', sosRoutes);
 
   // 8. 404 and Error Handling
   app.use(notFoundHandler);

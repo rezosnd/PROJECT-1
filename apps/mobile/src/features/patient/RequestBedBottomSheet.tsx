@@ -253,7 +253,7 @@ export const RequestBedBottomSheet: React.FC<RequestBedBottomSheetProps> = ({
               </View>
               <Text style={styles.submitText}>
                 {isSubmitting
-                  ? 'Booking…'
+                  ? 'Placing hold…'
                   : freeNow > 0
                     ? `Hold ${wardType} · 15 min`
                     : `Request ${wardType}`}

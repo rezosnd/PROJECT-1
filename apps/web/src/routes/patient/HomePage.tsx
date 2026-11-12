@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Stethoscope,
+  Sparkles,
 } from 'lucide-react';
 
 const QUICK_TAGS = [
@@ -257,6 +258,20 @@ export const HomePage: React.FC = () => {
               >
                 Hold emergency bed
                 <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/ai')}
+                className="h-11 px-5 rounded-full bg-[#B9F84B] text-[#0B3D1A] text-sm font-semibold hover:brightness-105 transition"
+              >
+                Ask CityHealth AI
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/blood')}
+                className="h-11 px-5 rounded-full ll-glass border border-white/70 text-sm font-semibold text-ink hover:bg-white/70 transition"
+              >
+                Find blood
               </button>
               <button
                 type="button"

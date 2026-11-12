@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Phone,
+  Sparkles,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
@@ -122,6 +123,25 @@ export default function HomeScreen() {
             <Text style={styles.locationMiniText}>GPS Active</Text>
           </View>
         </View>
+
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push('/ai');
+          }}
+          style={({ pressed }) => [styles.aiEntryCard, pressed && { opacity: 0.92 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Open CityHealth AI"
+        >
+          <View style={styles.aiEntryIcon}>
+            <Sparkles size={22} color="#B9F84B" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.aiEntryTitle}>CityHealth AI</Text>
+            <Text style={styles.aiEntrySub}>Symptoms, hospitals, equipment — verified data</Text>
+          </View>
+          <ChevronRight size={20} color="#B9F84B" />
+        </Pressable>
 
         {/* UNIFIED HERO SEARCH & TRIAGE CARD */}
         <View style={styles.searchCardWrapper}>
@@ -226,7 +246,7 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Center Info + Appointment CTA */}
+            {/* Center info + Care QR CTA */}
             <View style={styles.cardCenterCol}>
               <Text style={styles.docNameText} numberOfLines={1}>{doc.name}</Text>
               <Text style={styles.docSpecText} numberOfLines={1}>{doc.specialty}</Text>
@@ -237,11 +257,11 @@ export default function HomeScreen() {
               <Pressable
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  router.push(`/doctor/${doc.id}` as any);
+                  router.push('/(tabs)/profile');
                 }}
                 style={styles.getAppointmentPill}
               >
-                <Text style={styles.getAppointmentText}>Get Appointment</Text>
+                <Text style={styles.getAppointmentText}>Care QR · refer</Text>
               </Pressable>
             </View>
 
@@ -384,6 +404,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#2563EB',
+  },
+  aiEntryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#0B3D1A',
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
+  },
+  aiEntryIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(185, 248, 75, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiEntryTitle: {
+    fontFamily: typography.fontFamilies.headingBold,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  aiEntrySub: {
+    fontFamily: typography.fontFamilies.body,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.72)',
+    marginTop: 2,
   },
   searchCardWrapper: {
     backgroundColor: '#F8FAFC',

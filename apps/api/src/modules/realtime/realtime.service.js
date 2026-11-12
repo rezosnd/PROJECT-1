@@ -63,12 +63,16 @@ export function initRealtime(httpServer) {
     socket.join('city');
     if (socket.user?.hospitalId) socket.join(`hospital:${socket.user.hospitalId}`);
     if (socket.user?.sub) socket.join(`user:${socket.user.sub}`);
+    if (socket.user?.role === 'AMBULANCE') socket.join('ambulance:city');
 
     socket.on('join:hospital', (hospitalId) => {
       if (hospitalId) socket.join(`hospital:${hospitalId}`);
     });
     socket.on('leave:hospital', (hospitalId) => {
       if (hospitalId) socket.leave(`hospital:${hospitalId}`);
+    });
+    socket.on('join:ambulance', () => {
+      if (socket.user?.role === 'AMBULANCE') socket.join('ambulance:city');
     });
   });
 

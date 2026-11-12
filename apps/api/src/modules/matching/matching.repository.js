@@ -36,7 +36,13 @@ export const matchingRepository = {
              'availableAt', eq.available_at
            )) FROM equipment eq WHERE eq.hospital_id = h.id),
           '[]'
-        ) AS equipment
+        ) AS equipment,
+        COALESCE(
+          (SELECT array_agg(hi.insurer_id::text)
+           FROM hospital_insurers hi
+           WHERE hi.hospital_id = h.id),
+          ARRAY[]::text[]
+        ) AS accepted_insurer_ids
       FROM hospitals h
       WHERE h.status = 'VERIFIED'
         AND ST_DWithin(h.location, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography, $3)

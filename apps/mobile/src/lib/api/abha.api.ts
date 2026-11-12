@@ -54,7 +54,7 @@ export const abhaApi = {
     }
   },
 
-  async grantConsent(purpose = 'Create or link Ayushman Bharat Health Account (ABHA) for bed booking identity verification') {
+  async grantConsent(purpose = 'Create or link Ayushman Bharat Health Account (ABHA) for bed hold identity verification') {
     const res = await apiClient.post('/abha/consent', { purpose });
     return res.data.data;
   },

@@ -46,7 +46,7 @@ export const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onSelect }) => {
           onClick={() => onSelect(doctor)}
           className="mt-3 px-4 py-2 rounded-full bg-[#111111] hover:bg-neutral-800 text-white text-xs font-bold transition-all shadow-sm"
         >
-          Get Appointment
+          View profile
         </button>
       </div>
 

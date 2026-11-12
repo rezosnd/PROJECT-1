@@ -23,7 +23,9 @@ export const authRepository = {
               last_login_at, created_at, updated_at,
               profile_complete, full_name, date_of_birth, gender, blood_group, age_years,
               address_line, city_name, pin_code, emergency_contact_name, emergency_contact_phone,
-              allergies, medical_notes, preferred_language, profile_completed_at
+              allergies, medical_notes, preferred_language, profile_completed_at,
+              doctor_specialty, doctor_license_no,
+              patient_qr_token, patient_qr_payload, patient_qr_image_url
        FROM users WHERE id = $1`,
       [id]
     );

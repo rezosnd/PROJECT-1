@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,11 @@ import {
 import { useAuthStore } from '../../src/lib/auth/auth-store';
 import { abhaApi } from '../../src/lib/api/abha.api';
 import { apiClient } from '../../src/lib/api/client';
+import { insuranceApi, InsurancePolicyInput } from '../../src/lib/api/insurance.api';
+import { referralsApi } from '../../src/lib/api/referrals.api';
 import { AbhaCardView } from '../../src/features/patient/AbhaCardView';
+import { CareQrCard } from '../../src/features/patient/CareQrCard';
+import { InsurancePolicyEditor } from '../../src/features/patient/InsurancePolicyEditor';
 import { Button } from '../../src/components/ui/Button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { typography } from '../../src/theme/tokens';
@@ -63,6 +67,10 @@ export default function ProfileScreen() {
   const [linkOtp, setLinkOtp] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingInsurance, setIsSavingInsurance] = useState(false);
+  const [showInsurance, setShowInsurance] = useState(false);
+  const [insuranceDraft, setInsuranceDraft] = useState<InsurancePolicyInput[]>([]);
+  const [insuranceSelfPay, setInsuranceSelfPay] = useState(true);
 
   const [fullName, setFullName] = useState(user?.profile?.fullName || user?.name || '');
   const [gender, setGender] = useState(user?.profile?.gender || 'PREFER_NOT_TO_SAY');
@@ -81,6 +89,55 @@ export default function ProfileScreen() {
     queryKey: ['abha-profile'],
     queryFn: () => abhaApi.getProfile(),
   });
+
+  const userCareQr = user?.careQr;
+  const { data: fetchedCareQr, isLoading: careQrLoading } = useQuery({
+    queryKey: ['care-qr'],
+    queryFn: () => referralsApi.getMyCareQr(),
+    enabled: Boolean(user?.id) && !userCareQr?.imageUrl,
+    staleTime: 60_000,
+  });
+
+  const careQr = useMemo(() => {
+    if (userCareQr?.imageUrl) {
+      return {
+        patientId: user!.id,
+        token: userCareQr.token || '',
+        payload: userCareQr.payload || '',
+        imageUrl: userCareQr.imageUrl,
+      };
+    }
+    return fetchedCareQr ?? null;
+  }, [user, userCareQr, fetchedCareQr]);
+
+  const initialInsurance = user?.insurance ?? [];
+  const handleInsuranceChange = useCallback((policies: InsurancePolicyInput[], selfPay: boolean) => {
+    setInsuranceDraft(policies);
+    setInsuranceSelfPay(selfPay);
+  }, []);
+
+  const handleSaveInsurance = async () => {
+    setIsSavingInsurance(true);
+    try {
+      const policies = insuranceSelfPay
+        ? []
+        : insuranceDraft.length
+          ? insuranceDraft
+          : initialInsurance.map((p) => ({
+              insurerId: p.insurerId,
+              policyNumber: p.policyNumber ?? null,
+              isPrimary: Boolean(p.isPrimary),
+            }));
+      await insuranceApi.saveMyPolicies(policies);
+      await refreshCurrentUser();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      pushFlash({ title: 'Insurance updated', body: 'Hospital matching will use your plans.', tone: 'success' });
+    } catch (err: any) {
+      Alert.alert('Save failed', err.response?.data?.error?.message || err.message || 'Could not save insurance');
+    } finally {
+      setIsSavingInsurance(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!abhaProfile) return;
@@ -286,6 +343,46 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+
+        <Text style={styles.sectionLabel}>Doctor referral</Text>
+        <CareQrCard careQr={careQr} isLoading={careQrLoading && !userCareQr?.imageUrl} />
+
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            setShowInsurance((v) => !v);
+          }}
+          style={styles.sectionToggle}
+        >
+          <View style={styles.sectionToggleLeft}>
+            <CreditCard size={18} color="#0F172A" />
+            <Text style={styles.sectionToggleTitle}>Health insurance</Text>
+          </View>
+          <ChevronRight
+            size={18}
+            color="#94A3B8"
+            style={{ transform: [{ rotate: showInsurance ? '90deg' : '0deg' }] }}
+          />
+        </Pressable>
+
+        {showInsurance && (
+          <View style={styles.panel}>
+            <InsurancePolicyEditor
+              key={initialInsurance.map((p) => `${p.insurerId}:${p.isPrimary}`).join('|') || 'self-pay'}
+              initialPolicies={initialInsurance}
+              selfPayInitially={!initialInsurance.length}
+              onChange={handleInsuranceChange}
+            />
+            <Button
+              onPress={handleSaveInsurance}
+              isLoading={isSavingInsurance}
+              icon={<Save size={16} color="#FFFFFF" />}
+              style={styles.primaryBtn}
+            >
+              Save insurance
+            </Button>
+          </View>
+        )}
 
         {/* ABHA */}
         <Text style={styles.sectionLabel}>Ayushman Bharat · ABHA</Text>

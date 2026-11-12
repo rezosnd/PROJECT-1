@@ -13,6 +13,12 @@ import { Platform } from 'react-native';
 
 export type UserRole = 'PATIENT' | 'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN' | 'CITY_ADMIN';
 
+export interface CareQrSummary {
+  token?: string | null;
+  payload?: string | null;
+  imageUrl?: string | null;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -25,6 +31,14 @@ export interface AuthUser {
   profileComplete?: boolean;
   needsProfileSetup?: boolean;
   profile?: Record<string, any> | null;
+  careQr?: CareQrSummary | null;
+  insurance?: Array<{
+    id?: string;
+    insurerId: string;
+    insurerName?: string;
+    policyNumber?: string | null;
+    isPrimary?: boolean;
+  }>;
 }
 
 export interface RegisterUserParams {

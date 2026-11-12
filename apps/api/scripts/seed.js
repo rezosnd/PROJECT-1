@@ -14,32 +14,37 @@ const WARD_TYPES = [
   'GENERAL', 'SEMI_PRIVATE', 'PRIVATE', 'EMERGENCY', 'ISOLATION'
 ];
 
+/**
+ * Bhubaneswar hospital registry — public addresses / emergency phones from
+ * hospital sites, AIIMS NIC, Apollo, SUM Ultimate, US Consulate Odisha list (2024), Practo.
+ * Bed counts are operational estimates for live inventory testing (not a claim of live occupancy).
+ */
 const HOSPITAL_TEMPLATES = [
-  { name: 'AIIMS Bhubaneswar', type: 'GOVERNMENT', pin: '751019', latOffset: 0.000, lngOffset: 0.000, trauma: 3, phone: '+91-674-2476789', email: 'emergency@aiimsbhubaneswar.edu.in' },
-  { name: 'KIMS Hospital & Medical College', type: 'PRIVATE', pin: '751024', latOffset: 0.025, lngOffset: -0.015, trauma: 3, phone: '+91-674-7105300', email: 'helpdesk@kims.ac.in' },
-  { name: 'SUM Ultimate Medicare', type: 'PRIVATE', pin: '751003', latOffset: -0.018, lngOffset: 0.022, trauma: 3, phone: '+91-674-3500500', email: 'care@sumum.com' },
-  { name: 'Capital Hospital (Govt)', type: 'GOVERNMENT', pin: '751001', latOffset: -0.010, lngOffset: -0.010, trauma: 2, phone: '+91-674-2391983', email: 'capitalhosp.bbsr@gov.in' },
-  { name: 'Apollo Hospitals Bhubaneswar', type: 'PRIVATE', pin: '751005', latOffset: 0.015, lngOffset: 0.030, trauma: 3, phone: '+91-674-6661066', email: 'emergency.bbsr@apollohospitals.com' },
-  { name: 'AMRI Hospital Bhubaneswar', type: 'PRIVATE', pin: '751030', latOffset: -0.035, lngOffset: -0.020, trauma: 2, phone: '+91-674-6666600', email: 'info.bbsr@amrihospitals.in' },
-  { name: 'Care Hospitals Bhubaneswar', type: 'PRIVATE', pin: '751016', latOffset: 0.032, lngOffset: 0.012, trauma: 2, phone: '+91-674-3011500', email: 'info.bbsr@carehospitals.com' },
-  { name: 'Hi-Tech Medical College & Hospital', type: 'PRIVATE', pin: '751025', latOffset: 0.040, lngOffset: -0.005, trauma: 2, phone: '+91-674-2371217', email: 'info@hi-techmedical.org' },
-  { name: 'Utkal Hospital Bhubaneswar', type: 'PRIVATE', pin: '751023', latOffset: 0.028, lngOffset: 0.025, trauma: 2, phone: '+91-674-6681000', email: 'contact@utkalhospital.com' },
-  { name: 'Sparsh Hospitals & Critical Care', type: 'PRIVATE', pin: '751007', latOffset: -0.022, lngOffset: -0.012, trauma: 2, phone: '+91-674-6626666', email: 'sparsh.care@sparshhospital.com' },
-  { name: 'Sunshine Hospital Bhubaneswar', type: 'PRIVATE', pin: '751010', latOffset: -0.005, lngOffset: 0.035, trauma: 1, phone: '+91-674-2567890', email: 'contact@sunshinebbsr.com' },
-  { name: 'Blue Wheel Hospital', type: 'PRIVATE', pin: '751017', latOffset: 0.018, lngOffset: -0.028, trauma: 1, phone: '+91-674-2747444', email: 'info@bluewheelhospital.com' },
-  { name: 'Kar Clinic & Hospital', type: 'PRIVATE', pin: '751001', latOffset: -0.012, lngOffset: 0.005, trauma: 1, phone: '+91-674-2534888', email: 'info@karclinic.com' },
-  { name: 'Ayush Hospitals & Trauma Centre', type: 'PRIVATE', pin: '751014', latOffset: -0.030, lngOffset: 0.015, trauma: 2, phone: '+91-674-7111100', email: 'emergency@ayushhospitals.com' },
-  { name: 'Neelachal Hospital', type: 'PRIVATE', pin: '751001', latOffset: -0.008, lngOffset: -0.018, trauma: 1, phone: '+91-674-2536590', email: 'care@neelachalhospital.in' },
-  { name: 'BMC City Maternity & Pediatric Centre', type: 'GOVERNMENT', pin: '751009', latOffset: -0.015, lngOffset: -0.025, trauma: 1, phone: '+91-674-2431200', email: 'bmc.health@gov.in' },
-  { name: 'Kalinga Hospital', type: 'TRUST', pin: '751023', latOffset: 0.022, lngOffset: 0.018, trauma: 2, phone: '+91-674-2300570', email: 'info@kalingahospital.com' },
-  { name: 'Vivekananda Hospital', type: 'PRIVATE', pin: '751003', latOffset: -0.025, lngOffset: 0.008, trauma: 1, phone: '+91-674-2595200', email: 'admin@vivekanandahospital.com' },
-  { name: 'Institute of Medical Sciences & SUM Hospital (Campus 1)', type: 'PRIVATE', pin: '751003', latOffset: -0.020, lngOffset: 0.020, trauma: 3, phone: '+91-674-2386292', email: 'ims@soa.ac.in' },
-  { name: 'Aditya Care Hospital', type: 'PRIVATE', pin: '751016', latOffset: 0.030, lngOffset: 0.010, trauma: 2, phone: '+91-674-3053200', email: 'contact@adityacare.com' },
-  { name: 'Panda Curative & Cardiac Hospital', type: 'PRIVATE', pin: '751012', latOffset: 0.012, lngOffset: -0.022, trauma: 2, phone: '+91-674-2390111', email: 'info@pandacurative.com' },
-  { name: 'Hemalata Cancer & Multi-Specialty Hospital', type: 'PRIVATE', pin: '751023', latOffset: 0.026, lngOffset: 0.032, trauma: 1, phone: '+91-674-2302444', email: 'hemalatacancer@gmail.com' },
-  { name: 'Bhubaneswar Trauma & Orthopedic Centre', type: 'PRIVATE', pin: '751007', latOffset: -0.019, lngOffset: -0.008, trauma: 2, phone: '+91-674-2571234', email: 'traumacare@btoc.org' },
-  { name: 'ESIC Model Hospital Bhubaneswar', type: 'GOVERNMENT', pin: '751022', latOffset: 0.016, lngOffset: -0.012, trauma: 2, phone: '+91-674-2540024', email: 'ms-odisha@esic.nic.in' },
-  { name: 'Ewam Multi-Specialty Hospital', type: 'PRIVATE', pin: '751019', latOffset: 0.005, lngOffset: 0.020, trauma: 1, phone: '+91-674-2471199', email: 'help@ewamhospital.com' }
+  { name: 'AIIMS Bhubaneswar', type: 'GOVERNMENT', pin: '751019', lat: 20.2219, lng: 85.7691, trauma: 3, phone: '+91-674-2476461', email: 'emergency@aiimsbhubaneswar.edu.in', address: 'Sijua, Patrapada, Bhubaneswar, Odisha 751019', bedsHint: 960 },
+  { name: 'Apollo Hospitals Bhubaneswar', type: 'PRIVATE', pin: '751005', lat: 20.3148, lng: 85.8192, trauma: 3, phone: '+91-674-6660666', email: 'emergency.bbsr@apollohospitals.com', address: 'Plot No. 251, Sainik School Road, Unit 15, Gajapati Nagar, Bhubaneswar 751005', bedsHint: 350 },
+  { name: 'SUM Ultimate Medicare', type: 'PRIVATE', pin: '751003', lat: 20.2536, lng: 85.7805, trauma: 3, phone: '+91-674-3500500', email: 'sumum_bbsr@soahospitals.com', address: 'K-8, Kalinga Nagar, Ghatikia, Bhubaneswar, Odisha 751003', bedsHint: 450 },
+  { name: 'Institute of Medical Sciences & SUM Hospital', type: 'PRIVATE', pin: '751003', lat: 20.2498, lng: 85.7782, trauma: 3, phone: '+91-674-2386292', email: 'ims@soa.ac.in', address: 'Kalinga Nagar, Ghatikia / Campus-1, Bhubaneswar 751003', bedsHint: 750 },
+  { name: 'KIMS Hospital & Medical College', type: 'PRIVATE', pin: '751024', lat: 20.3532, lng: 85.8105, trauma: 3, phone: '+91-674-7105300', email: 'helpdesk@kims.ac.in', address: 'KIIT Campus, Patia, Bhubaneswar, Odisha 751024', bedsHint: 2600 },
+  { name: 'AMRI Hospitals Bhubaneswar', type: 'PRIVATE', pin: '751030', lat: 20.2492, lng: 85.7868, trauma: 2, phone: '+91-674-6666600', email: 'info.bbsr@amrihospitals.in', address: 'Plot No. 1, Near Jayadev Vatika / Satyasai Enclave, Khandagiri, Bhubaneswar 751030', bedsHint: 400 },
+  { name: 'CARE Hospitals Bhubaneswar', type: 'PRIVATE', pin: '751016', lat: 20.3326, lng: 85.8218, trauma: 2, phone: '+91-40-68106589', email: 'info.bbsr@carehospitals.com', address: 'Unit-42, Plot 324, Prachi Enclave Road, Rail Vihar, Chandrasekharpur, Bhubaneswar 751016', bedsHint: 220 },
+  { name: 'Kalinga Hospital', type: 'TRUST', pin: '751023', lat: 20.3345, lng: 85.8248, trauma: 2, phone: '+91-674-6665200', email: 'info@kalingahospital.com', address: 'Maitri Vihar, NALCO Nagar, Chandrasekharpur, Bhubaneswar 751023', bedsHint: 250 },
+  { name: 'Capital Hospital (Govt)', type: 'GOVERNMENT', pin: '751001', lat: 20.2705, lng: 85.8338, trauma: 2, phone: '+91-674-2391983', email: 'capitalhosp.bbsr@gov.in', address: 'Unit-6, BJB Nagar / Ganga Nagar corridor, Bhubaneswar 751001', bedsHint: 650 },
+  { name: 'Hi-Tech Medical College & Hospital', type: 'PRIVATE', pin: '751025', lat: 20.2965, lng: 85.8702, trauma: 2, phone: '+91-674-2371217', email: 'info@hi-techmedical.org', address: 'Health Park, Pandara, Rasulgarh, Bhubaneswar 751025', bedsHint: 750 },
+  { name: 'Utkal Hospital Bhubaneswar', type: 'PRIVATE', pin: '751023', lat: 20.3412, lng: 85.8185, trauma: 2, phone: '+91-674-6681000', email: 'contact@utkalhospital.com', address: 'C.S. Pur / Info City corridor, Bhubaneswar 751023', bedsHint: 200 },
+  { name: 'Sparsh Hospitals & Critical Care', type: 'PRIVATE', pin: '751007', lat: 20.2688, lng: 85.8412, trauma: 2, phone: '+91-674-6626666', email: 'sparsh.care@sparshhospital.com', address: 'Saurav Vihar / Saheed Nagar area, Bhubaneswar 751007', bedsHint: 150 },
+  { name: 'Ayush Hospitals & Trauma Centre', type: 'PRIVATE', pin: '751014', lat: 20.2895, lng: 85.8455, trauma: 2, phone: '+91-674-7111100', email: 'emergency@ayushhospitals.com', address: 'Near Bomikhal / Cuttack Road corridor, Bhubaneswar 751014', bedsHint: 180 },
+  { name: 'Aditya CARE Hospital', type: 'PRIVATE', pin: '751016', lat: 20.3298, lng: 85.8195, trauma: 2, phone: '+91-674-3053200', email: 'contact@adityacare.com', address: 'Chandrasekharpur, Bhubaneswar 751016', bedsHint: 160 },
+  { name: 'Kar Clinic & Hospital', type: 'PRIVATE', pin: '751001', lat: 20.2682, lng: 85.8401, trauma: 1, phone: '+91-674-2534888', email: 'info@karclinic.com', address: 'Unit-3 / Master Canteen area, Bhubaneswar 751001', bedsHint: 100 },
+  { name: 'Neelachal Hospital', type: 'PRIVATE', pin: '751001', lat: 20.2755, lng: 85.8288, trauma: 1, phone: '+91-674-2536590', email: 'care@neelachalhospital.in', address: 'Unit-4 / Station Square corridor, Bhubaneswar 751001', bedsHint: 80 },
+  { name: 'Vivekananda Hospital', type: 'PRIVATE', pin: '751003', lat: 20.2558, lng: 85.7925, trauma: 1, phone: '+91-674-2595200', email: 'admin@vivekanandahospital.com', address: 'Fire Station Square / CRP Square area, Bhubaneswar 751003', bedsHint: 120 },
+  { name: 'Hemalata Hospitals', type: 'PRIVATE', pin: '751023', lat: 20.3388, lng: 85.8302, trauma: 1, phone: '+91-674-2302444', email: 'hemalatacancer@gmail.com', address: 'Chandrasekharpur, Bhubaneswar 751023', bedsHint: 100 },
+  { name: 'Panda Curative Hospital', type: 'PRIVATE', pin: '751012', lat: 20.2912, lng: 85.8522, trauma: 2, phone: '+91-674-2390111', email: 'info@pandacurative.com', address: 'Near Cuttack Road / Rasulgarh, Bhubaneswar 751012', bedsHint: 140 },
+  { name: 'ESIC Model Hospital Bhubaneswar', type: 'GOVERNMENT', pin: '751022', lat: 20.3105, lng: 85.8055, trauma: 2, phone: '+91-674-2540024', email: 'ms-odisha@esic.nic.in', address: 'Bhubaneswar, Odisha 751022', bedsHint: 200 },
+  { name: 'Blue Wheel Hospital', type: 'PRIVATE', pin: '751017', lat: 20.3055, lng: 85.7988, trauma: 1, phone: '+91-674-2747444', email: 'info@bluewheelhospital.com', address: 'Near Jayadev Vihar / Nandankanan Road corridor, Bhubaneswar 751017', bedsHint: 90 },
+  { name: 'Sunshine Hospitals Bhubaneswar', type: 'PRIVATE', pin: '751010', lat: 20.2855, lng: 85.8625, trauma: 1, phone: '+91-674-2567890', email: 'contact@sunshinebbsr.com', address: 'Near Bomikhal / Mancheswar industrial area, Bhubaneswar 751010', bedsHint: 110 },
+  { name: 'BMC Capital Maternity Unit', type: 'GOVERNMENT', pin: '751009', lat: 20.2655, lng: 85.8125, trauma: 1, phone: '+91-674-2431200', email: 'bmc.health@gov.in', address: 'BMC Health facilities corridor, Bhubaneswar 751009', bedsHint: 60 },
+  { name: 'Bhubaneswar Trauma & Orthopedic Centre', type: 'PRIVATE', pin: '751007', lat: 20.2722, lng: 85.8488, trauma: 2, phone: '+91-674-2571234', email: 'traumacare@btoc.org', address: 'Saheed Nagar / CRP Square corridor, Bhubaneswar 751007', bedsHint: 80 },
+  { name: 'Ashwini Hospital Bhubaneswar', type: 'PRIVATE', pin: '751019', lat: 20.2355, lng: 85.7855, trauma: 1, phone: '+91-674-2471199', email: 'help@ashwinihospital.com', address: 'Near Khandagiri / Jagamara corridor, Bhubaneswar 751019', bedsHint: 100 },
 ];
 
 export const CONDITIONS = [
@@ -586,20 +591,18 @@ async function seed() {
       DO UPDATE SET role = 'CITY_ADMIN', status = 'ACTIVE';
     `, [seedAdminEmail.toLowerCase()]);
 
-    // 2. Seed 25 Synthetic Hospitals around Bhubaneswar (Lat: 20.2961, Lng: 85.8245)
-    console.log(`[Seed] Creating ${HOSPITAL_TEMPLATES.length} synthetic hospitals...`);
-    const baseLat = 20.2961;
-    const baseLng = 85.8245;
+    // 2. Seed verified Bhubaneswar hospitals (public addresses + emergency phones)
+    console.log(`[Seed] Creating ${HOSPITAL_TEMPLATES.length} Bhubaneswar hospitals...`);
     const hospitalIds = [];
     const allBedRows = [];
     const allEqRows = [];
 
     for (let i = 0; i < HOSPITAL_TEMPLATES.length; i++) {
       const h = HOSPITAL_TEMPLATES[i];
-      const lat = baseLat + h.latOffset;
-      const lng = baseLng + h.lngOffset;
+      const lat = h.lat;
+      const lng = h.lng;
       const regNo = `OD-BBSR-2026-${String(i + 1).padStart(4, '0')}`;
-      const address = `${h.name} Campus, Sector ${i + 1}, Patia / Khandagiri corridor, Bhubaneswar, Odisha`;
+      const address = h.address || `${h.name}, Bhubaneswar, Odisha ${h.pin}`;
       const specialties = ['General Medicine', 'Emergency Care', 'Critical Care', 'Pediatrics', 'Obstetrics'];
       if (h.trauma >= 2) specialties.push('Neurology', 'Cardiology', 'Orthopedics');
       if (h.trauma === 3) specialties.push('Neurosurgery', 'Cardiac Surgery', 'Neonatology', 'Nephrology', 'Gastroenterology');
@@ -620,7 +623,13 @@ async function seed() {
         ON CONFLICT (registration_no) 
         DO UPDATE SET
           name = EXCLUDED.name,
+          address = EXCLUDED.address,
+          phone = EXCLUDED.phone,
+          email = EXCLUDED.email,
           location = EXCLUDED.location,
+          trauma_level = EXCLUDED.trauma_level,
+          specialties = EXCLUDED.specialties,
+          facilities = EXCLUDED.facilities,
           status = 'VERIFIED'
         RETURNING id;
       `, [
@@ -633,50 +642,51 @@ async function seed() {
       const hospitalId = res.rows[0].id;
       hospitalIds.push({ id: hospitalId, name: h.name, email: h.email });
 
-      // Bed Inventory for all 10 ward types for each hospital
+      // Bed inventory scaled from published / public bed-capacity hints
+      const scale = Math.max(0.4, Math.min(2.5, (h.bedsHint || 200) / 250));
       for (const wardType of WARD_TYPES) {
-        let total = 20;
-        let occupied = 12;
+        let total = Math.round(20 * scale);
+        let occupied = Math.round(12 * scale);
         let reserved = 2;
         let cleaning = 1;
         let maintenance = 0;
         let ventBeds = 0;
 
         if (wardType === 'ICU') {
-          total = h.trauma === 3 ? 30 : 15;
+          total = Math.round((h.trauma === 3 ? 30 : 15) * scale);
           occupied = Math.floor(total * 0.65);
           reserved = 2;
           cleaning = 1;
           ventBeds = total;
         } else if (wardType === 'NICU' || wardType === 'PICU') {
-          total = h.trauma >= 2 ? 16 : 8;
+          total = Math.round((h.trauma >= 2 ? 16 : 8) * scale);
           occupied = Math.floor(total * 0.6);
           reserved = 1;
-          ventBeds = 4;
+          ventBeds = Math.min(4, total);
         } else if (wardType === 'GENERAL') {
-          total = 100;
-          occupied = 70;
+          total = Math.round(100 * scale);
+          occupied = Math.floor(total * 0.7);
           reserved = 5;
           cleaning = 4;
           maintenance = 1;
         } else if (wardType === 'EMERGENCY') {
-          total = 25;
-          occupied = 14;
+          total = Math.round(25 * scale);
+          occupied = Math.floor(total * 0.55);
           reserved = 3;
           cleaning = 2;
-          ventBeds = 6;
+          ventBeds = Math.min(6, total);
         } else if (wardType === 'HDU' || wardType === 'CCU') {
-          total = 20;
-          occupied = 12;
+          total = Math.round(20 * scale);
+          occupied = Math.floor(total * 0.6);
           reserved = 2;
           cleaning = 1;
-          ventBeds = 10;
+          ventBeds = Math.floor(total / 2);
         } else if (wardType === 'ISOLATION') {
-          total = 12;
-          occupied = 6;
+          total = Math.round(12 * scale);
+          occupied = Math.floor(total * 0.5);
           reserved = 1;
           cleaning = 1;
-          ventBeds = 6;
+          ventBeds = Math.floor(total / 2);
         }
 
         const sumOccupancy = occupied + reserved + cleaning + maintenance;
@@ -763,23 +773,182 @@ async function seed() {
       `, logParams);
     }
 
-    // 5. Seed Pre-registered Staff for the first two hospitals
+    // 5. Seed Pre-registered Staff + Doctors for the first two hospitals
     if (hospitalIds.length >= 2) {
-      console.log('[Seed] Setting up sample pre-registered staff...');
+      console.log('[Seed] Setting up sample pre-registered staff & doctors...');
+      const kims = hospitalIds.find((x) => /KIMS/i.test(x.name)) || hospitalIds[4];
+      const apollo = hospitalIds.find((x) => /Apollo/i.test(x.name)) || hospitalIds[1];
       const sampleStaff = [
         { email: 'staff.aiims@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: hospitalIds[0].id },
         { email: 'admin.aiims@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: hospitalIds[0].id },
-        { email: 'staff.kims@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: hospitalIds[1].id },
-        { email: 'admin.kims@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: hospitalIds[1].id }
+        { email: 'staff.apollo@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: apollo.id },
+        { email: 'admin.apollo@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: apollo.id },
+        { email: 'staff.kims@gmail.com', role: 'HOSPITAL_STAFF', hospitalId: kims.id },
+        { email: 'admin.kims@gmail.com', role: 'HOSPITAL_ADMIN', hospitalId: kims.id },
+        { email: 'doctor.aiims@gmail.com', role: 'DOCTOR', hospitalId: hospitalIds[0].id, specialty: 'Emergency Medicine', licenseNo: 'OD-EM-1001' },
+        { email: 'doctor.kims@gmail.com', role: 'DOCTOR', hospitalId: kims.id, specialty: 'Cardiology', licenseNo: 'OD-CARD-2044' },
+        { email: 'doctor.refer@gmail.com', role: 'DOCTOR', hospitalId: null, specialty: 'General Medicine', licenseNo: 'OD-GM-3300' },
+        { email: 'ambulance1.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: hospitalIds[0].id, specialty: 'BBSR-ALS-01', licenseNo: 'OD02AB1001', vehicleNo: 'OD02AB1001', ambulanceType: 'ALS' },
+        { email: 'ambulance2.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: apollo.id, specialty: 'BBSR-ALS-02', licenseNo: 'OD02AB1002', vehicleNo: 'OD02AB1002', ambulanceType: 'ALS' },
+        { email: 'ambulance3.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: kims.id, specialty: 'BBSR-ICU-01', licenseNo: 'OD02AB1003', vehicleNo: 'OD02AB1003', ambulanceType: 'ICU' },
+        { email: 'ambulance4.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: null, specialty: 'BBSR-BLS-01', licenseNo: 'OD02AB1004', vehicleNo: 'OD02AB1004', ambulanceType: 'BLS' },
+        { email: 'ambulance5.bbsr@gmail.com', role: 'AMBULANCE', hospitalId: hospitalIds[2].id, specialty: 'BBSR-ALS-03', licenseNo: 'OD02AB1005', vehicleNo: 'OD02AB1005', ambulanceType: 'ALS' },
       ];
 
       for (const s of sampleStaff) {
         await client.query(`
-          INSERT INTO preregistered_staff (email, role, hospital_id)
-          VALUES ($1, $2, $3)
+          INSERT INTO preregistered_staff (email, role, hospital_id, specialty, license_no, vehicle_no, ambulance_type)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
           ON CONFLICT (email)
-          DO UPDATE SET role = EXCLUDED.role, hospital_id = EXCLUDED.hospital_id;
-        `, [s.email.toLowerCase(), s.role, s.hospitalId]);
+          DO UPDATE SET
+            role = EXCLUDED.role,
+            hospital_id = EXCLUDED.hospital_id,
+            specialty = EXCLUDED.specialty,
+            license_no = EXCLUDED.license_no,
+            vehicle_no = EXCLUDED.vehicle_no,
+            ambulance_type = EXCLUDED.ambulance_type;
+        `, [
+          s.email.toLowerCase(),
+          s.role,
+          s.hospitalId,
+          s.specialty || null,
+          s.licenseNo || null,
+          s.vehicleNo || null,
+          s.ambulanceType || null,
+        ]);
+      }
+    }
+
+    // 5a. Seed online ambulance fleet across Bhubaneswar (for SOS FCFS testing)
+    console.log('[Seed] Seeding Bhubaneswar ambulance fleet...');
+    const ambFleet = [
+      { email: 'ambulance1.bbsr@gmail.com', call: 'BBSR-ALS-01', vehicle: 'OD02AB1001', type: 'ALS', lat: 20.2961, lng: 85.8245, phone: '+91-9876500001', hospitalIdx: 0 },
+      { email: 'ambulance2.bbsr@gmail.com', call: 'BBSR-ALS-02', vehicle: 'OD02AB1002', type: 'ALS', lat: 20.3148, lng: 85.8192, phone: '+91-9876500002', hospitalIdx: 1 },
+      { email: 'ambulance3.bbsr@gmail.com', call: 'BBSR-ICU-01', vehicle: 'OD02AB1003', type: 'ICU', lat: 20.3532, lng: 85.8105, phone: '+91-9876500003', hospitalIdx: 4 },
+      { email: 'ambulance4.bbsr@gmail.com', call: 'BBSR-BLS-01', vehicle: 'OD02AB1004', type: 'BLS', lat: 20.2705, lng: 85.8338, phone: '+91-9876500004', hospitalIdx: null },
+      { email: 'ambulance5.bbsr@gmail.com', call: 'BBSR-ALS-03', vehicle: 'OD02AB1005', type: 'ALS', lat: 20.2536, lng: 85.7805, phone: '+91-9876500005', hospitalIdx: 2 },
+      { email: 'ambulance6.bbsr@gmail.com', call: 'BBSR-ALS-04', vehicle: 'OD02AB1006', type: 'ALS', lat: 20.3326, lng: 85.8218, phone: '+91-9876500006', hospitalIdx: 6 },
+      { email: 'ambulance7.bbsr@gmail.com', call: 'BBSR-NEO-01', vehicle: 'OD02AB1007', type: 'NEONATAL', lat: 20.2492, lng: 85.7868, phone: '+91-9876500007', hospitalIdx: 5 },
+      { email: 'ambulance8.bbsr@gmail.com', call: 'BBSR-ALS-05', vehicle: 'OD02AB1008', type: 'ALS', lat: 20.2219, lng: 85.7691, phone: '+91-9876500008', hospitalIdx: 0 },
+    ];
+
+    for (const a of ambFleet) {
+      const userRes = await client.query(
+        `INSERT INTO users (email, name, role, hospital_id, status, mobile_phone)
+         VALUES ($1, $2, 'AMBULANCE', $3, 'ACTIVE', $4)
+         ON CONFLICT (email) DO UPDATE SET
+           role = 'AMBULANCE',
+           hospital_id = EXCLUDED.hospital_id,
+           status = 'ACTIVE',
+           mobile_phone = COALESCE(EXCLUDED.mobile_phone, users.mobile_phone)
+         RETURNING id`,
+        [
+          a.email.toLowerCase(),
+          a.call,
+          a.hospitalIdx != null ? hospitalIds[a.hospitalIdx]?.id : null,
+          a.phone,
+        ]
+      );
+      const userId = userRes.rows[0].id;
+      await client.query(
+        `INSERT INTO ambulances (
+           user_id, hospital_id, call_sign, vehicle_no, ambulance_type, phone, status,
+           location, last_location_at, city, active
+         ) VALUES (
+           $1, $2, $3, $4, $5, $6, 'AVAILABLE',
+           ST_SetSRID(ST_MakePoint($7, $8), 4326)::geography, NOW(), 'Bhubaneswar', TRUE
+         )
+         ON CONFLICT (user_id) DO UPDATE SET
+           hospital_id = EXCLUDED.hospital_id,
+           call_sign = EXCLUDED.call_sign,
+           vehicle_no = EXCLUDED.vehicle_no,
+           ambulance_type = EXCLUDED.ambulance_type,
+           phone = EXCLUDED.phone,
+           status = 'AVAILABLE',
+           location = EXCLUDED.location,
+           last_location_at = NOW(),
+           active = TRUE,
+           updated_at = NOW()`,
+        [
+          userId,
+          a.hospitalIdx != null ? hospitalIds[a.hospitalIdx]?.id : null,
+          a.call,
+          a.vehicle,
+          a.type,
+          a.phone,
+          a.lng,
+          a.lat,
+        ]
+      );
+    }
+
+    // 5b. Insurers + hospital empanelment + departments
+    console.log('[Seed] Seeding insurers, hospital networks, and departments...');
+    const INSURERS = [
+      { code: 'AYUSHMAN', name: 'Ayushman Bharat (PM-JAY)', type: 'SCHEME' },
+      { code: 'BSKY', name: 'Biju Swasthya Kalyan Yojana (BSKY)', type: 'SCHEME' },
+      { code: 'CGHS', name: 'CGHS', type: 'GOVERNMENT' },
+      { code: 'ESIC', name: 'ESIC', type: 'GOVERNMENT' },
+      { code: 'STAR', name: 'Star Health', type: 'PRIVATE' },
+      { code: 'HDFC_ERGO', name: 'HDFC Ergo', type: 'PRIVATE' },
+      { code: 'ICICI_LOMBARD', name: 'ICICI Lombard', type: 'PRIVATE' },
+      { code: 'NIVA_BUPA', name: 'Niva Bupa', type: 'PRIVATE' },
+      { code: 'CARE_HEALTH', name: 'Care Health', type: 'PRIVATE' },
+      { code: 'RELIANCE', name: 'Reliance General', type: 'PRIVATE' },
+      { code: 'BAJAJ', name: 'Bajaj Allianz', type: 'PRIVATE' },
+      { code: 'NEW_INDIA', name: 'New India Assurance', type: 'GOVERNMENT' },
+    ];
+
+    const insurerIds = [];
+    for (const ins of INSURERS) {
+      const r = await client.query(
+        `INSERT INTO insurers (code, name, type, active)
+         VALUES ($1, $2, $3, TRUE)
+         ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, active = TRUE
+         RETURNING id, code`,
+        [ins.code, ins.name, ins.type]
+      );
+      insurerIds.push(r.rows[0]);
+    }
+
+    const DEPTS = [
+      { code: 'EMERGENCY', name: 'Emergency & Trauma', specialty: 'Emergency Medicine', ward: 'EMERGENCY' },
+      { code: 'CARDIOLOGY', name: 'Cardiology', specialty: 'Cardiology', ward: 'CCU' },
+      { code: 'NEUROLOGY', name: 'Neurology', specialty: 'Neurology', ward: 'ICU' },
+      { code: 'ORTHO', name: 'Orthopedics', specialty: 'Orthopedics', ward: 'GENERAL' },
+      { code: 'PEDIATRICS', name: 'Pediatrics', specialty: 'Pediatrics', ward: 'PICU' },
+      { code: 'NEONATAL', name: 'Neonatology', specialty: 'Neonatology', ward: 'NICU' },
+      { code: 'GENERAL_MED', name: 'General Medicine', specialty: 'General Medicine', ward: 'GENERAL' },
+      { code: 'ONCOLOGY', name: 'Oncology', specialty: 'Oncology', ward: 'SEMI_PRIVATE' },
+    ];
+
+    for (let hi = 0; hi < hospitalIds.length; hi++) {
+      const hid = hospitalIds[hi].id;
+      // Empanel: government hospitals get schemes; private get mix
+      const accepted = insurerIds.filter((_, idx) => {
+        if (hi % 3 === 0) return idx < 6; // more scheme coverage
+        if (hi % 3 === 1) return idx >= 2 && idx <= 8;
+        return idx % 2 === 0 || idx < 4;
+      });
+      for (const ins of accepted) {
+        await client.query(
+          `INSERT INTO hospital_insurers (hospital_id, insurer_id, cashless)
+           VALUES ($1, $2, TRUE)
+           ON CONFLICT DO NOTHING`,
+          [hid, ins.id]
+        );
+      }
+      for (const d of DEPTS) {
+        await client.query(
+          `INSERT INTO hospital_departments (hospital_id, code, name, specialty, ward_hint, active)
+           VALUES ($1, $2, $3, $4, $5, TRUE)
+           ON CONFLICT (hospital_id, code) DO UPDATE SET
+             name = EXCLUDED.name,
+             specialty = EXCLUDED.specialty,
+             ward_hint = EXCLUDED.ward_hint,
+             active = TRUE`,
+          [hid, d.code, d.name, d.specialty, d.ward]
+        );
       }
     }
 
@@ -855,6 +1024,139 @@ async function seed() {
       CROSS JOIN (VALUES (2), (4)) AS step(val)
       ON CONFLICT DO NOTHING;
     `);
+
+    // 8. Blood banks — enable + stock by group/component for reception holds
+    console.log('[Seed] Seeding hospital blood bank inventory...');
+    const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    const BLOOD_COMPONENTS = ['PRBC', 'WHOLE_BLOOD', 'FFP', 'PLATELETS', 'CRYOPRECIPITATE'];
+
+    await client.query(`
+      UPDATE hospitals
+      SET has_blood_bank = TRUE,
+          blood_bank_phone = COALESCE(blood_bank_phone, phone),
+          blood_bank_hours = COALESCE(blood_bank_hours, '24x7 Emergency · Crossmatch desk 8am–8pm'),
+          facilities = CASE
+            WHEN 'Blood Bank' = ANY(COALESCE(facilities, ARRAY[]::text[])) THEN facilities
+            ELSE array_append(COALESCE(facilities, ARRAY[]::text[]), 'Blood Bank')
+          END
+      WHERE status = 'VERIFIED'
+    `);
+
+    for (let hi = 0; hi < hospitalIds.length; hi++) {
+      const hid = hospitalIds[hi].id;
+      // ~80% of hospitals keep a full blood bank; rest keep limited emergency stock
+      const fullBank = hi % 5 !== 4;
+      for (const bg of BLOOD_GROUPS) {
+        for (const comp of BLOOD_COMPONENTS) {
+          if (!fullBank && !['PRBC', 'FFP'].includes(comp)) continue;
+          if (!fullBank && ['AB-', 'B-'].includes(bg)) continue;
+          const base =
+            comp === 'PRBC' ? 18 :
+            comp === 'WHOLE_BLOOD' ? 8 :
+            comp === 'FFP' ? 12 :
+            comp === 'PLATELETS' ? 6 : 4;
+          const units = Math.max(0, base + ((hi + bg.length + comp.length) % 7) - (fullBank ? 0 : 10));
+          const reserved = units > 4 ? (hi % 3) : 0;
+          const quarantine = units > 8 ? 1 : 0;
+          const expiring = units > 6 ? Math.min(3, Math.floor(units / 8)) : 0;
+          await client.query(
+            `INSERT INTO blood_inventory (
+               hospital_id, blood_group, component, units_total, units_reserved,
+               units_quarantine, expiring_within_7d, version, updated_at
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,1,NOW())
+             ON CONFLICT (hospital_id, blood_group, component)
+             DO UPDATE SET
+               units_total = EXCLUDED.units_total,
+               units_reserved = EXCLUDED.units_reserved,
+               units_quarantine = EXCLUDED.units_quarantine,
+               expiring_within_7d = EXCLUDED.expiring_within_7d,
+               version = blood_inventory.version + 1,
+               updated_at = NOW()`,
+            [hid, bg, comp, units, reserved, quarantine, expiring]
+          );
+        }
+      }
+    }
+
+    // 9. Curated medical knowledge for CityHealth AI RAG (FTS) — DEMO / reviewed snippets
+    console.log('[Seed] Seeding CityHealth AI medical knowledge articles...');
+    const KNOWLEDGE = [
+      {
+        title: 'Fever — when to seek care',
+        category: 'GENERAL',
+        source_name: 'National Health Portal / MoHFW (general education)',
+        source_url: 'https://www.nhp.gov.in/',
+        content:
+          'Fever is a common response to infection. Rest, oral fluids, and temperature monitoring help for mild illness. Seek urgent care for fever with stiff neck, confusion, rash, difficulty breathing, seizures, or fever in infants. This is general education, not a diagnosis.',
+      },
+      {
+        title: 'Chest pain — emergency guidance',
+        category: 'EMERGENCY',
+        source_name: 'Emergency first-aid education',
+        source_url: null,
+        content:
+          'Sudden chest pain with shortness of breath, sweating, nausea, or pain radiating to arm/jaw may signal a cardiac emergency. Call 112 or go to the nearest emergency department immediately. Do not wait for an app assessment. Not a diagnosis.',
+      },
+      {
+        title: 'Breathing difficulty — emergency guidance',
+        category: 'EMERGENCY',
+        source_name: 'Emergency first-aid education',
+        source_url: null,
+        content:
+          'Severe breathing difficulty, inability to speak full sentences, blue lips, or sudden wheezing requires emergency care. Call 112. Prefer hospitals with Emergency / ICU / ventilator capability. Not a diagnosis.',
+      },
+      {
+        title: 'Stroke warning signs (FAST)',
+        category: 'EMERGENCY',
+        source_name: 'Stroke awareness education',
+        source_url: null,
+        content:
+          'FAST: Face drooping, Arm weakness, Speech difficulty, Time to call emergency services. Sudden numbness, confusion, or severe headache also warrant emergency evaluation. Call 112. Seek hospitals with neurology / stroke-capable emergency care.',
+      },
+      {
+        title: 'Dengue warning signs',
+        category: 'INFECTIOUS',
+        source_name: 'NVBDCP / dengue public guidance (general)',
+        source_url: 'https://ncvbdc.mohfw.gov.in/',
+        content:
+          'Dengue may present with high fever, severe body ache, and headache. Warning signs include persistent vomiting, bleeding gums, severe abdominal pain, restlessness, or rapid drop in platelets. Seek hospital care promptly; severe cases may need HDU/ICU and blood bank support.',
+      },
+      {
+        title: 'How GetMyHospital bed holds work',
+        category: 'NAVIGATION',
+        source_name: 'GetMyHospital product guidance',
+        source_url: null,
+        content:
+          'Patients can place a short 15-minute bed hold at a verified hospital. This reserves inventory temporarily for reception to approve — it is not a permanent booking. Always confirm live ward availability in the app. In emergencies call 112 first.',
+      },
+      {
+        title: 'Blood bank holds',
+        category: 'NAVIGATION',
+        source_name: 'GetMyHospital product guidance',
+        source_url: null,
+        content:
+          'Blood units can be held for 30 minutes at participating hospital blood banks by blood group and component (PRBC, FFP, platelets, etc.). Hospital reception must approve and issue after crossmatch. Availability changes; never invent stock.',
+      },
+      {
+        title: 'Dehydration and oral fluids',
+        category: 'GENERAL',
+        source_name: 'General public health education',
+        source_url: null,
+        content:
+          'Mild dehydration from gastroenteritis often improves with oral rehydration solution (ORS) and small frequent sips. Seek care for inability to keep fluids down, blood in stool, high fever, confusion, or symptoms in infants/elderly. Not a prescription.',
+      },
+    ];
+
+    for (const k of KNOWLEDGE) {
+      await client.query(
+        `INSERT INTO medical_knowledge (title, content, category, source_name, source_url, language, verification_status)
+         SELECT $1,$2,$3,$4,$5,'en','VERIFIED'
+         WHERE NOT EXISTS (
+           SELECT 1 FROM medical_knowledge WHERE title = $1 AND verification_status = 'VERIFIED'
+         )`,
+        [k.title, k.content, k.category, k.source_name, k.source_url]
+      );
+    }
 
     await client.query('COMMIT');
     console.log('[Seed] Seeding completed successfully!');

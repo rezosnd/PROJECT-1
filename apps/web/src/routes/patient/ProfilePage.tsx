@@ -2,7 +2,10 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { abhaApi } from '../../lib/api/abha.api';
+import { referralsApi } from '../../lib/api/referrals.api';
 import { AbhaCard } from '../../features/patient/AbhaCard';
+import { CareQrCard } from '../../features/patient/CareQrCard';
+import { InsuranceEditor } from '../../features/patient/InsuranceEditor';
 import { Button } from '../../components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -26,6 +29,13 @@ export const ProfilePage: React.FC = () => {
     enabled: Boolean(isAuthenticated && user?.role === 'PATIENT'),
     staleTime: 60_000,
     refetchOnWindowFocus: true,
+  });
+
+  const { data: careQr } = useQuery({
+    queryKey: ['care-qr'],
+    queryFn: () => referralsApi.getMyQr(),
+    enabled: Boolean(isAuthenticated && user?.role === 'PATIENT'),
+    staleTime: 120_000,
   });
 
   if (!isAuthenticated || !user) {
@@ -110,6 +120,8 @@ export const ProfilePage: React.FC = () => {
         </div>
       </section>
 
+      {user.role === 'PATIENT' && <InsuranceEditor className="max-w-4xl" />}
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-5">
         <section className="lg:col-span-3 rounded-[28px] ll-glass-strong p-5 sm:p-6">
           <h2 className="font-display text-lg font-bold text-ink">Details</h2>
@@ -156,6 +168,8 @@ export const ProfilePage: React.FC = () => {
         </section>
 
         <aside className="lg:col-span-2 space-y-3">
+          {careQr ? <CareQrCard qr={careQr} /> : null}
+
           {abhaProfile ? (
             <AbhaCard
               profile={abhaProfile}

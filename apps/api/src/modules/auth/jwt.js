@@ -10,6 +10,7 @@ import { AppError } from '../../middleware/error-handler.js';
 export function generateAccessToken(user) {
   const payload = {
     sub: user.id,
+    id: user.id,
     role: user.role,
     jti: crypto.randomUUID()
   };
@@ -17,6 +18,9 @@ export function generateAccessToken(user) {
   // Only include hospitalId claim if present (strictly adhering to hospitalId? specification)
   if (user.hospital_id) {
     payload.hospitalId = user.hospital_id;
+  }
+  if (user.doctor_specialty) {
+    payload.doctorSpecialty = user.doctor_specialty;
   }
 
   return jwt.sign(payload, config.JWT_ACCESS_SECRET, {

@@ -1,7 +1,7 @@
 export const BRAND = {
   name: 'GetMyHospital',
   shortName: 'GMH',
-  tagline: 'FIND BEDS · BOOK CARE · SAVE LIVES',
+  tagline: 'FIND BEDS · HOLD CARE · SAVE LIVES',
   productLine: 'Emergency Health Grid',
   colors: {
     forest: '#0B3D1A',

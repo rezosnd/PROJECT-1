@@ -32,7 +32,7 @@
     "expo-splash-screen": "~58.0.13",
     "expo-status-bar": "~58.0.4",
     "i18next": "^23.15.1",
-    "lucide-react-native": "^0.441.0",
+    "lucide-react-native": "^1.69.0",
     "react": "19.3.0",
     "react-i18next": "^15.0.2",
     "react-native": "0.88.1",

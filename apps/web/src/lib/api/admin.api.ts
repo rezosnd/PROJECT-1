@@ -15,8 +15,10 @@ export interface AuditLogEntry {
 export const adminApi = {
   async preRegisterStaff(payload: {
     email: string;
-    hospitalId: string;
-    role: 'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN';
+    hospitalId?: string | null;
+    role: 'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN' | 'DOCTOR';
+    specialty?: string | null;
+    licenseNo?: string | null;
   }) {
     const res = await apiClient.post('/auth/admin/staff', payload);
     return res.data.data;

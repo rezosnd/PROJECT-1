@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { bedsApi, BedRequest, BedRequestStatus } from '../../lib/api/beds.api';
+import { referralsApi, PatientReferral } from '../../lib/api/referrals.api';
+import { bloodApi, BloodRequest } from '../../lib/api/blood.api';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -15,6 +17,8 @@ import {
   BedDouble,
   XCircle,
   Timer,
+  Stethoscope,
+  Droplets,
 } from 'lucide-react';
 
 const HOSPITAL_NAMES: Record<string, string> = {
@@ -157,6 +161,20 @@ export const MyRequestsPage: React.FC = () => {
     queryFn: () => bedsApi.getMyRequests(),
     enabled: isAuthenticated,
     refetchInterval: 5000,
+  });
+
+  const { data: bloodRequests = [], isLoading: loadingBlood } = useQuery({
+    queryKey: ['my-blood-requests'],
+    queryFn: () => bloodApi.myRequests(),
+    enabled: isAuthenticated,
+    refetchInterval: 5000,
+  });
+
+  const { data: referrals = [], isLoading: loadingReferrals } = useQuery({
+    queryKey: ['my-referrals'],
+    queryFn: () => referralsApi.listMine(),
+    enabled: isAuthenticated,
+    staleTime: 30_000,
   });
 
   const { active, history } = useMemo(() => {
@@ -314,6 +332,120 @@ export const MyRequestsPage: React.FC = () => {
           )}
         </div>
       )}
+
+      <BloodHoldsSection requests={bloodRequests} loading={loadingBlood} />
+      <ReferralsSection referrals={referrals} loading={loadingReferrals} />
     </div>
   );
 };
+
+function BloodHoldsSection({
+  requests,
+  loading,
+}: {
+  requests: BloodRequest[];
+  loading: boolean;
+}) {
+  const navigate = useNavigate();
+  if (loading) {
+    return (
+      <section className="space-y-3 pt-2">
+        <Skeleton variant="card" className="h-24 rounded-[24px]" />
+      </section>
+    );
+  }
+  return (
+    <section className="space-y-3 pt-4 border-t border-black/[0.06]">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#0B3D1A] flex items-center gap-2">
+          <Droplets className="w-3.5 h-3.5" />
+          Blood holds · {requests.length}
+        </h2>
+        <button
+          type="button"
+          onClick={() => navigate('/blood')}
+          className="text-xs font-bold text-[#0B3D1A]"
+        >
+          Find blood
+        </button>
+      </div>
+      {!requests.length ? (
+        <p className="text-xs text-muted">No blood holds yet. Reserve units at a hospital blood bank.</p>
+      ) : (
+        requests.map((r) => (
+          <article
+            key={r.id}
+            className="rounded-[20px] ll-glass border border-white/60 px-4 py-3.5 text-left"
+          >
+            <p className="text-sm font-bold text-ink">
+              {r.unitsRequested}× {r.bloodGroup} {r.component}
+            </p>
+            <p className="text-xs text-muted mt-1">
+              {r.hospitalName || 'Blood bank'} · {r.status}
+              {r.holdExpiresAt && (r.status === 'PENDING' || r.status === 'APPROVED')
+                ? ' · 30-min hold'
+                : ''}
+            </p>
+          </article>
+        ))
+      )}
+    </section>
+  );
+}
+
+function ReferralsSection({
+  referrals,
+  loading,
+}: {
+  referrals: PatientReferral[];
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <section className="space-y-3 pt-2">
+        <Skeleton variant="card" className="h-24 rounded-[24px]" />
+      </section>
+    );
+  }
+
+  if (!referrals.length) return null;
+
+  return (
+    <section className="space-y-3 pt-4 border-t border-black/[0.06]">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#0B3D1A] flex items-center gap-2">
+        <Stethoscope className="w-3.5 h-3.5" />
+        Doctor referrals · {referrals.length}
+      </h2>
+      <p className="text-xs text-muted -mt-1">
+        Created when a doctor scans your Care QR in the Doctor app.
+      </p>
+      {referrals.map((ref) => (
+        <article
+          key={ref.id}
+          className="rounded-[20px] ll-glass border border-white/60 px-4 py-3.5 text-left"
+        >
+          <p className="text-sm font-bold text-ink">
+            {ref.toHospitalName || 'Hospital referral'}
+            {ref.recommendedWard ? ` · ${ref.recommendedWard}` : ''}
+          </p>
+          <p className="text-xs text-muted mt-1">
+            Dr. {ref.doctorName || '—'}
+            {ref.doctorSpecialty ? ` (${ref.doctorSpecialty})` : ''}
+            {ref.toDepartmentName ? ` → ${ref.toDepartmentName}` : ''}
+          </p>
+          <p className="text-[11px] text-muted mt-1">
+            {ref.status}
+            {' · '}
+            {new Date(ref.createdAt).toLocaleString([], {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+            {ref.bedRequestId ? ' · bed hold linked' : ''}
+          </p>
+        </article>
+      ))}
+    </section>
+  );
+}

@@ -1,9 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api/client';
+import { insuranceApi, Insurer } from '../../lib/api/insurance.api';
 import { useAuthStore } from '../../lib/auth/auth-store';
 import { Button } from '../../components/ui/Button';
-import { Check, ChevronRight, Droplets, MapPin, Phone, ShieldCheck, User } from 'lucide-react';
+import {
+  Check,
+  ChevronRight,
+  Droplets,
+  MapPin,
+  Phone,
+  Shield,
+  ShieldCheck,
+  User,
+} from 'lucide-react';
 
 const GENDERS = [
   { id: 'MALE', label: 'Male' },
@@ -17,8 +28,11 @@ const STEPS = [
   { id: 'identity', title: 'Identity', icon: User },
   { id: 'clinical', title: 'Clinical', icon: Droplets },
   { id: 'address', title: 'Address', icon: MapPin },
+  { id: 'insurance', title: 'Insurance', icon: Shield },
   { id: 'emergency', title: 'Emergency', icon: Phone },
 ] as const;
+
+type PolicyDraft = { insurerId: string; policyNumber: string; isPrimary: boolean };
 
 export const OnboardingPage: React.FC = () => {
   const { user, checkSession } = useAuthStore();
@@ -26,6 +40,18 @@ export const OnboardingPage: React.FC = () => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selfPay, setSelfPay] = useState(true);
+  const [policyDrafts, setPolicyDrafts] = useState<PolicyDraft[]>([]);
+  const { data: insurers = [] } = useQuery({
+    queryKey: ['onboarding-insurers'],
+    queryFn: () => insuranceApi.listInsurers(),
+    staleTime: 300_000,
+  });
+  const selectedInsurerIds = useMemo(
+    () => new Set(policyDrafts.map((p) => p.insurerId)),
+    [policyDrafts]
+  );
+
   const [form, setForm] = useState({
     fullName: user?.name || '',
     ageYears: '',
@@ -52,7 +78,7 @@ export const OnboardingPage: React.FC = () => {
       setError('Enter your address for hospital admission.');
       return false;
     }
-    if (step === 3) {
+    if (step === 4) {
       if (!form.emergencyContactName.trim()) {
         setError('Emergency contact name is required.');
         return false;
@@ -71,6 +97,14 @@ export const OnboardingPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      const insurancePolicies = selfPay
+        ? []
+        : policyDrafts.map((d) => ({
+            insurerId: d.insurerId,
+            policyNumber: d.policyNumber.trim() || null,
+            isPrimary: d.isPrimary,
+          }));
+
       await apiClient.put('/auth/users/me/profile', {
         ...form,
         ageYears: form.ageYears ? Number(form.ageYears) : null,
@@ -79,6 +113,7 @@ export const OnboardingPage: React.FC = () => {
         pinCode: form.pinCode || null,
         mobilePhone: form.emergencyContactPhone || null,
         preferredLanguage: 'en',
+        insurancePolicies,
       });
       await checkSession();
       navigate('/');
@@ -101,7 +136,7 @@ export const OnboardingPage: React.FC = () => {
         <div className="rounded-[28px] bg-[#B9F84B] p-6 shadow-sm">
           <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#0B3D1A]">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Shared with hospital on bed booking
+            Shared with hospital on bed hold
           </div>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-[#111111] font-display">
             Your care profile
@@ -244,6 +279,76 @@ export const OnboardingPage: React.FC = () => {
 
           {step === 3 && (
             <>
+              <h2 className="text-lg font-extrabold text-ink">Insurance (optional)</h2>
+              <p className="text-sm text-muted -mt-2">
+                Helps rank hospitals in your network. You can skip and pay out of pocket.
+              </p>
+              <label className="flex items-center gap-2.5 rounded-2xl bg-[#F4F7F2] border border-[#D8E0D4] px-4 py-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selfPay}
+                  onChange={(e) => {
+                    setSelfPay(e.target.checked);
+                    if (e.target.checked) setPolicyDrafts([]);
+                  }}
+                  className="accent-[#0B3D1A] w-4 h-4"
+                />
+                <span className="text-sm font-semibold text-ink">Self-pay / no insurance</span>
+              </label>
+              {!selfPay && (
+                <>
+                  <Field label="Select insurers">
+                    <InsurerChipPicker
+                      insurers={insurers}
+                      selectedIds={selectedInsurerIds}
+                      onToggle={(ins) => {
+                        setSelfPay(false);
+                        setPolicyDrafts((prev) => {
+                          if (prev.some((p) => p.insurerId === ins.id)) {
+                            const next = prev.filter((p) => p.insurerId !== ins.id);
+                            if (next.length && !next.some((p) => p.isPrimary)) {
+                              next[0] = { ...next[0], isPrimary: true };
+                            }
+                            return next;
+                          }
+                          const isFirst = prev.length === 0;
+                          return [
+                            ...prev,
+                            { insurerId: ins.id, policyNumber: '', isPrimary: isFirst },
+                          ];
+                        });
+                      }}
+                    />
+                  </Field>
+                  {policyDrafts.map((d) => {
+                    const ins = insurers.find((i) => i.id === d.insurerId);
+                    if (!ins) return null;
+                    return (
+                      <Field key={d.insurerId} label={`${ins.name} — policy # (optional)`}>
+                        <input
+                          className="field"
+                          value={d.policyNumber}
+                          onChange={(e) =>
+                            setPolicyDrafts((prev) =>
+                              prev.map((p) =>
+                                p.insurerId === d.insurerId
+                                  ? { ...p, policyNumber: e.target.value }
+                                  : p
+                              )
+                            )
+                          }
+                          placeholder="Member / policy ID"
+                        />
+                      </Field>
+                    );
+                  })}
+                </>
+              )}
+            </>
+          )}
+
+          {step === 4 && (
+            <>
               <h2 className="text-lg font-extrabold text-ink">Emergency contact</h2>
               <Field label="Contact name">
                 <input
@@ -357,5 +462,41 @@ function Chip({
     >
       {label}
     </button>
+  );
+}
+
+function InsurerChipPicker({
+  insurers,
+  selectedIds,
+  onToggle,
+}: {
+  insurers: Insurer[];
+  selectedIds: Set<string>;
+  onToggle: (ins: Insurer) => void;
+}) {
+  if (!insurers.length) {
+    return <p className="text-sm text-muted mt-1">Loading insurers…</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-2 mt-1">
+      {insurers.map((ins) => {
+        const active = selectedIds.has(ins.id);
+        return (
+          <button
+            key={ins.id}
+            type="button"
+            onClick={() => onToggle(ins)}
+            className={`rounded-full px-3.5 py-2 text-xs font-extrabold border transition inline-flex items-center gap-1 ${
+              active
+                ? 'bg-[#0B3D1A] text-[#A8E017] border-[#0B3D1A]'
+                : 'bg-[#F1F5F9] text-[#475569] border-[#E2E8F0] hover:border-[#0B3D1A]/30'
+            }`}
+          >
+            {active && <Check className="w-3 h-3" />}
+            {ins.name}
+          </button>
+        );
+      })}
+    </div>
   );
 }

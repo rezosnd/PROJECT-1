@@ -12,6 +12,8 @@ import { LoginPage } from '../routes/patient/LoginPage';
 import { ProfilePage } from '../routes/patient/ProfilePage';
 import { OnboardingPage } from '../routes/patient/OnboardingPage';
 import { TopDoctorsPage } from '../routes/patient/TopDoctorsPage';
+import { BloodBankPage } from '../routes/patient/BloodBankPage';
+import { AiAssistantPage } from '../routes/patient/AiAssistantPage';
 import { HospitalDashboardPage } from '../routes/hospital/HospitalDashboardPage';
 import { CityAdminPage } from '../routes/admin/CityAdminPage';
 import { RequireRole } from '../lib/auth/role-guard';
@@ -37,6 +39,14 @@ export const router = createBrowserRouter([
       {
         path: 'equipment',
         element: <EquipmentFinderPage />,
+      },
+      {
+        path: 'blood',
+        element: <BloodBankPage />,
+      },
+      {
+        path: 'ai',
+        element: <AiAssistantPage />,
       },
       {
         path: 'requests',

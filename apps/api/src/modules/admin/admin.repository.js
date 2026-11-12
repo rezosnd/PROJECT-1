@@ -9,28 +9,34 @@ export const adminRepository = {
     return rows[0] || null;
   },
 
-  async upsertPreregisteredStaff(db = pool, { email, role, hospitalId }) {
+  async upsertPreregisteredStaff(db = pool, { email, role, hospitalId, specialty = null, licenseNo = null }) {
     const { rows } = await db.query(
-      `INSERT INTO preregistered_staff (email, role, hospital_id)
-       VALUES ($1, $2, $3)
+      `INSERT INTO preregistered_staff (email, role, hospital_id, specialty, license_no)
+       VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (email)
        DO UPDATE SET
          role = EXCLUDED.role,
          hospital_id = EXCLUDED.hospital_id,
+         specialty = EXCLUDED.specialty,
+         license_no = EXCLUDED.license_no,
          created_at = NOW()
        RETURNING *`,
-      [email.toLowerCase(), role, hospitalId]
+      [email.toLowerCase(), role, hospitalId || null, specialty, licenseNo]
     );
     return rows[0];
   },
 
-  async updateUserRoleAndHospital(db = pool, email, { role, hospitalId }) {
+  async updateUserRoleAndHospital(db = pool, email, { role, hospitalId, specialty = null, licenseNo = null }) {
     const { rows } = await db.query(
       `UPDATE users
-       SET role = $2, hospital_id = $3, updated_at = NOW()
+       SET role = $2,
+           hospital_id = $3,
+           doctor_specialty = COALESCE($4, doctor_specialty),
+           doctor_license_no = COALESCE($5, doctor_license_no),
+           updated_at = NOW()
        WHERE email = $1
-       RETURNING id, email, name, role, hospital_id, status`,
-      [email.toLowerCase(), role, hospitalId]
+       RETURNING id, email, name, role, hospital_id, status, doctor_specialty, doctor_license_no`,
+      [email.toLowerCase(), role, hospitalId || null, specialty, licenseNo]
     );
     return rows[0] || null;
   },

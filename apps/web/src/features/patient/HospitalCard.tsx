@@ -2,7 +2,27 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { MatchedHospital } from '../../lib/api/matching.api';
 import { Button } from '../../components/ui/Button';
-import { Star, Clock, MapPin, ArrowRight, BedDouble } from 'lucide-react';
+import type { InsuranceCoverageLevel } from '../../lib/api/insurance.api';
+import { Star, Clock, MapPin, ArrowRight, BedDouble, ShieldCheck } from 'lucide-react';
+
+const INSURANCE_BADGE: Record<
+  InsuranceCoverageLevel,
+  { label: string; className: string } | null
+> = {
+  COVERED: {
+    label: 'Insurance accepted',
+    className: 'bg-[#0B3D1A]/90 text-[#A8E017] border-[#A8E017]/30',
+  },
+  NO_OVERLAP: {
+    label: 'Not in your network',
+    className: 'bg-amber-50/90 text-amber-900 border-amber-200/70',
+  },
+  HOSPITAL_UNKNOWN: {
+    label: 'Insurance network unknown',
+    className: 'bg-white/80 text-muted border-black/[0.06]',
+  },
+  NONE_DECLARED: null,
+};
 
 interface HospitalCardProps {
   match: MatchedHospital;
@@ -25,6 +45,9 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
   const freeTone =
     freeBeds > 2 ? 'text-green' : freeBeds > 0 ? 'text-orange' : 'text-red';
   const tint = index % 2 === 0 ? 'bg-[#EEF8D8]' : 'bg-[#FFF1C2]';
+  const coverage = match.insuranceCoverage;
+  const insuranceBadge =
+    coverage && INSURANCE_BADGE[coverage] ? INSURANCE_BADGE[coverage] : null;
 
   return (
     <article
@@ -69,6 +92,14 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
               <BedDouble className="w-3 h-3" />
               {matchedWard.wardType}
             </span>
+            {insuranceBadge && (
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] font-bold border ${insuranceBadge.className}`}
+              >
+                <ShieldCheck className="w-3 h-3" />
+                {insuranceBadge.label}
+              </span>
+            )}
           </div>
         </div>
       </div>

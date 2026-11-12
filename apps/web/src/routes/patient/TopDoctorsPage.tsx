@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { TOP_DOCTORS, Doctor } from '../../lib/doctors-data';
 import { DoctorCard } from '../../features/patient/DoctorCard';
 import { DoctorDetailModal } from '../../features/patient/DoctorDetailModal';
-import { ArrowLeft, Search, X } from 'lucide-react';
+import { ArrowLeft, Search, X, QrCode } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const TopDoctorsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,6 +46,17 @@ export const TopDoctorsPage: React.FC = () => {
         <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 text-slate-800 flex items-center justify-center">
           <Search className="w-5 h-5 text-slate-600" />
         </div>
+      </div>
+
+      <div className="rounded-2xl bg-[#EEF8D8] border border-[#A8E017]/30 px-4 py-3 flex items-start gap-3">
+        <QrCode className="w-5 h-5 text-[#0B3D1A] shrink-0 mt-0.5" />
+        <p className="text-sm text-[#0B3D1A] leading-relaxed">
+          Doctors place referrals and 15-minute bed holds via the Doctor app after scanning your{' '}
+          <Link to="/profile" className="font-bold underline">
+            Care QR
+          </Link>
+          . This directory is for discovery only — not online appointment booking.
+        </p>
       </div>
 
       {/* Search Bar Input */}

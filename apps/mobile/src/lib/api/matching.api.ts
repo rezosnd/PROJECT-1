@@ -46,6 +46,7 @@ export interface MatchedHospitalItem {
     totalCount: number;
   }>;
   explanation: string;
+  insuranceCoverage?: 'COVERED' | 'HOSPITAL_UNKNOWN' | 'NO_OVERLAP' | 'NONE_DECLARED' | string | null;
 }
 
 export interface MatchResponse {
@@ -125,6 +126,7 @@ export const matchingApi = {
         },
         matchedEquipment: [],
         explanation: m.explanation || `${m.freeBedsNow || 5} beds free now. Verified ready.`,
+        insuranceCoverage: m.insuranceCoverage || null,
       };
     });
 

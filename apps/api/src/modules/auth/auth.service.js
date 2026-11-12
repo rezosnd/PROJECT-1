@@ -6,8 +6,10 @@ import { generateAccessToken, generateRefreshTokenString, hashToken } from './jw
 import { config } from '../../config/index.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { emailService } from '../../infra/email.js';
+import { insuranceService } from '../insurance/insurance.service.js';
+import { referralsRepository } from '../referrals/referrals.repository.js';
 
-function sanitizeUser(u) {
+function sanitizeUser(u, extras = {}) {
   const abhaPhoto = u.abha_photo_url || null;
   return {
     id: u.id,
@@ -20,10 +22,20 @@ function sanitizeUser(u) {
     abhaPhotoUrl: abhaPhoto,
     role: u.role,
     hospitalId: u.hospital_id,
+    doctorSpecialty: u.doctor_specialty || null,
+    doctorLicenseNo: u.doctor_license_no || null,
     status: u.status,
     lastLoginAt: u.last_login_at,
     createdAt: u.created_at,
     profileComplete: Boolean(u.profile_complete),
+    careQr: u.patient_qr_image_url
+      ? {
+          token: u.patient_qr_token,
+          imageUrl: u.patient_qr_image_url,
+          payload: u.patient_qr_payload,
+        }
+      : null,
+    insurance: extras.insurance || [],
     profile: {
       fullName: u.full_name || u.name,
       dateOfBirth: u.date_of_birth,
@@ -85,11 +97,17 @@ export const authService = {
       } else if (
         requestedRole === 'HOSPITAL_STAFF' ||
         requestedRole === 'HOSPITAL_ADMIN' ||
-        requestedRole === 'CITY_ADMIN'
+        requestedRole === 'CITY_ADMIN' ||
+        requestedRole === 'DOCTOR' ||
+        requestedRole === 'AMBULANCE'
       ) {
         throw new AppError(
           requestedRole === 'CITY_ADMIN'
             ? 'This Google account is not authorized as City Admin.'
+            : requestedRole === 'DOCTOR'
+              ? 'This Gmail is not pre-registered as a doctor. Ask City Admin to add your email under Doctor Access, then sign in again.'
+            : requestedRole === 'AMBULANCE'
+              ? 'This Gmail is not pre-registered as an ambulance unit. Ask City Admin to add your email under Ambulance Access, then sign in again.'
             : 'This Gmail is not pre-registered as hospital staff. Ask your hospital admin to add your email under Staff Access, then sign in again.',
           403,
           'STAFF_NOT_PREREGISTERED'
@@ -114,6 +132,48 @@ export const authService = {
           role: targetRole,
           hospitalId: targetHospitalId
         });
+      }
+
+      // Bind ambulance fleet record when an AMBULANCE operator signs in
+      if (prereg?.role === 'AMBULANCE' || targetRole === 'AMBULANCE') {
+        const callSign = prereg?.specialty || `BBSR-AMB-${String(user.id).slice(0, 4).toUpperCase()}`;
+        const vehicleNo = prereg?.vehicle_no || prereg?.license_no || `OD-02-${String(Date.now()).slice(-4)}`;
+        const ambType = prereg?.ambulance_type || 'ALS';
+        await client.query(
+          `INSERT INTO ambulances (
+             user_id, hospital_id, call_sign, vehicle_no, ambulance_type, phone, status, city, active
+           ) VALUES ($1, $2, $3, $4, $5, $6, 'AVAILABLE', 'Bhubaneswar', TRUE)
+           ON CONFLICT (user_id) DO UPDATE SET
+             hospital_id = COALESCE(EXCLUDED.hospital_id, ambulances.hospital_id),
+             call_sign = EXCLUDED.call_sign,
+             vehicle_no = EXCLUDED.vehicle_no,
+             ambulance_type = EXCLUDED.ambulance_type,
+             status = 'AVAILABLE',
+             active = TRUE,
+             updated_at = NOW()`,
+          [
+            user.id,
+            targetHospitalId,
+            callSign,
+            vehicleNo,
+            ambType,
+            user.mobile_phone || null,
+          ]
+        );
+      }
+
+      // Apply doctor specialty / license from preregistration after user row exists
+      if (prereg?.role === 'DOCTOR' && (prereg.specialty || prereg.license_no)) {
+        const { rows } = await client.query(
+          `UPDATE users SET
+             doctor_specialty = COALESCE($2, doctor_specialty),
+             doctor_license_no = COALESCE($3, doctor_license_no),
+             updated_at = NOW()
+           WHERE id = $1
+           RETURNING *`,
+          [user.id, prereg.specialty || null, prereg.license_no || null]
+        );
+        if (rows[0]) user = rows[0];
       }
 
       // 5. Enforce account status check
@@ -273,15 +333,25 @@ export const authService = {
    * Retrieve current authenticated user profile
    */
   async getCurrentUser(userId) {
-    const user = await authRepository.findUserById(pool, userId);
+    let user = await authRepository.findUserById(pool, userId);
     if (!user) {
       throw new AppError('User profile not found', 404, 'USER_NOT_FOUND');
     }
-    return sanitizeUser(user);
+    let insurance = [];
+    if (user.role === 'PATIENT') {
+      try {
+        user = await referralsRepository.ensurePatientQr(pool, user);
+        insurance = await insuranceService.getMyInsurance(userId);
+      } catch {
+        insurance = [];
+      }
+    }
+    return sanitizeUser(user, { insurance });
   },
 
   /**
-   * First-login clinical intake so hospitals receive complete patient details on booking.
+   * First-login clinical intake so hospitals receive complete patient details on hold.
+   * Also captures insurance and issues a Care QR for doctor referrals.
    */
   async completePatientProfile(userId, profile, ip = null) {
     const existing = await authRepository.findUserById(pool, userId);
@@ -292,7 +362,17 @@ export const authService = {
       throw new AppError('Only patient accounts complete clinical intake', 403, 'FORBIDDEN');
     }
 
-    const updated = await authRepository.updatePatientProfile(pool, userId, profile);
+    let updated = await authRepository.updatePatientProfile(pool, userId, profile);
+
+    let insurance = [];
+    if (Array.isArray(profile.insurancePolicies)) {
+      insurance = await insuranceService.saveMyInsurance(userId, profile.insurancePolicies);
+    } else {
+      insurance = await insuranceService.getMyInsurance(userId);
+    }
+
+    updated = await referralsRepository.ensurePatientQr(pool, updated);
+
     await authRepository.insertAuditLog(pool, {
       actorId: userId,
       action: 'PATIENT_PROFILE_COMPLETED',
@@ -302,11 +382,12 @@ export const authService = {
       meta: {
         bloodGroup: profile.bloodGroup,
         gender: profile.gender,
-        cityName: profile.cityName
+        cityName: profile.cityName,
+        insuranceCount: insurance.length,
       }
     });
 
-    return sanitizeUser(updated);
+    return sanitizeUser(updated, { insurance });
   }
 };
 

@@ -8,9 +8,12 @@ export const adminService = {
    * CITY_ADMIN can assign to any hospital.
    * HOSPITAL_ADMIN can only assign staff to their own hospital.
    */
-  async preregisterStaff({ email, role, hospitalId, actor, ip = null }) {
+  async preregisterStaff({ email, role, hospitalId, specialty = null, licenseNo = null, actor, ip = null }) {
     // Tenant permission check
     if (actor.role === 'HOSPITAL_ADMIN') {
+      if (role === 'DOCTOR' || role === 'AMBULANCE') {
+        throw new AppError('Only City Admin can pre-register doctors or ambulance units', 403, 'FORBIDDEN');
+      }
       if (actor.hospitalId !== hospitalId) {
         throw new AppError('Hospital admins can only register staff for their own hospital tenant', 403, 'TENANT_ACCESS_DENIED');
       }
@@ -18,34 +21,39 @@ export const adminService = {
       throw new AppError('Only municipal administrators or hospital administrators may register staff', 403, 'FORBIDDEN');
     }
 
-    // Verify target hospital exists
-    const hospital = await adminRepository.hospitalExists(pool, hospitalId);
-    if (!hospital) {
-      throw new AppError('Specified hospital does not exist in the registry', 404, 'HOSPITAL_NOT_FOUND');
+    let hospital = null;
+    if (hospitalId) {
+      hospital = await adminRepository.hospitalExists(pool, hospitalId);
+      if (!hospital) {
+        throw new AppError('Specified hospital does not exist in the registry', 404, 'HOSPITAL_NOT_FOUND');
+      }
+    } else if (role !== 'DOCTOR' && role !== 'AMBULANCE') {
+      throw new AppError('hospitalId is required for hospital staff', 400, 'HOSPITAL_REQUIRED');
     }
 
     return await withTransaction(async (client) => {
-      // 1. Persist pre-registration entry
       const prereg = await adminRepository.upsertPreregisteredStaff(client, {
         email,
         role,
-        hospitalId
+        hospitalId,
+        specialty,
+        licenseNo,
       });
 
-      // 2. If user already exists in the system, update role and hospital immediately
       const existingUser = await adminRepository.updateUserRoleAndHospital(client, email, {
         role,
-        hospitalId
+        hospitalId,
+        specialty,
+        licenseNo,
       });
 
-      // 3. Log audit event
       await adminRepository.insertAuditLog(client, {
-        actorId: actor.sub,
-        action: 'STAFF_PREREGISTERED',
-        resourceType: 'HOSPITAL_STAFF',
+        actorId: actor.sub || actor.id,
+        action: role === 'DOCTOR' ? 'DOCTOR_PREREGISTERED' : 'STAFF_PREREGISTERED',
+        resourceType: role === 'DOCTOR' ? 'DOCTOR' : 'HOSPITAL_STAFF',
         resourceId: existingUser?.id || prereg.id,
         ip,
-        meta: { email, role, hospitalId, hospitalName: hospital.name }
+        meta: { email, role, hospitalId, specialty, hospitalName: hospital?.name || null }
       });
 
       return {
@@ -53,7 +61,9 @@ export const adminService = {
         email: prereg.email,
         role: prereg.role,
         hospitalId: prereg.hospital_id,
-        hospitalName: hospital.name,
+        hospitalName: hospital?.name || null,
+        specialty: prereg.specialty || specialty,
+        licenseNo: prereg.license_no || licenseNo,
         existingUserUpdated: Boolean(existingUser)
       };
     });

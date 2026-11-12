@@ -57,6 +57,14 @@ export const HospitalResultCard: React.FC<HospitalResultCardProps> = ({
     Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
   };
 
+  const insuranceBadge = (() => {
+    const cov = item.insuranceCoverage;
+    if (!cov) return null;
+    if (cov === 'COVERED') return { label: 'Covered', bg: '#DCFCE7', color: '#166534' };
+    if (cov === 'NONE_DECLARED') return { label: 'Self-pay', bg: '#F1F5F9', color: '#475569' };
+    return { label: 'Check cashless', bg: '#FEF3C7', color: '#92400E' };
+  })();
+
   return (
     <Pressable
       onPress={() => onPressDetails(hospital.id)}
@@ -91,6 +99,13 @@ export const HospitalResultCard: React.FC<HospitalResultCardProps> = ({
         <Text style={styles.doctorSpecialty} numberOfLines={1}>
           {hospitalType}
         </Text>
+        {insuranceBadge ? (
+          <View style={[styles.insuranceBadge, { backgroundColor: insuranceBadge.bg }]}>
+            <Text style={[styles.insuranceBadgeText, { color: insuranceBadge.color }]}>
+              {insuranceBadge.label}
+            </Text>
+          </View>
+        ) : null}
         {hospital.city ? (
           <Text style={styles.facilitySubtitle} numberOfLines={1}>
             {hospital.city}
@@ -120,8 +135,8 @@ export const HospitalResultCard: React.FC<HospitalResultCardProps> = ({
         >
           <Text style={styles.ctaButtonText}>
             {matchedWard.freeBeds > 0
-              ? t('results.requestBed', 'Request Bed Now')
-              : t('results.getAppointment', 'Check Nearby')}
+              ? t('results.requestBed', 'Hold Bed · 15 min')
+              : t('results.requestWhenReady', 'Request Hold')}
           </Text>
         </Pressable>
       </View>
@@ -218,6 +233,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2A2A2A',
     marginTop: 2,
+  },
+  insuranceBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  insuranceBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   facilitySubtitle: {
     fontFamily: typography.fontFamilies.body,

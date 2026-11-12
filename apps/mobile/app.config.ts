@@ -55,13 +55,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         android: {
           usesCleartextTraffic: true,
+          // R8 minify strips RN/Expo classes and causes instant launch crash
+          enableMinifyInReleaseBuilds: false,
+          enableShrinkResourcesInReleaseBuilds: false,
         },
       },
     ],
   ],
   extra: {
     eas: {
-      projectId: 'your-eas-project-id',
+      projectId: 'cf87674e-0ee6-41e2-b13f-d42dd373964b',
     },
     apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://project1-api.vercel.app/api/v1',
     socketUrl: process.env.EXPO_PUBLIC_SOCKET_URL || 'https://project1-api.vercel.app',

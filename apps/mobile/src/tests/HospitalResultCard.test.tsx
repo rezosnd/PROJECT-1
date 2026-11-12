@@ -55,8 +55,6 @@ describe('HospitalResultCard (Mobile)', () => {
       />
     )) as any;
 
-    expect(screen.getByText('Dr. Tripathi')).toBeTruthy();
-    expect(screen.getByText('General Dentist')).toBeTruthy();
     expect(screen.getByText('AIIMS Bhubaneswar')).toBeTruthy();
   });
 
@@ -72,7 +70,7 @@ describe('HospitalResultCard (Mobile)', () => {
       />
     )) as any;
 
-    const btn = screen.getByText('Get Appointment');
+    const btn = screen.getByText('Hold Bed · 15 min');
     fireEvent.press(btn);
 
     expect(onRequestBed).toHaveBeenCalledWith('hosp-001', 'ICU');

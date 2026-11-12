@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { hospitalsApi } from '../../lib/api/hospitals.api';
-import { equipmentApi } from '../../lib/api/equipment.api';
+import { equipmentApi, EquipmentItem, EquipmentStatus } from '../../lib/api/equipment.api';
 import { forecastApi } from '../../lib/api/forecast.api';
 import { WardType } from '../../lib/api/beds.api';
 import { useLiveBeds } from '../../hooks/useLiveBeds';
@@ -64,6 +64,30 @@ export const HospitalDetailPage: React.FC = () => {
   });
 
   const secondsAgo = useElapsedTime(lastUpdated);
+
+  const equipmentSummary = useMemo(() => {
+    const counts: Record<EquipmentStatus, number> = {
+      AVAILABLE: 0,
+      IN_USE: 0,
+      MAINTENANCE: 0,
+      OFFLINE: 0,
+    };
+    for (const eq of equipment) {
+      if (counts[eq.status] != null) counts[eq.status] += 1;
+    }
+    return counts;
+  }, [equipment]);
+
+  const equipmentByType = useMemo(() => {
+    const map = new Map<string, EquipmentItem[]>();
+    for (const eq of equipment) {
+      const key = eq.type || 'OTHER';
+      const list = map.get(key) || [];
+      list.push(eq);
+      map.set(key, list);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [equipment]);
 
   if (isHospLoading) {
     return (
@@ -259,47 +283,78 @@ export const HospitalDetailPage: React.FC = () => {
       {/* TAB 2: EQUIPMENT LISTING */}
       {activeTab === 'equipment' && (
         <div className="space-y-4 animate-in fade-in">
-          <Card variant="surface" className="p-0 overflow-hidden border border-hairline/80 shadow-soft">
-            <div className="p-4 border-b border-hairline/60">
-              <h3 className="font-display font-bold text-base text-ink">
-                Operational Medical Equipment ({equipment.length})
-              </h3>
-            </div>
-            <div className="divide-y divide-hairline/60">
-              {equipment.map((eq) => (
-                <div key={eq.id} className="p-4 flex items-center justify-between gap-4">
-                  <div>
-                    <span className="font-bold text-sm text-ink block">{eq.name}</span>
-                    <span className="text-xs text-muted block mt-0.5">
-                      Type: {eq.type} • Criticality: {eq.criticality}
-                    </span>
-                  </div>
+          <div className="flex flex-wrap gap-2">
+            <Chip variant="green" dot>
+              {equipmentSummary.AVAILABLE} available
+            </Chip>
+            <Chip variant="blue" dot>
+              {equipmentSummary.IN_USE} in use
+            </Chip>
+            <Chip variant="orange" dot>
+              {equipmentSummary.MAINTENANCE} maintenance
+            </Chip>
+            <Chip variant="neutral">
+              {equipment.length} total units
+            </Chip>
+          </div>
 
-                  <div className="text-right">
-                    <Chip
-                      variant={
-                        eq.status === 'AVAILABLE'
-                          ? 'green'
-                          : eq.status === 'IN_USE'
-                          ? 'blue'
-                          : eq.status === 'MAINTENANCE'
-                          ? 'orange'
-                          : 'red'
-                      }
-                      dot
-                    >
-                      {eq.status}
-                    </Chip>
-                    {eq.availableAt && (
-                      <span className="text-[10px] text-muted block mt-1">
-                        Est. Return: {new Date(eq.availableAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    )}
-                  </div>
+          {isEqLoading ? (
+            <Skeleton variant="card" className="h-48" />
+          ) : equipment.length === 0 ? (
+            <Card variant="surface" className="p-6 text-center border border-hairline/80">
+              <p className="text-sm text-muted">No equipment registered for this hospital yet.</p>
+            </Card>
+          ) : (
+            equipmentByType.map(([type, items]) => (
+              <Card key={type} variant="surface" className="p-0 overflow-hidden border border-hairline/80 shadow-soft">
+                <div className="p-4 border-b border-hairline/60 bg-[#F0FBE4]/40">
+                  <h3 className="font-display font-bold text-base text-[#0B3D1A]">
+                    {type.replace(/_/g, ' ')} <span className="text-muted font-medium">({items.length})</span>
+                  </h3>
                 </div>
-              ))}
-            </div>
-          </Card>
+                <div className="divide-y divide-hairline/60">
+                  {items.map((eq) => (
+                    <div key={eq.id} className="p-4 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <span className="font-bold text-sm text-ink block truncate">{eq.name}</span>
+                        <span className="text-xs text-muted block mt-0.5">
+                          {eq.model ? `${eq.model} · ` : ''}
+                          Criticality: {eq.criticality}
+                          {eq.serialNo ? ` · #${eq.serialNo.slice(-6)}` : ''}
+                        </span>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <Chip
+                          variant={
+                            eq.status === 'AVAILABLE'
+                              ? 'green'
+                              : eq.status === 'IN_USE'
+                              ? 'blue'
+                              : eq.status === 'MAINTENANCE'
+                              ? 'orange'
+                              : 'red'
+                          }
+                          dot
+                        >
+                          {eq.status.replace('_', ' ')}
+                        </Chip>
+                        {eq.availableAt && (
+                          <span className="text-[10px] text-muted block mt-1">
+                            Est. return:{' '}
+                            {new Date(eq.availableAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ))
+          )}
         </div>
       )}
 

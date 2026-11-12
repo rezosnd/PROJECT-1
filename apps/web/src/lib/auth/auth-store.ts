@@ -10,7 +10,29 @@ import {
   getRefreshToken,
 } from './token-store';
 
-export type UserRole = 'PATIENT' | 'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN' | 'CITY_ADMIN';
+export type UserRole =
+  | 'PATIENT'
+  | 'HOSPITAL_STAFF'
+  | 'HOSPITAL_ADMIN'
+  | 'CITY_ADMIN'
+  | 'DOCTOR';
+
+export interface PatientCareQrSummary {
+  token?: string | null;
+  imageUrl?: string | null;
+  payload?: string | null;
+}
+
+export interface PatientInsuranceSummary {
+  id?: string;
+  insurerId: string;
+  insurerCode?: string;
+  insurerName?: string;
+  insurerType?: string;
+  policyNumber?: string | null;
+  isPrimary?: boolean;
+  validUntil?: string | null;
+}
 
 export interface AuthUser {
   id: string;
@@ -21,8 +43,12 @@ export interface AuthUser {
   googlePictureUrl?: string | null;
   role: UserRole;
   hospitalId?: string | null;
+  doctorSpecialty?: string | null;
+  doctorLicenseNo?: string | null;
   profileComplete?: boolean;
   needsProfileSetup?: boolean;
+  careQr?: PatientCareQrSummary | null;
+  insurance?: PatientInsuranceSummary[];
   profile?: Record<string, any> | null;
 }
 

@@ -2,6 +2,7 @@ import { matchingRepository } from './matching.repository.js';
 import { conditionsService } from '../conditions/conditions.service.js';
 import { scoreHospitalCandidate } from './scoring/index.js';
 import { forecastService } from '../forecast/forecast.service.js';
+import { insuranceRepository } from '../insurance/insurance.repository.js';
 import { redis, isRedisAvailable } from '../../infra/redis.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { logger } from '../../infra/logger.js';
@@ -13,8 +14,19 @@ export const matchingService = {
   /**
    * Evaluates condition-based hospital matching with PostGIS spatial radius,
    * hard capability filters, dynamic multi-attribute scoring, and Poisson forecasting.
+   * Also ranks by patient insurance empanelment when available.
    */
-  async findMatches({ conditionId, q, lat, lng, radiusKm = 25, severity = null, limit = 10 }) {
+  async findMatches({
+    conditionId,
+    q,
+    lat,
+    lng,
+    radiusKm = 25,
+    severity = null,
+    limit = 10,
+    patientId = null,
+    insurerIds = null,
+  }) {
     // 1. Resolve clinical condition and requirements
     let condition = null;
     if (conditionId) {
@@ -49,7 +61,19 @@ export const matchingService = {
     }
 
     const effectiveSeverity = severity || condition.severity_default || 'NORMAL';
-    const cacheKey = `match:${condition.id}:${Number(lat).toFixed(3)}:${Number(lng).toFixed(3)}:${radiusKm}:${effectiveSeverity}:${limit}`;
+
+    let patientInsurerIds = Array.isArray(insurerIds) ? insurerIds.map(String) : [];
+    if ((!patientInsurerIds.length) && patientId) {
+      try {
+        const policies = await insuranceRepository.listPatientInsurance(undefined, patientId);
+        patientInsurerIds = policies.map((p) => String(p.insurer_id));
+      } catch (err) {
+        logger.warn({ err: err.message }, '[Matching Engine] Could not load patient insurance');
+      }
+    }
+
+    const insuranceKey = patientInsurerIds.slice().sort().join(',') || 'none';
+    const cacheKey = `match:${condition.id}:${Number(lat).toFixed(3)}:${Number(lng).toFixed(3)}:${radiusKm}:${effectiveSeverity}:${limit}:${insuranceKey}`;
 
     // 2. Check 10-second Redis cache
     if (isRedisAvailable()) {
@@ -78,10 +102,12 @@ export const matchingService = {
 
     // 4. Evaluate each candidate hospital against clinical requirements
     for (const hospital of candidates) {
+      hospital.acceptedInsurerIds = hospital.accepted_insurer_ids || [];
       const scoreResult = scoreHospitalCandidate(hospital, condition.requirements, {
         distanceMeters: Number(hospital.distance_meters || 0),
         severity: effectiveSeverity,
-        bedsNeeded: 1
+        bedsNeeded: 1,
+        patientInsurerIds,
       });
 
       if (!scoreResult.eligible) {
@@ -110,6 +136,7 @@ export const matchingService = {
           explanation: scoreResult.explanation,
           allocatedWard: scoreResult.selectedWard,
           freeBedsNow: scoreResult.freeCount,
+          insuranceCoverage: scoreResult.insuranceCoverage || null,
           location: {
             latitude: Number(hospital.latitude),
             longitude: Number(hospital.longitude)

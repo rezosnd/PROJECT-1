@@ -147,7 +147,7 @@ export default function TopDoctorsScreen() {
                 </View>
               </View>
 
-              {/* CENTER COLUMN: Doctor Info & "Get Appointment" Button */}
+              {/* CENTER COLUMN: Doctor info & Care QR CTA */}
               <View style={styles.infoColumn}>
                 <Text style={styles.doctorName} numberOfLines={1}>
                   {doc.name}
@@ -161,15 +161,18 @@ export default function TopDoctorsScreen() {
 
                 {/* Solid Black CTA Pill */}
                 <Pressable
-                  onPress={() => handleOpenDoctorDetail(doc)}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    router.push('/(tabs)/profile');
+                  }}
                   style={({ pressed }) => [
                     styles.appointmentBtn,
                     pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={`Get appointment with ${doc.name}`}
+                  accessibilityLabel="Open Care QR in Profile for doctor referral"
                 >
-                  <Text style={styles.appointmentBtnText}>Get Appointment</Text>
+                  <Text style={styles.appointmentBtnText}>Care QR · refer</Text>
                 </Pressable>
               </View>
 

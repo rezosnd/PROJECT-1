@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { hospitalsApi } from '../../src/lib/api/hospitals.api';
+import { equipmentApi, EquipmentItem, EquipmentStatus } from '../../src/lib/api/equipment.api';
 import { forecastApi } from '../../src/lib/api/forecast.api';
 import { useLiveBeds } from '../../src/hooks/useLiveBeds';
 import { useElapsedTime } from '../../src/hooks/useElapsedTime';
@@ -26,6 +27,7 @@ import {
   Info,
   Star,
   Calendar,
+  Activity,
   Check,
   Phone,
   Navigation,
@@ -43,7 +45,7 @@ export default function HospitalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const hospitalId = id || 'hosp-002';
 
-  const [activeTab, setActiveTab] = useState<'info' | 'location' | 'reviews' | 'slots'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'location' | 'equipment' | 'slots'>('info');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [requestSheetOpen, setRequestSheetOpen] = useState(false);
   const [selectedWardForRequest, setSelectedWardForRequest] = useState('ICU');
@@ -60,6 +62,42 @@ export default function HospitalDetailScreen() {
     queryKey: ['hospital-forecast', hospitalId],
     queryFn: () => forecastApi.getForecast(hospitalId, 'ICU'),
   });
+
+  const { data: equipment = [], isLoading: isEqLoading } = useQuery({
+    queryKey: ['hospital-equipment', hospitalId],
+    queryFn: () => equipmentApi.getHospitalEquipment(hospitalId),
+  });
+
+  const equipmentSummary = useMemo(() => {
+    const counts: Record<EquipmentStatus, number> = {
+      AVAILABLE: 0,
+      IN_USE: 0,
+      MAINTENANCE: 0,
+      OFFLINE: 0,
+    };
+    for (const eq of equipment) {
+      if (counts[eq.status] != null) counts[eq.status] += 1;
+    }
+    return counts;
+  }, [equipment]);
+
+  const equipmentByType = useMemo(() => {
+    const map = new Map<string, EquipmentItem[]>();
+    for (const eq of equipment) {
+      const key = eq.type || 'OTHER';
+      const list = map.get(key) || [];
+      list.push(eq);
+      map.set(key, list);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [equipment]);
+
+  const statusColor = (status: EquipmentStatus) => {
+    if (status === 'AVAILABLE') return colors.green;
+    if (status === 'IN_USE') return colors.blue;
+    if (status === 'MAINTENANCE') return colors.orange;
+    return colors.red;
+  };
 
   const hospitalName = hospital?.name || 'Hospital';
   const hospitalType = hospital?.type || hospital?.specialties?.[0] || 'Emergency care';
@@ -202,17 +240,17 @@ export default function HospitalDetailScreen() {
               </Text>
             </Pressable>
 
-            {/* TAB 3: REVIEWS */}
+            {/* TAB 3: EQUIPMENT */}
             <Pressable
-              onPress={() => setActiveTab('reviews')}
+              onPress={() => setActiveTab('equipment')}
               style={[
                 styles.tabIconButton,
-                activeTab === 'reviews' && styles.tabIconButtonActive,
+                activeTab === 'equipment' && styles.tabIconButtonActive,
               ]}
             >
-              <Star
+              <Activity
                 size={18}
-                color={activeTab === 'reviews' ? '#FFFFFF' : '#111111'}
+                color={activeTab === 'equipment' ? '#FFFFFF' : '#111111'}
                 strokeWidth={2}
               />
             </Pressable>
@@ -303,23 +341,52 @@ export default function HospitalDetailScreen() {
             </View>
           )}
 
-          {/* TAB 3: REVIEWS */}
-          {activeTab === 'reviews' && (
+          {/* TAB 3: EQUIPMENT */}
+          {activeTab === 'equipment' && (
             <View style={styles.tabContentBlock}>
-              <View style={styles.reviewSummaryRow}>
-                <Text style={styles.ratingBigNumber}>4.8</Text>
-                <View>
-                  <View style={{ flexDirection: 'row', gap: 3 }}>
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Star key={i} size={16} color="#111111" fill="#111111" />
+              <Text style={styles.sectionHeader}>Medical equipment</Text>
+              <View style={styles.eqSummaryRow}>
+                <Text style={styles.eqSummaryPill}>
+                  {equipmentSummary.AVAILABLE} available
+                </Text>
+                <Text style={styles.eqSummaryPill}>
+                  {equipmentSummary.IN_USE} in use
+                </Text>
+                <Text style={styles.eqSummaryPill}>
+                  {equipmentSummary.MAINTENANCE} maint.
+                </Text>
+                <Text style={styles.eqSummaryPillBold}>{equipment.length} total</Text>
+              </View>
+
+              {isEqLoading ? (
+                <Text style={styles.liveHint}>Loading equipment…</Text>
+              ) : equipment.length === 0 ? (
+                <Text style={styles.forecastDesc}>No equipment listed for this hospital yet.</Text>
+              ) : (
+                equipmentByType.map(([type, items]) => (
+                  <View key={type} style={styles.eqTypeBlock}>
+                    <Text style={styles.eqTypeTitle}>
+                      {type.replace(/_/g, ' ')} ({items.length})
+                    </Text>
+                    {items.map((eq) => (
+                      <View key={eq.id} style={styles.eqRow}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.eqName} numberOfLines={1}>
+                            {eq.name}
+                          </Text>
+                          <Text style={styles.eqSub}>
+                            {eq.type}
+                            {eq.criticality ? ` · ${eq.criticality}` : ''}
+                          </Text>
+                        </View>
+                        <Text style={[styles.eqStatus, { color: statusColor(eq.status) }]}>
+                          {eq.status.replace('_', ' ')}
+                        </Text>
+                      </View>
                     ))}
                   </View>
-                  <Text style={styles.verifiedReviewsCount}>142 verified ABHA patient reviews</Text>
-                </View>
-              </View>
-              <Text style={styles.reviewQuote}>
-                &ldquo;Immediate ICU bed availability confirmed in 2 minutes. Ventilator was pre-set upon patient arrival.&rdquo;
-              </Text>
+                ))
+              )}
             </View>
           )}
 
@@ -789,5 +856,70 @@ const styles = StyleSheet.create({
     backgroundColor: '#242830',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  eqSummaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  eqSummaryPill: {
+    fontFamily: typography.fontFamilies.bodyMedium,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#333',
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  eqSummaryPillBold: {
+    fontFamily: typography.fontFamilies.bodyBold,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0B3D1A',
+    backgroundColor: '#B9F84B',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  eqTypeBlock: {
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 16,
+    padding: 10,
+  },
+  eqTypeTitle: {
+    fontFamily: typography.fontFamilies.bodyBold,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0B3D1A',
+    marginBottom: 8,
+  },
+  eqRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.06)',
+  },
+  eqName: {
+    fontFamily: typography.fontFamilies.bodyBold,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111',
+  },
+  eqSub: {
+    fontFamily: typography.fontFamilies.body,
+    fontSize: 10,
+    color: '#666',
+    marginTop: 2,
+  },
+  eqStatus: {
+    fontFamily: typography.fontFamilies.bodyBold,
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
 });

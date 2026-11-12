@@ -5,6 +5,10 @@
   "description": "CityHealth - Live Bed & Equipment Availability with ABHA (Distributed Systems Prototype)",
   "scripts": {
     "dev": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:mobile": "npm --prefix apps/mobile start",
+    "dev:doctor": "npm --prefix apps/doctor start",
+    "dev:ambulance": "npm --prefix apps/ambulance start",
     "migrate:up": "npm --prefix apps/api run migrate:up",
     "migrate:down": "npm --prefix apps/api run migrate:down",
     "seed": "npm --prefix apps/api run seed",

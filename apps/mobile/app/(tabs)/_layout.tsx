@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { Home, Building2, Clock, User } from 'lucide-react-native';
+import { Home, Building2, Clock, User, Droplets } from 'lucide-react-native';
 import { typography } from '../../src/theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -77,7 +77,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="equipment"
         options={{
-          href: null,
+          title: 'Blood',
+          tabBarIcon: ({ focused }) => (
+            <TabItem icon={Droplets} label="Blood" focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen

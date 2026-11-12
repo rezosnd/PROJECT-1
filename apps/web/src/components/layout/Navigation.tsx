@@ -16,6 +16,8 @@ import {
   PanelLeftOpen,
   Building2,
   Clock,
+  Droplets,
+  Sparkles,
 } from 'lucide-react';
 import { BrandMark } from '../brand/BrandMark';
 
@@ -33,6 +35,8 @@ export const Navigation: React.FC = () => {
   const patientItems: NavItem[] = [
     { to: '/', label: 'Dashboard', icon: Home },
     { to: '/results', label: 'Find Beds', icon: Search },
+    { to: '/blood', label: 'Blood Bank', icon: Droplets },
+    { to: '/ai', label: 'CityHealth AI', icon: Sparkles },
     { to: '/doctors', label: 'Top Doctors', icon: Stethoscope },
     { to: '/equipment', label: 'Equipment', icon: Activity },
     { to: '/requests', label: 'My Requests', icon: ClipboardList },
@@ -41,6 +45,8 @@ export const Navigation: React.FC = () => {
   const hospitalItems: NavItem[] = [
     { to: '/hospital', label: 'Ward Dashboard', icon: BedDouble },
     { to: '/hospital?tab=queue', label: 'Bed Queue', icon: ClipboardList },
+    { to: '/hospital?tab=blood', label: 'Blood Bank', icon: Droplets },
+    { to: '/hospital?tab=blood-queue', label: 'Blood Desk', icon: Droplets },
     { to: '/hospital?tab=equipment', label: 'Equipment', icon: Stethoscope },
     ...(role === 'HOSPITAL_ADMIN'
       ? ([{ to: '/hospital?tab=staff', label: 'Staff Access', icon: Users }] as NavItem[])
@@ -57,14 +63,15 @@ export const Navigation: React.FC = () => {
     : isHospital
       ? [
           { to: '/hospital', label: 'Home', icon: Home },
-          { to: '/hospital?tab=queue', label: 'Queue', icon: ClipboardList },
-          { to: '/hospital?tab=equipment', label: 'Equip', icon: Stethoscope },
+          { to: '/hospital?tab=queue', label: 'Beds', icon: ClipboardList },
+          { to: '/hospital?tab=blood-queue', label: 'Blood', icon: Droplets },
           { to: '/profile', label: 'Profile', icon: User },
         ]
       : [
           { to: '/', label: 'Home', icon: Home },
           { to: '/results', label: 'Hospitals', icon: Building2 },
-          { to: '/equipment', label: 'Equipment', icon: Stethoscope },
+          { to: '/blood', label: 'Blood', icon: Droplets },
+          { to: '/ai', label: 'AI', icon: Sparkles },
           { to: '/requests', label: 'Requests', icon: Clock },
           { to: '/profile', label: 'Profile', icon: User },
         ];
@@ -74,6 +81,9 @@ export const Navigation: React.FC = () => {
     if (!item.to.includes('?')) {
       if (item.to === '/results') {
         return location.pathname === '/results' || location.pathname.startsWith('/hospitals/');
+      }
+      if (item.to === '/ai') {
+        return location.pathname === '/ai';
       }
       return isActive;
     }

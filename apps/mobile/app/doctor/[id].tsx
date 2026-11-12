@@ -8,7 +8,6 @@ import {
   Image,
   Dimensions,
   Linking,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +18,6 @@ import {
   Info,
   Star,
   Calendar,
-  Check,
   ChevronRight,
   ShieldCheck,
   Phone,
@@ -36,11 +34,8 @@ export default function DoctorDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const doctor = getDoctorById(id || 'doc-002');
-  const [activeTab, setActiveTab] = useState<'info' | 'location' | 'reviews' | 'slots'>('location');
+  const [activeTab, setActiveTab] = useState<'info' | 'location' | 'reviews' | 'referral'>('location');
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<string>('10:30 AM');
-  const [selectedDay, setSelectedDay] = useState<'today' | 'tomorrow'>('today');
-  const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
   const handleBookmarkToggle = () => {
     Haptics.selectionAsync();
@@ -59,23 +54,9 @@ export default function DoctorDetailScreen() {
     Linking.openURL(`tel:${doctor.phone}`);
   };
 
-  const handleConfirmAppointment = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setBookingConfirmed(true);
-    Alert.alert(
-      'Appointment confirmed',
-      `Your visit with ${doctor.name} at ${doctor.hospitalName} is set for ${selectedDay === 'today' ? 'Today' : 'Tomorrow'} at ${selectedSlot}.`,
-      [
-        {
-          text: 'Go to hospital',
-          onPress: () =>
-            Linking.openURL(
-              `https://www.google.com/maps/search/?api=1&query=${doctor.latitude},${doctor.longitude}`
-            ),
-        },
-        { text: 'Done', style: 'cancel' },
-      ]
-    );
+  const handleOpenCareQr = () => {
+    Haptics.selectionAsync();
+    router.push('/(tabs)/profile');
   };
 
   return (
@@ -216,21 +197,21 @@ export default function DoctorDetailScreen() {
               />
             </Pressable>
 
-            {/* 4. CALENDAR / SLOTS TAB */}
+            {/* 4. REFERRAL TAB */}
             <Pressable
               onPress={() => {
                 Haptics.selectionAsync();
-                setActiveTab('slots');
+                setActiveTab('referral');
               }}
               style={[
                 styles.tabIconButton,
-                activeTab === 'slots' && styles.tabIconButtonActive,
+                activeTab === 'referral' && styles.tabIconButtonActive,
               ]}
-              accessibilityLabel="Appointment Slots"
+              accessibilityLabel="Doctor referral via Care QR"
             >
               <Calendar
                 size={19}
-                color={activeTab === 'slots' ? '#FFFFFF' : '#111111'}
+                color={activeTab === 'referral' ? '#FFFFFF' : '#111111'}
                 strokeWidth={2.2}
               />
             </Pressable>
@@ -336,150 +317,43 @@ export default function DoctorDetailScreen() {
             </View>
           )}
 
-          {/* TAB 4: CALENDAR / SLOTS TAB */}
-          {activeTab === 'slots' && (
+          {activeTab === 'referral' && (
             <View style={styles.tabContentContainer}>
               <View style={styles.infoContentCard}>
-                {/* Day selector */}
-                <View style={styles.daySelectorRow}>
-                  <Pressable
-                    onPress={() => setSelectedDay('today')}
-                    style={[
-                      styles.dayPill,
-                      selectedDay === 'today' && styles.dayPillActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.dayPillText,
-                        selectedDay === 'today' && styles.dayPillTextActive,
-                      ]}
-                    >
-                      Today (Fast Track)
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() => setSelectedDay('tomorrow')}
-                    style={[
-                      styles.dayPill,
-                      selectedDay === 'tomorrow' && styles.dayPillActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.dayPillText,
-                        selectedDay === 'tomorrow' && styles.dayPillTextActive,
-                      ]}
-                    >
-                      Tomorrow
-                    </Text>
-                  </Pressable>
+                <View style={styles.verifiedBadgeRow}>
+                  <ShieldCheck size={14} color="#059669" />
+                  <Text style={styles.verifiedBadgeText}>Referrals via Care QR</Text>
                 </View>
-
-                {/* Slots Grid */}
-                <Text style={styles.slotGroupTitle}>Morning Slots</Text>
-                <View style={styles.slotsRow}>
-                  {doctor.slots.morning.map((slot) => {
-                    const isSelected = selectedSlot === slot;
-                    return (
-                      <Pressable
-                        key={slot}
-                        onPress={() => {
-                          Haptics.selectionAsync();
-                          setSelectedSlot(slot);
-                        }}
-                        style={[
-                          styles.slotButton,
-                          isSelected && styles.slotButtonActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.slotButtonText,
-                            isSelected && styles.slotButtonTextActive,
-                          ]}
-                        >
-                          {slot}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                <Text style={[styles.slotGroupTitle, { marginTop: 12 }]}>Evening Slots</Text>
-                <View style={styles.slotsRow}>
-                  {doctor.slots.evening.map((slot) => {
-                    const isSelected = selectedSlot === slot;
-                    return (
-                      <Pressable
-                        key={slot}
-                        onPress={() => {
-                          Haptics.selectionAsync();
-                          setSelectedSlot(slot);
-                        }}
-                        style={[
-                          styles.slotButton,
-                          isSelected && styles.slotButtonActive,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.slotButtonText,
-                            isSelected && styles.slotButtonTextActive,
-                          ]}
-                        >
-                          {slot}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <Text style={styles.aboutText}>
+                  Doctors refer you using the Care QR in your Profile. Open Profile, show your QR, and ask your doctor
+                  to scan with the GetMyHospital Doctor app — no in-app appointment booking here.
+                </Text>
+                <Text style={[styles.aboutText, { marginTop: 8 }]}>
+                  For emergency beds, use Search to place a 15-minute verified hold at a hospital.
+                </Text>
               </View>
             </View>
           )}
 
-          {bookingConfirmed ? (
-            <Pressable
-              onPress={handleOpenMap}
-              style={({ pressed }) => [
-                styles.sliderBarContainer,
-                pressed && { opacity: 0.9, transform: [{ scale: 0.985 }] },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Go to hospital"
-            >
-              <View style={styles.sliderWhiteCircle}>
-                <MapPin size={20} color="#111111" strokeWidth={2.5} />
-              </View>
-              <View style={styles.sliderArrowsWrapper}>
-                <Text style={styles.goHospitalLabel}>Go to hospital</Text>
-              </View>
-              <View style={styles.sliderDarkCircle}>
-                <ChevronRight size={20} color="#FFFFFF" strokeWidth={2.5} />
-              </View>
-            </Pressable>
-          ) : (
-            <Pressable
-              onPress={handleConfirmAppointment}
-              style={({ pressed }) => [
-                styles.sliderBarContainer,
-                pressed && { opacity: 0.9, transform: [{ scale: 0.985 }] },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Confirm doctor appointment"
-            >
-              <View style={styles.sliderWhiteCircle}>
-                <Check size={22} color="#111111" strokeWidth={3} />
-              </View>
-              <View style={styles.sliderArrowsWrapper}>
-                <Text style={styles.sliderArrowText}>›   ›</Text>
-              </View>
-              <View style={styles.sliderDarkCircle}>
-                <Check size={20} color="#FFFFFF" strokeWidth={2.5} />
-              </View>
-            </Pressable>
-          )}
+          <Pressable
+            onPress={handleOpenCareQr}
+            style={({ pressed }) => [
+              styles.sliderBarContainer,
+              pressed && { opacity: 0.9, transform: [{ scale: 0.985 }] },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Open Care QR in Profile"
+          >
+            <View style={styles.sliderWhiteCircle}>
+              <ShieldCheck size={22} color="#111111" strokeWidth={2.5} />
+            </View>
+            <View style={styles.sliderArrowsWrapper}>
+              <Text style={styles.goHospitalLabel}>Care QR in Profile</Text>
+            </View>
+            <View style={styles.sliderDarkCircle}>
+              <ChevronRight size={20} color="#FFFFFF" strokeWidth={2.5} />
+            </View>
+          </Pressable>
         </View>
       </ScrollView>
     </View>
