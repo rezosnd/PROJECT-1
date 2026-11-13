@@ -247,17 +247,30 @@ export const sosRepository = {
   },
 
   async updateSosStatus(db = pool, { sosId, status, ambulanceId, destinationHospitalId }) {
+    // Cast every bind explicitly — reusing $2 as both varchar status and in CASE
+    // caused: "inconsistent types deduced for parameter $2"
+    const dest =
+      destinationHospitalId && String(destinationHospitalId).trim()
+        ? String(destinationHospitalId).trim()
+        : null;
     const res = await db.query(
       `UPDATE sos_requests
-       SET status = $2,
-           destination_hospital_id = COALESCE($3, destination_hospital_id),
-           completed_at = CASE WHEN $2 IN ('COMPLETED', 'CANCELLED') THEN NOW() ELSE completed_at END,
-           cancelled_at = CASE WHEN $2 = 'CANCELLED' THEN NOW() ELSE cancelled_at END,
+       SET status = $2::varchar,
+           destination_hospital_id = COALESCE($3::uuid, destination_hospital_id),
+           completed_at = CASE
+             WHEN $2::text IN ('COMPLETED', 'CANCELLED') THEN NOW()
+             ELSE completed_at
+           END,
+           cancelled_at = CASE
+             WHEN $2::text = 'CANCELLED' THEN NOW()
+             ELSE cancelled_at
+           END,
            updated_at = NOW()
-       WHERE id = $1
-         AND ($4::uuid IS NULL OR accepted_ambulance_id = $4 OR patient_id IS NOT NULL)
+       WHERE id = $1::uuid
+         AND accepted_ambulance_id = $4::uuid
+         AND status IN ('ACCEPTED', 'EN_ROUTE', 'ARRIVED')
        RETURNING *`,
-      [sosId, status, destinationHospitalId || null, ambulanceId || null]
+      [sosId, String(status), dest, ambulanceId]
     );
     return res.rows[0] || null;
   },

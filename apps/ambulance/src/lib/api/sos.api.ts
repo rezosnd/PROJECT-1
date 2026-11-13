@@ -91,7 +91,9 @@ export const sosApi = {
     status: 'EN_ROUTE' | 'ARRIVED' | 'COMPLETED' | 'CANCELLED',
     destinationHospitalId?: string
   ): Promise<SosRequest> {
-    const res = await apiClient.patch(`/sos/${id}/status`, { status, destinationHospitalId });
+    const body: { status: string; destinationHospitalId?: string } = { status };
+    if (destinationHospitalId) body.destinationHospitalId = destinationHospitalId;
+    const res = await apiClient.patch(`/sos/${id}/status`, body);
     return res.data.data;
   },
 
