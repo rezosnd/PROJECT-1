@@ -196,9 +196,19 @@ export const sosRepository = {
         await client.query('ROLLBACK');
         return { ok: false, code: 'AMBULANCE_FORBIDDEN' };
       }
-      if (amb.rows[0].status !== 'AVAILABLE') {
-        await client.query('ROLLBACK');
-        return { ok: false, code: 'AMBULANCE_BUSY' };
+      // Allow AVAILABLE / OFFLINE. If stuck BUSY/EN_ROUTE with no live SOS, recover.
+      if (amb.rows[0].status !== 'AVAILABLE' && amb.rows[0].status !== 'OFFLINE') {
+        const active = await client.query(
+          `SELECT id FROM sos_requests
+           WHERE accepted_ambulance_id = $1
+             AND status IN ('ACCEPTED', 'EN_ROUTE', 'ARRIVED')
+           LIMIT 1`,
+          [ambulanceId]
+        );
+        if (active.rows[0]) {
+          await client.query('ROLLBACK');
+          return { ok: false, code: 'AMBULANCE_BUSY' };
+        }
       }
 
       const upd = await client.query(

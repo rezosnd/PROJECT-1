@@ -78,7 +78,9 @@ export default function SosOffersScreen() {
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
     queryKey: ['sos', 'offers'],
     queryFn: () => sosApi.listOffers(),
-    refetchInterval: 8000,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
   const accept = async (id: string) => {
@@ -106,7 +108,9 @@ export default function SosOffersScreen() {
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Live SOS offers</Text>
-        <Text style={styles.headerSub}>Stay on duty and refresh for new emergencies</Text>
+        <Text style={styles.headerSub}>
+          Stay Available · allow notifications · first accept wins
+        </Text>
       </View>
 
       {isLoading ? (

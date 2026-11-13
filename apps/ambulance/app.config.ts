@@ -4,7 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'GetMyHospital Ambulance',
   slug: 'getmyhospital-ambulance',
-  version: '1.0.1',
+  version: '1.0.2',
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'gmhambulance',
@@ -20,11 +20,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'GetMyHospital Ambulance uses your location to receive nearby SOS dispatches and report your unit position to patients.',
-      UIBackgroundModes: ['location'],
+      NSLocationAlwaysAndWhenInUseUsageDescription:
+        'Allow background location so you stay available for emergency SOS while on duty.',
+      UIBackgroundModes: ['location', 'remote-notification'],
     },
   },
   android: {
-    versionCode: 2,
+    versionCode: 3,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0B3D1A',
@@ -35,6 +37,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'android.permission.ACCESS_FINE_LOCATION',
       'android.permission.INTERNET',
       'android.permission.ACCESS_NETWORK_STATE',
+      'android.permission.POST_NOTIFICATIONS',
+      'android.permission.VIBRATE',
+      'android.permission.RECEIVE_BOOT_COMPLETED',
+      'android.permission.WAKE_LOCK',
+      'android.permission.SCHEDULE_EXACT_ALARM',
     ],
     intentFilters: [
       {
@@ -53,6 +60,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         locationWhenInUsePermission:
           'Allow GetMyHospital Ambulance to access your location for SOS dispatch and live unit tracking.',
+        isAndroidBackgroundLocationEnabled: false,
       },
     ],
     [
@@ -60,9 +68,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         icon: './assets/icon.png',
         color: '#0B3D1A',
+        sounds: [],
+        defaultChannel: 'sos',
       },
     ],
   ],
+  notification: {
+    icon: './assets/icon.png',
+    color: '#0B3D1A',
+    androidMode: 'default',
+    androidCollapsedTitle: 'SOS dispatch',
+  },
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://project1-api.vercel.app/api/v1',
     googleWebClientId:

@@ -153,12 +153,13 @@ export const sosService = {
     if (!row) throw new AppError('SOS request not found', 404, 'SOS_NOT_FOUND');
 
     const isPatient = requester.role === 'PATIENT' && requester.id === row.patient_id;
-    const isDriver =
+    const isAssignedDriver =
+      requester.role === 'AMBULANCE' && requester.id === row.accepted_by_user_id;
+    const isOpenOffer =
       requester.role === 'AMBULANCE' &&
-      (requester.id === row.accepted_by_user_id ||
-        ['OPEN', 'ACCEPTED', 'EN_ROUTE'].includes(row.status));
+      ['OPEN', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED'].includes(row.status);
     const isStaff = ['HOSPITAL_STAFF', 'HOSPITAL_ADMIN', 'CITY_ADMIN'].includes(requester.role);
-    if (!isPatient && !isDriver && !isStaff) {
+    if (!isPatient && !isAssignedDriver && !isOpenOffer && !isStaff) {
       throw new AppError('Not allowed to view this SOS', 403, 'FORBIDDEN');
     }
     return mapSos(row);
@@ -248,12 +249,38 @@ export const sosService = {
       throw new AppError('Only the assigned ambulance can update this SOS', 403, 'FORBIDDEN');
     }
 
+    // Ordered trip flow: ACCEPTED → EN_ROUTE → ARRIVED → COMPLETED
+    const transitions = {
+      ACCEPTED: ['EN_ROUTE', 'CANCELLED'],
+      EN_ROUTE: ['ARRIVED', 'CANCELLED'],
+      ARRIVED: ['COMPLETED', 'CANCELLED'],
+    };
+    const allowedNext = transitions[current.status] || [];
+    if (!allowedNext.includes(status)) {
+      const hint =
+        current.status === 'ACCEPTED'
+          ? 'Tap En route first, then Arrived.'
+          : current.status === 'EN_ROUTE'
+            ? 'Tap Arrived on scene next.'
+            : current.status === 'ARRIVED'
+              ? 'Tap Complete handoff next.'
+              : `Current status is ${current.status}.`;
+      throw new AppError(
+        `Cannot set ${status} from ${current.status}. ${hint}`,
+        400,
+        'INVALID_TRANSITION'
+      );
+    }
+
     const updated = await sosRepository.updateSosStatus(pool, {
       sosId,
       status,
       ambulanceId: amb.id,
       destinationHospitalId,
     });
+    if (!updated) {
+      throw new AppError('Could not update SOS status', 400, 'STATUS_UPDATE_FAILED');
+    }
 
     if (status === 'COMPLETED' || status === 'CANCELLED') {
       await sosRepository.releaseAmbulance(pool, amb.id);
@@ -261,18 +288,40 @@ export const sosService = {
       await pool.query(`UPDATE ambulances SET status = 'EN_ROUTE', updated_at = NOW() WHERE id = $1`, [
         amb.id,
       ]);
+    } else if (status === 'ARRIVED') {
+      await pool.query(`UPDATE ambulances SET status = 'BUSY', updated_at = NOW() WHERE id = $1`, [
+        amb.id,
+      ]);
     }
 
     const full = await sosRepository.getById(pool, sosId);
+    const statusLabel =
+      status === 'EN_ROUTE'
+        ? 'en route to you'
+        : status === 'ARRIVED'
+          ? 'arrived on scene'
+          : status === 'COMPLETED'
+            ? 'completed the handoff'
+            : status.toLowerCase();
     await notifyUsers([full.patient_id], {
-      title: `Ambulance ${status.replace('_', ' ').toLowerCase()}`,
-      body: `${full.ambulance_call_sign || 'Your ambulance'} is now ${status}.`,
+      title:
+        status === 'ARRIVED'
+          ? 'Ambulance arrived'
+          : status === 'EN_ROUTE'
+            ? 'Ambulance en route'
+            : `Ambulance ${status.replace('_', ' ').toLowerCase()}`,
+      body: `${full.ambulance_call_sign || 'Your ambulance'} is ${statusLabel}.`,
       data: { type: 'SOS_STATUS', sosId, status },
     });
     await broadcastRealtimeEvent({
       event: 'sos:status',
       room: `user:${full.patient_id}`,
       payload: mapSos(full),
+    });
+    await broadcastRealtimeEvent({
+      event: 'sos:status',
+      room: 'ambulance:city',
+      payload: { sosId, status, ambulanceId: amb.id },
     });
 
     return mapSos(full);
