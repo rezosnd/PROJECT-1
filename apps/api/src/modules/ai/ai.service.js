@@ -53,8 +53,8 @@ function buildFallbackReply({ language, safety, knowledge, hospitals, equipmentN
   if (safety.severity === 'CRITICAL') {
     lines.push(
       hi
-        ? '⚠️ यह एक संभावित आपातकाल हो सकता है। तुरंत 112 पर कॉल करें या नज़दीकी इमरजेंसी में जाएँ। ऐप इमरजेंसी सेवाओं का विकल्प नहीं है।'
-        : '⚠️ This may be a medical emergency. Call **112** now or go to the nearest emergency department. This app is not a substitute for EMS.'
+        ? 'यह एक संभावित आपातकाल हो सकता है। तुरंत 112 पर कॉल करें या नज़दीकी इमरजेंसी में जाएँ।'
+        : 'This may be a medical emergency. Call 112 now or go to the nearest emergency department.'
     );
   } else if (safety.severity === 'URGENT') {
     lines.push(
@@ -62,47 +62,44 @@ function buildFallbackReply({ language, safety, knowledge, hospitals, equipmentN
         ? 'कृपया जल्द चिकित्सा सलाह लें। लक्षण बिगड़ने पर 112 कॉल करें।'
         : 'Please seek prompt medical care. Call 112 if symptoms worsen.'
     );
+  } else if (knowledge?.articles?.length) {
+    const top = knowledge.articles[0];
+    const snippet = String(top.excerpt || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 160);
+    lines.push(
+      hi
+        ? `${top.title} से जुड़ी सामान्य जानकारी: ${snippet}${snippet.length >= 160 ? '…' : ''} यह निदान नहीं है।`
+        : `Here’s general guidance on ${top.title.toLowerCase()}: ${snippet}${snippet.length >= 160 ? '…' : ''} This is education, not a diagnosis.`
+    );
   } else {
     lines.push(
       hi
-        ? 'मैं CityHealth AI हूँ — सामान्य स्वास्थ्य जानकारी और अस्पताल खोज में मदद करता हूँ। यह निदान नहीं है।'
-        : 'I am CityHealth AI — I share general health information and help find verified hospitals. I do not diagnose.'
+        ? 'मैं सामान्य स्वास्थ्य जानकारी और सत्यापित अस्पताल खोज में मदद करता हूँ। यह निदान नहीं है।'
+        : 'I can share general health information and help find verified hospitals. I do not diagnose.'
     );
-  }
-
-  if (knowledge?.articles?.length) {
-    lines.push(hi ? '\n**विश्वसनीय जानकारी:**' : '\n**Trusted guidance:**');
-    for (const a of knowledge.articles.slice(0, 2)) {
-      lines.push(`• **${a.title}** — ${a.excerpt.slice(0, 280)}…`);
-      if (a.sourceName) lines.push(`  _Source: ${a.sourceName}_`);
-    }
   }
 
   if (hospitals?.length) {
-    lines.push(hi ? '\n**नज़दीकी उपयुक्त अस्पताल (सत्यापित डेटा):**' : '\n**Nearby suitable hospitals (verified data):**');
-    for (const h of hospitals.slice(0, 5)) {
-      lines.push(
-        `• **${h.name}** — ${h.distanceKm} km` +
-          (h.freeBedsNow != null ? `, ${h.freeBedsNow} free ${h.allocatedWard || 'beds'}` : '') +
-          (h.phone ? `, ${h.phone}` : '')
-      );
-    }
     lines.push(
       hi
-        ? '_उपलब्धता बदल सकती है — होल्ड करने से पहले ऐप में लाइव बेड देखें।_'
-        : '_Availability changes quickly — confirm live beds in the app before holding._'
+        ? `नीचे ${Math.min(hospitals.length, 5)} नज़दीकी सत्यापित अस्पताल हैं — लाइव बेड होल्ड से पहले ऐप में देखें।`
+        : `I found ${Math.min(hospitals.length, 5)} nearby verified hospitals below — confirm live beds in the app before holding.`
+    );
+  } else if (knowledge?.articles?.length) {
+    lines.push(
+      hi
+        ? 'विश्वसनीय मार्गदर्शन कार्ड नीचे देखें।'
+        : 'See trusted guidance cards below for more detail.'
     );
   }
 
-  if (equipmentNote) lines.push(`\n${equipmentNote}`);
+  if (equipmentNote) {
+    lines.push(String(equipmentNote).replace(/\*\*/g, ''));
+  }
 
-  lines.push(
-    hi
-      ? '\n_यह चिकित्सा उपकरण नहीं है। गंभीर लक्षणों में तुरंत पेशेवर मदद लें।_'
-      : '\n_Not a medical device. For serious symptoms, seek professional care immediately._'
-  );
-
-  return lines.join('\n');
+  return lines.filter(Boolean).join('\n\n');
 }
 
 export const aiService = {
@@ -335,14 +332,8 @@ export const aiService = {
       if (toolResults.blood?.banks?.length) {
         replyText +=
           language === 'hi'
-            ? `\n\n**ब्ड बैंक:** ${toolResults.blood.banks
-                .slice(0, 3)
-                .map((b) => `${b.name} (${b.distanceKm} km, ${b.totalUnitsAvailable} units)`)
-                .join('; ')}`
-            : `\n\n**Blood banks:** ${toolResults.blood.banks
-                .slice(0, 3)
-                .map((b) => `${b.name} (${b.distanceKm} km, ${b.totalUnitsAvailable} units)`)
-                .join('; ')}`;
+            ? `\n\n${toolResults.blood.banks.length} ब्लड बैंक मिले — विवरण के लिए कार्ड देखें।`
+            : `\n\nFound ${toolResults.blood.banks.length} blood banks — see cards for details.`;
       }
     }
 

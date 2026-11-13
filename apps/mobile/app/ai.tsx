@@ -25,6 +25,8 @@ import {
   Send,
   Sparkles,
   AlertTriangle,
+  MapPin,
+  BookOpen,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -34,7 +36,30 @@ type UiMsg = {
   content: string;
   hospitals?: AiHospitalMatch[];
   severity?: string;
+  sources?: AiChatResponse['sources'];
+  disclaimer?: string;
 };
+
+function cleanAssistantText(raw: string, hasHospitals: boolean, hasSources: boolean) {
+  let text = String(raw || '');
+  if (hasSources) {
+    text = text.replace(
+      /\n?\*{0,2}(?:Trusted guidance|विश्वसनीय जानकारी)\*{0,2}:?\s*[\s\S]*?(?=\n\*{0,2}(?:Nearby|Blood|नज़दीकी|ब्लड)|$)/i,
+      ''
+    );
+  }
+  if (hasHospitals) {
+    text = text.replace(
+      /\n?\*{0,2}(?:Nearby suitable hospitals[^\n]*|नज़दीकी उपयुक्त अस्पताल[^\n]*)\*{0,2}:?\s*[\s\S]*?(?=\n\*{0,2}(?:Blood|Trusted|Not a|_यह|Sources)|$)/i,
+      ''
+    );
+    text = text.replace(/\n?_?Availability changes[\s\S]*?_?\s*(?=\n|$)/gi, '');
+  }
+  text = text.replace(/\n?_?(?:Not a medical device|यह चिकित्सा उपकरण)[\s\S]*$/i, '');
+  text = text.replace(/\n?Sources:\s*[^\n]+$/i, '');
+  text = text.replace(/\*\*/g, '');
+  return text.replace(/\n{3,}/g, '\n\n').trim();
+}
 
 const SUGGESTIONS_EN = [
   'Chest pain — nearest ICU?',
@@ -96,6 +121,8 @@ export default function AiScreen() {
           content: res.message.content,
           hospitals: res.hospitals,
           severity: res.severity,
+          sources: res.sources,
+          disclaimer: res.disclaimer,
         },
       ]);
       setInput('');
@@ -187,53 +214,17 @@ export default function AiScreen() {
           </View>
         )}
 
-        {messages.map((m) => (
-          <View
-            key={m.id}
-            style={[styles.bubbleRow, m.role === 'user' ? styles.bubbleRowUser : styles.bubbleRowAi]}
-          >
-            <View style={[styles.bubble, m.role === 'user' ? styles.bubbleUser : styles.bubbleAi]}>
-              {m.role === 'assistant' && (
-                <View style={styles.aiLabelRow}>
-                  <Bot size={12} color="#0B3D1A" />
-                  <Text style={styles.aiLabel}>CityHealth AI</Text>
-                  {m.severity && m.severity !== 'NORMAL' && (
-                    <Text style={styles.sevBadge}>{m.severity}</Text>
-                  )}
-                </View>
-              )}
-              <Text style={[styles.bubbleText, m.role === 'user' && styles.bubbleTextUser]}>
-                {m.content}
-              </Text>
-              {m.hospitals && m.hospitals.length > 0 && (
-                <View style={styles.hospList}>
-                  {m.hospitals.slice(0, 4).map((h) => (
-                    <Pressable
-                      key={h.hospitalId}
-                      onPress={() => router.push(`/hospital/${h.hospitalId}`)}
-                      style={styles.hospCard}
-                    >
-                      <Text style={styles.hospName} numberOfLines={1}>
-                        {h.name}
-                      </Text>
-                      <Text style={styles.hospMeta}>
-                        {h.distanceKm?.toFixed?.(1) ?? h.distanceKm} km
-                        {h.freeBedsNow != null
-                          ? ` · ${h.freeBedsNow} free ${h.allocatedWard || 'beds'}`
-                          : ''}
-                      </Text>
-                      {h.phone ? (
-                        <Pressable onPress={() => Linking.openURL(`tel:${h.phone}`)}>
-                          <Text style={styles.hospPhone}>{h.phone}</Text>
-                        </Pressable>
-                      ) : null}
-                    </Pressable>
-                  ))}
-                </View>
-              )}
+        {messages.map((m) =>
+          m.role === 'user' ? (
+            <View key={m.id} style={[styles.bubbleRow, styles.bubbleRowUser]}>
+              <View style={[styles.bubble, styles.bubbleUser]}>
+                <Text style={[styles.bubbleText, styles.bubbleTextUser]}>{m.content}</Text>
+              </View>
             </View>
-          </View>
-        ))}
+          ) : (
+            <AssistantCard key={m.id} m={m} onHospital={(id) => router.push(`/hospital/${id}`)} />
+          )
+        )}
 
         {chatMut.isPending && (
           <View style={styles.loadingRow}>
@@ -284,6 +275,97 @@ export default function AiScreen() {
         </Pressable>
       </View>
     </KeyboardAvoidingView>
+  );
+}
+
+function AssistantCard({
+  m,
+  onHospital,
+}: {
+  m: UiMsg;
+  onHospital: (id: string) => void;
+}) {
+  const hospitals = m.hospitals?.slice(0, 4) || [];
+  const sources = m.sources?.slice(0, 3) || [];
+  const body = cleanAssistantText(m.content, hospitals.length > 0, sources.length > 0);
+
+  return (
+    <View style={[styles.bubbleRow, styles.bubbleRowAi]}>
+      <View style={styles.aiStack}>
+        <View style={[styles.bubble, styles.bubbleAi]}>
+          <View style={styles.aiLabelRow}>
+            <Bot size={12} color="#0B3D1A" />
+            <Text style={styles.aiLabel}>CityHealth AI</Text>
+            {m.severity && m.severity !== 'NORMAL' && (
+              <Text style={styles.sevBadge}>{m.severity}</Text>
+            )}
+          </View>
+          {!!body && <Text style={styles.bubbleText}>{body}</Text>}
+        </View>
+
+        {sources.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHead}>
+              <BookOpen size={12} color="#0B3D1A" />
+              <Text style={styles.sectionTitle}>Trusted guidance</Text>
+            </View>
+            {sources.map((s, idx) => (
+              <View key={`${s.title}-${idx}`} style={styles.guideCard}>
+                <Text style={styles.guideTitle}>{s.title}</Text>
+                {!!s.excerpt && (
+                  <Text style={styles.guideBody} numberOfLines={3}>
+                    {s.excerpt.replace(/\s+/g, ' ').trim()}
+                  </Text>
+                )}
+                {!!s.sourceName && <Text style={styles.guideSource}>Source · {s.sourceName}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {hospitals.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHead}>
+              <MapPin size={12} color="#0B3D1A" />
+              <Text style={styles.sectionTitle}>Nearby hospitals</Text>
+            </View>
+            {hospitals.map((h) => (
+              <Pressable
+                key={h.hospitalId}
+                onPress={() => onHospital(h.hospitalId)}
+                style={styles.hospCard}
+              >
+                <Text style={styles.hospName} numberOfLines={1}>
+                  {h.name}
+                </Text>
+                <View style={styles.hospMetaRow}>
+                  {h.distanceKm != null && (
+                    <Text style={styles.hospChip}>{Number(h.distanceKm).toFixed(1)} km</Text>
+                  )}
+                  {h.freeBedsNow != null && (
+                    <Text style={[styles.hospChip, styles.hospChipBeds]}>
+                      {h.freeBedsNow} free {h.allocatedWard || 'beds'}
+                    </Text>
+                  )}
+                </View>
+                {h.phone ? (
+                  <Pressable onPress={() => Linking.openURL(`tel:${h.phone}`)} style={styles.hospCall}>
+                    <Phone size={12} color="#B9F84B" />
+                    <Text style={styles.hospPhone}>Call</Text>
+                  </Pressable>
+                ) : null}
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {(m.disclaimer || sources.length > 0) && (
+          <Text style={styles.disclaimer}>
+            {m.disclaimer || 'Not a medical device. For serious symptoms, seek professional care.'}
+          </Text>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -339,7 +421,7 @@ const styles = StyleSheet.create({
   },
   call112Text: { color: '#FFF', fontWeight: '800', fontSize: 14 },
   chatScroll: { flex: 1 },
-  chatContent: { padding: 16, paddingBottom: 8, gap: 10 },
+  chatContent: { padding: 16, paddingBottom: 8, gap: 12 },
   emptyState: { alignItems: 'center', paddingVertical: 32 },
   botIconCircle: {
     width: 56,
@@ -355,17 +437,19 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row' },
   bubbleRowUser: { justifyContent: 'flex-end' },
   bubbleRowAi: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '88%', borderRadius: 18, padding: 12 },
-  bubbleUser: { backgroundColor: '#0B3D1A', borderBottomRightRadius: 4 },
+  aiStack: { maxWidth: '94%', gap: 8 },
+  bubble: { borderRadius: 18, padding: 12 },
+  bubbleUser: { maxWidth: '88%', backgroundColor: '#0B3D1A', borderBottomRightRadius: 4 },
   bubbleAi: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#F4F8F1',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#D8E0D4',
     borderBottomLeftRadius: 4,
   },
   aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
   aiLabel: { fontSize: 9, fontWeight: '800', color: '#0B3D1A', textTransform: 'uppercase' },
   sevBadge: {
+    marginLeft: 'auto',
     fontSize: 9,
     fontWeight: '700',
     color: colors.orange,
@@ -375,19 +459,60 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     overflow: 'hidden',
   },
-  bubbleText: { fontSize: 14, lineHeight: 20, color: colors.ink },
+  bubbleText: { fontSize: 14, lineHeight: 21, color: colors.ink },
   bubbleTextUser: { color: '#FFF' },
-  hospList: { marginTop: 10, gap: 8 },
+  section: { gap: 8 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 2 },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0B3D1A',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  guideCard: {
+    borderWidth: 1,
+    borderColor: '#D8E0D4',
+    borderRadius: 14,
+    padding: 12,
+    backgroundColor: '#FFF',
+  },
+  guideTitle: { fontSize: 13, fontWeight: '700', color: colors.ink },
+  guideBody: { fontSize: 12, color: colors.muted, marginTop: 4, lineHeight: 17 },
+  guideSource: { fontSize: 10, fontWeight: '600', color: '#0B3D1A', marginTop: 8, opacity: 0.75 },
   hospCard: {
     borderWidth: 1,
     borderColor: '#D8E0D4',
     borderRadius: 14,
-    padding: 10,
-    backgroundColor: '#F0FBE4',
+    padding: 12,
+    backgroundColor: '#FFF',
   },
   hospName: { fontSize: 13, fontWeight: '700', color: colors.ink },
-  hospMeta: { fontSize: 11, color: colors.muted, marginTop: 2 },
-  hospPhone: { fontSize: 11, fontWeight: '700', color: '#0B3D1A', marginTop: 4 },
+  hospMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  hospChip: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.ink,
+    backgroundColor: '#F3F7F0',
+    overflow: 'hidden',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  hospChipBeds: { backgroundColor: '#E8F6C8', color: '#0B3D1A', fontWeight: '700' },
+  hospCall: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0B3D1A',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
+  hospPhone: { fontSize: 11, fontWeight: '700', color: '#B9F84B' },
+  disclaimer: { fontSize: 10, color: colors.muted, lineHeight: 14, paddingHorizontal: 2 },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4 },
   loadingText: { fontSize: 12, color: colors.muted },
   errorBox: {
