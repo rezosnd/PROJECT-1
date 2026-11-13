@@ -29,6 +29,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     package: 'com.getmyhospital.doctor',
     permissions: ['CAMERA'],
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: false,
+        category: ['BROWSABLE', 'DEFAULT'],
+        data: [{ scheme: 'gmhdoctor' }],
+      },
+    ],
   },
   plugins: [
     'expo-router',
@@ -42,6 +50,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   ],
   extra: {
+    eas: {
+      projectId: '9517043f-119d-4e4c-b9ed-3951a6b81fe5',
+    },
     apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://project1-api.vercel.app/api/v1',
     googleWebClientId:
       process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||

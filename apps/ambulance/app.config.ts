@@ -30,6 +30,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     package: 'com.getmyhospital.ambulance',
     permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: false,
+        category: ['BROWSABLE', 'DEFAULT'],
+        data: [{ scheme: 'gmhambulance' }],
+      },
+    ],
   },
   plugins: [
     'expo-router',
@@ -51,9 +59,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://project1-api.vercel.app/api/v1',
-    googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
+    googleWebClientId:
+      process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
+      '1050173417910-28c0irqqh1nhaurmognqn01c9ocvo6pb.apps.googleusercontent.com',
     eas: {
-      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID || undefined,
+      projectId: '9465decf-77d8-4e61-a3b2-8982eabaacdd',
     },
   },
 });

@@ -145,9 +145,10 @@ export const CityAdminPage: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold font-heading text-ink">Staff Gmail Pre-Registration</h2>
+              <h2 className="text-lg font-bold font-heading text-ink">Staff & ambulance Gmail Pre-Registration</h2>
               <p className="text-xs text-muted">
-                Grant staff or hospital admin privileges to Google accounts before their first login.
+                Grant staff, hospital admin, doctor, or ambulance privileges before first Google
+                sign-in. Ambulance crews use the dedicated Expo Ambulance app.
               </p>
             </div>
           </div>

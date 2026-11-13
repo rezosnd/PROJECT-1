@@ -167,7 +167,10 @@ router.get('/google/mobile-start', async (req, res) => {
   const clientId = googleClientId();
   const redirectUri = exactRedirectUri();
   const scheme = String(req.query.scheme || 'lifelink').replace(/[^a-z0-9.-]/gi, '') || 'lifelink';
-  const returnUrl = typeof req.query.return_url === 'string' ? req.query.return_url : '';
+  const returnUrl =
+    (typeof req.query.return_url === 'string' && req.query.return_url) ||
+    (typeof req.query.returnUrl === 'string' && req.query.returnUrl) ||
+    '';
   const handoff =
     typeof req.query.handoff === 'string' ? req.query.handoff.replace(/[^a-f0-9]/gi, '') : '';
 

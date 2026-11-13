@@ -12,6 +12,7 @@ import {
   BedDouble,
   Users,
   Stethoscope,
+  Ambulance,
   PanelLeftClose,
   PanelLeftOpen,
   Building2,
@@ -53,7 +54,10 @@ export const Navigation: React.FC = () => {
     { to: '/hospital?tab=sos', label: 'Emergency SOS', icon: Siren },
     { to: '/hospital?tab=equipment', label: 'Equipment', icon: Stethoscope },
     ...(role === 'HOSPITAL_ADMIN'
-      ? ([{ to: '/hospital?tab=staff', label: 'Staff Access', icon: Users }] as NavItem[])
+      ? ([
+          { to: '/hospital?tab=staff', label: 'Staff Access', icon: Users },
+          { to: '/hospital?tab=ambulance', label: 'Ambulance Access', icon: Ambulance },
+        ] as NavItem[])
       : []),
   ];
 

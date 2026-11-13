@@ -82,7 +82,8 @@ export default function UnitProfileScreen() {
           </View>
         ) : (
           <Text style={[styles.meta, { marginTop: 12 }]}>
-            Ambulance record not linked yet. Contact City Admin.
+            Ambulance record not linked yet. Ask Hospital Admin to re-add your Gmail under Ambulance
+            Access, then sign out and sign in again.
           </Text>
         )}
       </View>

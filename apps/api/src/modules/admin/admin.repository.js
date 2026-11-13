@@ -9,19 +9,32 @@ export const adminRepository = {
     return rows[0] || null;
   },
 
-  async upsertPreregisteredStaff(db = pool, { email, role, hospitalId, specialty = null, licenseNo = null }) {
+  async upsertPreregisteredStaff(
+    db = pool,
+    { email, role, hospitalId, specialty = null, licenseNo = null, vehicleNo = null, ambulanceType = null }
+  ) {
     const { rows } = await db.query(
-      `INSERT INTO preregistered_staff (email, role, hospital_id, specialty, license_no)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO preregistered_staff (email, role, hospital_id, specialty, license_no, vehicle_no, ambulance_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (email)
        DO UPDATE SET
          role = EXCLUDED.role,
          hospital_id = EXCLUDED.hospital_id,
          specialty = EXCLUDED.specialty,
          license_no = EXCLUDED.license_no,
+         vehicle_no = EXCLUDED.vehicle_no,
+         ambulance_type = EXCLUDED.ambulance_type,
          created_at = NOW()
        RETURNING *`,
-      [email.toLowerCase(), role, hospitalId || null, specialty, licenseNo]
+      [
+        email.toLowerCase(),
+        role,
+        hospitalId || null,
+        specialty,
+        licenseNo,
+        vehicleNo || licenseNo || null,
+        ambulanceType || null,
+      ]
     );
     return rows[0];
   },

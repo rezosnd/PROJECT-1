@@ -106,7 +106,7 @@ export const authService = {
             : requestedRole === 'DOCTOR'
               ? 'This Gmail is not pre-registered as a doctor. Ask City Admin to add your email under Doctor Access, then sign in again.'
             : requestedRole === 'AMBULANCE'
-              ? 'This Gmail is not pre-registered as an ambulance unit. Ask City Admin to add your email under Ambulance Access, then sign in again.'
+              ? 'This Gmail is not pre-registered as an ambulance unit. Ask your Hospital Admin to add your email under Ambulance Access, then sign in again with the Ambulance app.'
             : 'This Gmail is not pre-registered as hospital staff. Ask your hospital admin to add your email under Staff Access, then sign in again.',
           403,
           'STAFF_NOT_PREREGISTERED'

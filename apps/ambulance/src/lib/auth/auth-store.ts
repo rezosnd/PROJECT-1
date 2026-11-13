@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (user.role !== 'AMBULANCE') {
       await clearTokens();
       throw new Error(
-        'This Google account is not registered as an ambulance operator. Ask City Admin to pre-register your email.'
+        'This Google account is not registered as an ambulance operator. Ask your Hospital Admin to add your Gmail under Ambulance Access, then sign in here again.'
       );
     }
     await get().setUser(user, accessToken, refreshToken);

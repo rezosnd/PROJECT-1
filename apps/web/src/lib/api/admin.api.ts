@@ -16,9 +16,11 @@ export const adminApi = {
   async preRegisterStaff(payload: {
     email: string;
     hospitalId?: string | null;
-    role: 'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN' | 'DOCTOR';
+    role: 'HOSPITAL_STAFF' | 'HOSPITAL_ADMIN' | 'DOCTOR' | 'AMBULANCE';
     specialty?: string | null;
     licenseNo?: string | null;
+    vehicleNo?: string | null;
+    ambulanceType?: 'BLS' | 'ALS' | 'ICU' | 'NEONATAL' | 'AIR' | null;
   }) {
     const res = await apiClient.post('/auth/admin/staff', payload);
     return res.data.data;

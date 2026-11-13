@@ -9,8 +9,11 @@ export const preregisterStaffSchema = z.object({
     hospitalId: z.string().uuid('Valid hospital UUID required').optional().nullable(),
     specialty: z.string().max(120).optional().nullable(),
     licenseNo: z.string().max(64).optional().nullable(),
+    vehicleNo: z.string().max(64).optional().nullable(),
+    ambulanceType: z.enum(['BLS', 'ALS', 'ICU', 'NEONATAL', 'AIR']).optional().nullable(),
   }).superRefine((data, ctx) => {
-    if (data.role !== 'DOCTOR' && !data.hospitalId) {
+    // Doctors / city-fleet ambulances may omit hospital; hospital staff always need one.
+    if (data.role !== 'DOCTOR' && data.role !== 'AMBULANCE' && !data.hospitalId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'hospitalId is required for hospital staff',

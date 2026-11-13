@@ -3,7 +3,7 @@ import { adminService } from './admin.service.js';
 export const adminController = {
   async preregisterStaff(req, res, next) {
     try {
-      const { email, role, hospitalId, specialty, licenseNo } = req.body;
+      const { email, role, hospitalId, specialty, licenseNo, vehicleNo, ambulanceType } = req.body;
       const ip = req.ip || req.socket.remoteAddress;
 
       const result = await adminService.preregisterStaff({
@@ -12,6 +12,8 @@ export const adminController = {
         hospitalId,
         specialty,
         licenseNo,
+        vehicleNo,
+        ambulanceType,
         actor: req.user,
         ip
       });

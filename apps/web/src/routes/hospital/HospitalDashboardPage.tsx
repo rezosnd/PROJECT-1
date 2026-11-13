@@ -12,7 +12,7 @@ import { ReferralInbox } from '../../features/hospital/ReferralInbox';
 import { SosInbox } from '../../features/hospital/SosInbox';
 import { ShortcutsModal } from '../../features/hospital/ShortcutsModal';
 import { StatusDot } from '../../components/ui/StatusDot';
-import { Activity, RefreshCw, HelpCircle, BedDouble, Stethoscope, Clock, UserPlus, Droplets, Siren, BadgePercent } from 'lucide-react';
+import { Activity, RefreshCw, HelpCircle, BedDouble, Stethoscope, Clock, UserPlus, Droplets, Siren, BadgePercent, Ambulance } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { hospitalsApi } from '../../lib/api/hospitals.api';
 import { forecastApi } from '../../lib/api/forecast.api';
@@ -21,6 +21,7 @@ import { equipmentApi } from '../../lib/api/equipment.api';
 import { bloodApi } from '../../lib/api/blood.api';
 import { socketManager } from '../../lib/socket/socket-client';
 import { StaffPreRegForm } from '../../features/admin/StaffPreRegForm';
+import { AddAmbulanceForm } from '../../features/hospital/AddAmbulanceForm';
 import { InsuranceNetworkPanel } from '../../features/hospital/InsuranceNetworkPanel';
 
 type HospitalTab =
@@ -33,7 +34,8 @@ type HospitalTab =
   | 'equipment'
   | 'insurance'
   | 'forecast'
-  | 'staff';
+  | 'staff'
+  | 'ambulance';
 
 export const HospitalDashboardPage: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
@@ -162,7 +164,14 @@ export const HospitalDashboardPage: React.FC = () => {
       : []),
     { id: 'forecast', label: 'Forecast', icon: <Activity className="w-4.5 h-4.5" /> },
     ...(canManageStaff
-      ? [{ id: 'staff' as const, label: 'Staff', icon: <UserPlus className="w-4.5 h-4.5" /> }]
+      ? [
+          { id: 'staff' as const, label: 'Staff', icon: <UserPlus className="w-4.5 h-4.5" /> },
+          {
+            id: 'ambulance' as const,
+            label: 'Ambulance',
+            icon: <Ambulance className="w-4.5 h-4.5" />,
+          },
+        ]
       : []),
   ];
 
@@ -450,6 +459,27 @@ export const HospitalDashboardPage: React.FC = () => {
             </p>
           </div>
           <StaffPreRegForm
+            hospitals={
+              hospital
+                ? [{ ...(hospital as any), id: hospitalId, name: hospital.name }]
+                : [{ id: hospitalId, name: 'Your hospital' } as any]
+            }
+            allowAmbulance={false}
+            allowDoctor={false}
+          />
+        </section>
+      )}
+
+      {activeTab === 'ambulance' && canManageStaff && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-display text-lg font-bold text-ink">Ambulance access</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Create crew logins for your hospital fleet. They sign in only on the GetMyHospital
+              Ambulance mobile app — not on the patient or hospital web dashboard.
+            </p>
+          </div>
+          <AddAmbulanceForm
             hospitals={
               hospital
                 ? [{ ...(hospital as any), id: hospitalId, name: hospital.name }]

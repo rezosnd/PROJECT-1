@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Image,
   SafeAreaView,
   Alert,
+  AppState,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -20,7 +21,9 @@ import { Ambulance } from 'lucide-react-native';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://project1-api.vercel.app/api/v1';
+const AUTH_BRIDGE = 'https://project1-api.vercel.app';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || `${AUTH_BRIDGE}/api/v1`;
+const APP_SCHEME = 'gmhambulance';
 
 function extractParam(url: string | null | undefined, key: string): string | null {
   if (!url) return null;
@@ -28,11 +31,18 @@ function extractParam(url: string | null | undefined, key: string): string | nul
     const parsed = Linking.parse(url);
     const q = parsed.queryParams?.[key];
     if (typeof q === 'string' && q) return q;
+    if (Array.isArray(q) && q[0]) return String(q[0]);
   } catch {
-    /* parse */
+    /* ignore */
   }
   const m = String(url).match(new RegExp(`[?#&]${key}=([^&]+)`, 'i'));
   return m ? decodeURIComponent(m[1]) : null;
+}
+
+function randomHandoffId(): string {
+  return Array.from({ length: 16 }, () =>
+    Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+  ).join('');
 }
 
 export default function AmbulanceLogin() {
@@ -40,13 +50,22 @@ export default function AmbulanceLogin() {
   const { loginWithGoogleIdToken } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const finishing = useRef(false);
-  const returnUrl = useMemo(() => Linking.createURL('login'), []);
+  const pollStop = useRef<null | (() => void)>(null);
+  const activeHandoff = useRef<string | null>(null);
+  const returnUrl = useMemo(() => Linking.createURL('oauth'), []);
 
   const finish = async (idToken: string) => {
     if (finishing.current) return;
     finishing.current = true;
+    pollStop.current?.();
+    pollStop.current = null;
     setLoading(true);
     try {
+      try {
+        await WebBrowser.dismissBrowser();
+      } catch {
+        /* ignore */
+      }
       await loginWithGoogleIdToken(idToken);
       router.replace('/(tabs)');
     } catch (err: unknown) {
@@ -62,32 +81,125 @@ export default function AmbulanceLogin() {
     }
   };
 
+  const completeFromUrl = async (url: string) => {
+    const ticket = extractParam(url, 'ticket');
+    const idToken = extractParam(url, 'id_token');
+    if (ticket) {
+      const res = await axios.get(`${API_URL}/auth/google/mobile-ticket/${encodeURIComponent(ticket)}`, {
+        timeout: 15000,
+      });
+      if (res.data?.data?.idToken) await finish(res.data.data.idToken);
+      return;
+    }
+    if (idToken) await finish(idToken);
+  };
+
+  const startHandoffPoll = (handoff: string) => {
+    pollStop.current?.();
+    let stopped = false;
+    const started = Date.now();
+    const tick = async () => {
+      if (stopped || finishing.current) return;
+      if (Date.now() - started > 90_000) return;
+      try {
+        const res = await axios.get(
+          `${API_URL}/auth/google/mobile-handoff/${encodeURIComponent(handoff)}`,
+          { timeout: 8000, validateStatus: () => true }
+        );
+        if (res.status === 200 && res.data?.data?.ticket) {
+          const tok = await axios.get(
+            `${API_URL}/auth/google/mobile-ticket/${encodeURIComponent(res.data.data.ticket)}`,
+            { timeout: 15000 }
+          );
+          if (tok.data?.data?.idToken) {
+            await finish(tok.data.data.idToken);
+            return;
+          }
+        }
+      } catch {
+        /* keep polling */
+      }
+      if (!stopped && !finishing.current) setTimeout(tick, 1500);
+    };
+    pollStop.current = () => {
+      stopped = true;
+    };
+    setTimeout(tick, 1200);
+  };
+
+  useEffect(() => {
+    const onUrl = ({ url }: { url: string }) => {
+      if (url && (url.includes('ticket=') || url.includes('id_token='))) {
+        void completeFromUrl(url);
+      }
+    };
+    const sub = Linking.addEventListener('url', onUrl);
+    void Linking.getInitialURL().then((url) => {
+      if (url) onUrl({ url });
+    });
+    const appSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && activeHandoff.current && !finishing.current) {
+        startHandoffPoll(activeHandoff.current);
+      }
+    });
+    return () => {
+      sub.remove();
+      appSub.remove();
+      pollStop.current?.();
+    };
+  }, []);
+
   const signIn = async () => {
     setLoading(true);
     finishing.current = false;
     try {
-      const handoff = Array.from({ length: 16 }, () =>
-        Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
-      ).join('');
-      const startUrl =
-        `${API_URL}/auth/google/mobile-start?` +
-        `returnUrl=${encodeURIComponent(returnUrl)}&handoff=${handoff}&clientType=web`;
+      const handoff = randomHandoffId();
+      activeHandoff.current = handoff;
+      const params = new URLSearchParams({
+        scheme: APP_SCHEME,
+        return_url: returnUrl,
+        handoff,
+      });
+      const startUrl = `${AUTH_BRIDGE}/api/v1/auth/google/mobile-start?${params.toString()}`;
+      startHandoffPoll(handoff);
 
-      const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUrl);
+      const result = await WebBrowser.openAuthSessionAsync(startUrl, returnUrl, {
+        showInRecents: true,
+        preferEphemeralSession: false,
+        createTask: false,
+      } as any);
+
+      if (finishing.current) return;
+
       if (result.type === 'success' && result.url) {
-        const ticket = extractParam(result.url, 'ticket');
-        const idToken = extractParam(result.url, 'id_token');
-        if (ticket) {
-          const res = await axios.get(`${API_URL}/auth/google/mobile-ticket/${ticket}`);
-          if (res.data?.data?.idToken) await finish(res.data.data.idToken);
-        } else if (idToken) {
-          await finish(idToken);
+        await completeFromUrl(result.url);
+        return;
+      }
+
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        try {
+          const res = await axios.get(
+            `${API_URL}/auth/google/mobile-handoff/${encodeURIComponent(handoff)}`,
+            { timeout: 8000, validateStatus: () => true }
+          );
+          if (res.status === 200 && res.data?.data?.ticket) {
+            const tok = await axios.get(
+              `${API_URL}/auth/google/mobile-ticket/${encodeURIComponent(res.data.data.ticket)}`,
+              { timeout: 15000 }
+            );
+            if (tok.data?.data?.idToken) {
+              await finish(tok.data.data.idToken);
+              return;
+            }
+          }
+        } catch {
+          /* ignore */
         }
       }
     } catch (err: unknown) {
       Alert.alert('Sign-in error', (err as Error).message || 'Try again');
     } finally {
-      setLoading(false);
+      if (!finishing.current) setLoading(false);
     }
   };
 
@@ -99,11 +211,9 @@ export default function AmbulanceLogin() {
           <Ambulance color={colors.forest} size={16} />
           <Text style={styles.badgeText}>AMBULANCE CREW</Text>
         </View>
-        <Text style={styles.title}>Respond. Reach. Rescue.</Text>
+        <Text style={styles.title}>Accept SOS. Navigate.</Text>
         <Text style={styles.sub}>
-          Live SOS offers from patients across the city. Accept the nearest emergency in
-          first-come-first-serve order, update en-route status, and keep your unit on the map for
-          dispatch.
+          Stay online to receive nearby patient SOS. First unit to accept wins the trip.
         </Text>
       </View>
 
@@ -115,7 +225,8 @@ export default function AmbulanceLogin() {
         )}
       </Pressable>
       <Text style={styles.hint}>
-        Sign in with a Gmail that City Admin pre-registered as AMBULANCE for your unit.
+        Sign in with a Gmail your Hospital Admin added under Ambulance Access. Wrong app = wrong
+        role — use this Ambulance app only.
       </Text>
     </SafeAreaView>
   );

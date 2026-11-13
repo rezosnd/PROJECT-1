@@ -15,7 +15,8 @@ export type UserRole =
   | 'HOSPITAL_STAFF'
   | 'HOSPITAL_ADMIN'
   | 'CITY_ADMIN'
-  | 'DOCTOR';
+  | 'DOCTOR'
+  | 'AMBULANCE';
 
 export interface PatientCareQrSummary {
   token?: string | null;

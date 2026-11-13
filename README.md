@@ -10,6 +10,7 @@ Emergency health grid — live bed matching, ABHA, **holds** (not permanent book
 | Web | `apps/web` | Patient + hospital + city admin portal |
 | Mobile | `apps/mobile` | Patient Expo app (beds, blood, Care QR) |
 | Doctor | `apps/doctor` | Scan Care QR → refer / hold |
+| Ambulance | `apps/ambulance` | Crew Expo app — accept SOS (FCFS), live location |
 
 ## End-to-end flow
 
@@ -31,6 +32,7 @@ npm run dev
 npm run dev:web
 npm run dev:mobile
 npm run dev:doctor
+npm run dev:ambulance
 ```
 
 | Feature | Web | Mobile / apps |
@@ -41,6 +43,7 @@ npm run dev:doctor
 | Equipment | Hospital detail | Hospital detail |
 | Doctor referrals desk | `/hospital?tab=referrals` | Doctor app |
 | Emergency SOS desk | `/hospital?tab=sos` | Ambulance app |
+| **Add ambulance login** | Hospital Admin → **Ambulance** tab | — |
 | Ambulance fleet app | — | `npm run dev:ambulance` |
 
 ```bash
@@ -49,7 +52,11 @@ npm run seed         # BBSR hospitals + 8 online ambulances
 npm run dev:ambulance
 ```
 
-Ambulance login (after seed): pre-register Gmail e.g. `ambulance1.bbsr@gmail.com` then Google sign-in with role AMBULANCE.
+### Ambulance login (how it works)
+
+1. Hospital Admin (web) → **Ambulance** tab → enter crew **Gmail**, plate, unit type → **Create ambulance login**.
+2. Crew runs `npm run dev:ambulance` (Expo) → **Sign in with Google** using that same Gmail.
+3. API binds role `AMBULANCE` + fleet row → app opens SOS Offers / Active Job / Unit (not the patient or hospital web UI).
 
 Push: Expo Push works out of the box; set `FIREBASE_SERVICE_ACCOUNT_JSON` for native FCM.
 
