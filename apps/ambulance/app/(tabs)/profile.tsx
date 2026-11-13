@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -37,8 +38,33 @@ export default function UnitProfileScreen() {
         longitude: loc.longitude,
         status: 'AVAILABLE',
       });
+      // Re-register push so SOS alerts work on this device
+      try {
+        const Notifications = await import('expo-notifications');
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('sos', {
+            name: 'Emergency SOS',
+            importance: Notifications.AndroidImportance.MAX,
+            sound: 'default',
+          });
+        }
+        const perm = await Notifications.requestPermissionsAsync();
+        if (perm.status === 'granted') {
+          const Constants = (await import('expo-constants')).default;
+          const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+          const token = await Notifications.getExpoPushTokenAsync(
+            projectId ? { projectId: String(projectId) } : undefined
+          );
+          if (token?.data) await sosApi.registerPushToken(token.data);
+        }
+      } catch {
+        /* push optional */
+      }
       await refetch();
-      Alert.alert('On duty', 'Unit marked AVAILABLE on the dispatch map.');
+      Alert.alert(
+        'On duty',
+        'Unit AVAILABLE. Keep the app open (or backgrounded with notifications allowed) to receive SOS.'
+      );
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
