@@ -24,12 +24,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
+    versionCode: 2,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0B3D1A',
     },
     package: 'com.getmyhospital.ambulance',
-    permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
+    permissions: [
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.INTERNET',
+      'android.permission.ACCESS_NETWORK_STATE',
+    ],
     intentFilters: [
       {
         action: 'VIEW',
