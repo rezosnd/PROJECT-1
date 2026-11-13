@@ -343,7 +343,7 @@ function AssistantBubble({ m }: { m: Bubble }) {
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 px-1">
               <BookOpen className="w-3.5 h-3.5 text-[#0B3D1A]" />
-              <span className="text-[11px] font-bold uppercase tracking-wide text-[#0B3D1A]/Trusted guidance</span>
+              <span className="text-[11px] font-bold uppercase tracking-wide text-[#0B3D1A]">Trusted guidance</span>
             </div>
             {sources.map((s, idx) => (
               <div
