@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,30 +7,80 @@ import {
   Pressable,
   SafeAreaView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors, typography } from '../../src/theme/tokens';
 import type { ScannedPatient } from '../../src/lib/api/referrals.api';
+import { referralsApi } from '../../src/lib/api/referrals.api';
+import { useScannedPatientStore } from '../../src/store/scanned-patient-store';
 import { ArrowLeft, Send } from 'lucide-react-native';
 
 export default function PatientDetailScreen() {
-  const { data } = useLocalSearchParams<{ id: string; data?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const cached = useScannedPatientStore((s) => s.getById(String(id || '')));
+  const setPatient = useScannedPatientStore((s) => s.setPatient);
+  const [patient, setLocal] = useState<ScannedPatient | null>(cached);
+  const [loading, setLoading] = useState(!cached);
+  const [error, setError] = useState<string | null>(null);
 
-  const patient = useMemo<ScannedPatient | null>(() => {
-    try {
-      return data ? (JSON.parse(String(data)) as ScannedPatient) : null;
-    } catch {
-      return null;
-    }
-  }, [data]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!id) {
+        setError('Missing patient id');
+        setLoading(false);
+        return;
+      }
+      if (cached) {
+        setLocal(cached);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        // Re-fetch by UUID if store was cleared (route params alone are enough)
+        const data = await referralsApi.scan(String(id));
+        if (!alive) return;
+        setPatient(data);
+        setLocal(data);
+      } catch (err: any) {
+        if (!alive) return;
+        setError(
+          err?.response?.data?.error?.message ||
+            err.message ||
+            'Could not load this patient'
+        );
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.root, styles.center]}>
+        <ActivityIndicator color={colors.forest} size="large" />
+        <Text style={[styles.meta, { marginTop: 12 }]}>Loading patient…</Text>
+      </SafeAreaView>
+    );
+  }
 
   if (!patient) {
     return (
       <SafeAreaView style={styles.root}>
-        <Text style={styles.title}>Patient not loaded</Text>
+        <Text style={styles.title}>Patient not found</Text>
+        <Text style={[styles.meta, { paddingHorizontal: 20, marginBottom: 16 }]}>
+          {error ||
+            'Scan the green Care QR from the patient’s GetMyHospital Profile (not ABHA).'}
+        </Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={styles.link}>Go back</Text>
+          <Text style={styles.link}>Go back & scan again</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -58,7 +108,8 @@ export default function PatientDetailScreen() {
           )}
           <Text style={styles.name}>{patient.name}</Text>
           <Text style={styles.meta}>
-            {p.bloodGroup || 'BG n/a'} · {p.gender || '—'} · {p.ageYears ? `${p.ageYears}y` : 'age n/a'}
+            {p.bloodGroup || 'BG n/a'} · {p.gender || '—'} ·{' '}
+            {p.ageYears ? `${p.ageYears}y` : 'age n/a'}
           </Text>
           {patient.abha?.linked ? (
             <Text style={styles.abha}>ABHA linked · {patient.abha.abhaAddress}</Text>
@@ -147,6 +198,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  center: { alignItems: 'center', justifyContent: 'center' },
   back: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 16 },
   backText: { fontWeight: '700', color: colors.ink },
   hero: {

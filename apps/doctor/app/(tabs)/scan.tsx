@@ -13,10 +13,41 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { referralsApi } from '../../src/lib/api/referrals.api';
+import { useScannedPatientStore } from '../../src/store/scanned-patient-store';
 import { colors, typography } from '../../src/theme/tokens';
+
+/** Normalize camera / paste noise before hitting the API. */
+function normalizeQrRaw(raw: string): string {
+  let text = String(raw || '').trim();
+  if (!text) return '';
+  try {
+    if (/%7B|%22|GMH1%3A/i.test(text)) text = decodeURIComponent(text);
+  } catch {
+    /* keep */
+  }
+  // If paste is a qrserver image URL, extract data=
+  if (/create-qr-code|[?&]data=/i.test(text)) {
+    try {
+      const u = new URL(text);
+      const data = u.searchParams.get('data');
+      if (data) return data;
+    } catch {
+      const m = text.match(/[?&]data=([^&]+)/i);
+      if (m) {
+        try {
+          return decodeURIComponent(m[1]);
+        } catch {
+          return m[1];
+        }
+      }
+    }
+  }
+  return text;
+}
 
 export default function ScanScreen() {
   const router = useRouter();
+  const setPatient = useScannedPatientStore((s) => s.setPatient);
   const [permission, requestPermission] = useCameraPermissions();
   const [manual, setManual] = useState('');
   const [busy, setBusy] = useState(false);
@@ -24,14 +55,17 @@ export default function ScanScreen() {
   const [mode, setMode] = useState<'camera' | 'paste'>('camera');
 
   const resolvePatient = async (payload: string) => {
-    if (!payload.trim() || busy) return;
+    const normalized = normalizeQrRaw(payload);
+    if (!normalized || busy) return;
     setBusy(true);
     try {
-      const patient = await referralsApi.scan(payload.trim());
+      const patient = await referralsApi.scan(normalized);
+      setPatient(patient);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Only pass id — large JSON in route params was truncating → “patient not found”
       router.push({
         pathname: '/patient/[id]',
-        params: { id: patient.id, data: JSON.stringify(patient) },
+        params: { id: patient.id },
       });
     } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -71,12 +105,17 @@ export default function ScanScreen() {
   return (
     <SafeAreaView style={styles.root}>
       <Text style={styles.title}>Scan Care QR</Text>
-      <Text style={styles.sub}>Patient → Profile → Care QR. Or paste the QR JSON / patient ID.</Text>
+      <Text style={styles.sub}>
+        Patient must show Profile → Care QR (green card) — not the ABHA card QR.
+      </Text>
 
       <View style={styles.tabs}>
         <Pressable
           style={[styles.tab, mode === 'camera' && styles.tabOn]}
-          onPress={() => setMode('camera')}
+          onPress={() => {
+            setMode('camera');
+            setScanned(false);
+          }}
         >
           <Text style={[styles.tabText, mode === 'camera' && styles.tabTextOn]}>Camera</Text>
         </Pressable>
@@ -109,13 +148,18 @@ export default function ScanScreen() {
               <Text style={{ color: '#fff', marginTop: 8 }}>Loading patient…</Text>
             </View>
           )}
+          {scanned && !busy ? (
+            <Pressable style={styles.rescan} onPress={() => setScanned(false)}>
+              <Text style={styles.rescanText}>Tap to scan again</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : (
         <View style={styles.pasteBox}>
           <TextInput
             style={styles.input}
             multiline
-            placeholder='Paste QR JSON or patient UUID'
+            placeholder="Paste GMH1:… code, Care QR JSON, or patient UUID"
             placeholderTextColor={colors.muted}
             value={manual}
             onChangeText={setManual}
@@ -178,6 +222,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  rescan: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: colors.lime,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  rescanText: { fontWeight: '800', color: colors.forest },
   pasteBox: { gap: 12 },
   input: {
     minHeight: 140,

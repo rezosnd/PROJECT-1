@@ -18,6 +18,28 @@ export interface DoctorUser {
   hospitalId?: string | null;
   doctorSpecialty?: string | null;
   doctorLicenseNo?: string | null;
+  doctorQualification?: string | null;
+  doctorDegrees?: string | null;
+  doctorExperienceYears?: number | null;
+  doctorBio?: string | null;
+  doctorPhone?: string | null;
+  doctorClinicName?: string | null;
+  doctorConsultationFee?: number | null;
+  doctorProfileComplete?: boolean;
+}
+
+export interface DoctorProfileInput {
+  fullName?: string;
+  doctorSpecialty: string;
+  doctorQualification: string;
+  doctorDegrees?: string | null;
+  doctorLicenseNo?: string | null;
+  doctorExperienceYears?: number | null;
+  doctorBio?: string | null;
+  doctorPhone?: string | null;
+  doctorClinicName?: string | null;
+  doctorConsultationFee?: number | null;
+  hospitalId?: string | null;
 }
 
 interface AuthState {
@@ -27,6 +49,7 @@ interface AuthState {
   setUser: (user: DoctorUser | null, access?: string, refresh?: string) => Promise<void>;
   loginWithGoogleIdToken: (idToken: string) => Promise<void>;
   checkSession: () => Promise<void>;
+  updateDoctorProfile: (profile: DoctorProfileInput) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -91,6 +114,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
+  },
+
+  updateDoctorProfile: async (profile) => {
+    const token = await getAccessToken();
+    if (!token) throw new Error('Not signed in');
+    const res = await axios.put(`${API_URL}/auth/users/me/doctor-profile`, profile, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const user = res.data.data as DoctorUser;
+    await saveUserIdentity(JSON.stringify(user));
+    set({ user, isAuthenticated: true, isLoading: false });
   },
 
   logout: async () => {

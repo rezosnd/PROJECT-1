@@ -54,3 +54,19 @@ export const completeProfileSchema = z.object({
   })
 });
 
+export const doctorProfileSchema = z.object({
+  body: z.object({
+    fullName: z.string().min(2).max(255).optional(),
+    doctorSpecialty: z.string().min(2).max(120),
+    doctorQualification: z.string().min(2).max(255),
+    doctorDegrees: z.string().max(500).optional().nullable(),
+    doctorLicenseNo: z.string().min(2).max(64).optional().nullable(),
+    doctorExperienceYears: z.coerce.number().int().min(0).max(60).optional().nullable(),
+    doctorBio: z.string().max(2000).optional().nullable(),
+    doctorPhone: z.string().min(10).max(32).optional().nullable(),
+    doctorClinicName: z.string().max(255).optional().nullable(),
+    doctorConsultationFee: z.coerce.number().min(0).max(100000).optional().nullable(),
+    hospitalId: z.string().uuid().optional().nullable(),
+  }),
+});
+

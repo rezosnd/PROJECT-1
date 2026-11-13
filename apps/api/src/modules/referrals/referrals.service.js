@@ -98,13 +98,28 @@ export const referralsService = {
 
   async scanPatient(qrPayload) {
     const parsed = parsePatientQrInput(qrPayload);
+    if (parsed?.type === 'ABHA_OR_OTHER') {
+      throw new AppError(
+        'That looks like an ABHA / ID QR, not the GetMyHospital Care QR. Ask the patient to open Profile → Care QR (green card) and scan that.',
+        400,
+        'WRONG_QR_TYPE'
+      );
+    }
     if (!parsed || (!parsed.patientId && !parsed.token)) {
-      throw new AppError('Invalid patient QR. Ask the patient to open Profile → Care QR.', 400, 'INVALID_PATIENT_QR');
+      throw new AppError(
+        'Invalid Care QR. Ask the patient to open GetMyHospital → Profile → Care QR, then scan again (or paste the code).',
+        400,
+        'INVALID_PATIENT_QR'
+      );
     }
 
     let user = await referralsRepository.findPatientByQr(pool, parsed);
     if (!user) {
-      throw new AppError('No active patient found for this QR', 404, 'PATIENT_NOT_FOUND');
+      throw new AppError(
+        'No active patient found for this Care QR. Confirm the patient is signed in as PATIENT and has opened Profile → Care QR at least once.',
+        404,
+        'PATIENT_NOT_FOUND'
+      );
     }
     user = await referralsRepository.ensurePatientQr(pool, user);
 

@@ -1,9 +1,15 @@
 import { Router } from 'express';
 import { authController } from './auth.controller.js';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import { rateLimiter } from '../../middleware/rate-limiter.js';
-import { googleAuthSchema, refreshTokenSchema, logoutSchema, completeProfileSchema } from './auth.schema.js';
+import {
+  googleAuthSchema,
+  refreshTokenSchema,
+  logoutSchema,
+  completeProfileSchema,
+  doctorProfileSchema,
+} from './auth.schema.js';
 import {
   renderGoogleMobileHtml,
   renderGoogleMobileCallbackHtml,
@@ -485,6 +491,13 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), authControlle
 router.post('/logout', requireAuth, validate(logoutSchema), authController.logout);
 router.get('/users/me', requireAuth, authController.getMe);
 router.put('/users/me/profile', requireAuth, validate(completeProfileSchema), authController.completeProfile);
+router.put(
+  '/users/me/doctor-profile',
+  requireAuth,
+  requireRole('DOCTOR'),
+  validate(doctorProfileSchema),
+  authController.completeDoctorProfile
+);
 router.use('/admin', adminRoutes);
 
 export default router;

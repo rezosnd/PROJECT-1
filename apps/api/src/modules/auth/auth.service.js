@@ -24,6 +24,16 @@ function sanitizeUser(u, extras = {}) {
     hospitalId: u.hospital_id,
     doctorSpecialty: u.doctor_specialty || null,
     doctorLicenseNo: u.doctor_license_no || null,
+    doctorQualification: u.doctor_qualification || null,
+    doctorDegrees: u.doctor_degrees || null,
+    doctorExperienceYears:
+      u.doctor_experience_years != null ? Number(u.doctor_experience_years) : null,
+    doctorBio: u.doctor_bio || null,
+    doctorPhone: u.doctor_phone || null,
+    doctorClinicName: u.doctor_clinic_name || null,
+    doctorConsultationFee:
+      u.doctor_consultation_fee != null ? Number(u.doctor_consultation_fee) : null,
+    doctorProfileComplete: Boolean(u.doctor_profile_complete),
     status: u.status,
     lastLoginAt: u.last_login_at,
     createdAt: u.created_at,
@@ -346,6 +356,36 @@ export const authService = {
       }
     }
     return sanitizeUser(user, { insurance });
+  },
+
+  /**
+   * Doctor self-service profile: specialty, qualification, degrees, clinic, fee.
+   */
+  async completeDoctorProfile(userId, profile, ip = null) {
+    const existing = await authRepository.findUserById(pool, userId);
+    if (!existing) {
+      throw new AppError('User profile not found', 404, 'USER_NOT_FOUND');
+    }
+    if (existing.role !== 'DOCTOR') {
+      throw new AppError('Only doctor accounts can update clinical credentials', 403, 'FORBIDDEN');
+    }
+
+    const updated = await authRepository.updateDoctorProfile(pool, userId, profile);
+
+    await authRepository.insertAuditLog(pool, {
+      actorId: userId,
+      action: 'DOCTOR_PROFILE_UPDATED',
+      resourceType: 'USER',
+      resourceId: userId,
+      ip,
+      meta: {
+        specialty: profile.doctorSpecialty,
+        qualification: profile.doctorQualification,
+        licenseNo: profile.doctorLicenseNo || null,
+      },
+    });
+
+    return sanitizeUser(updated);
   },
 
   /**

@@ -83,6 +83,21 @@ export const authController = {
     } catch (err) {
       next(err);
     }
-  }
+  },
+
+  async completeDoctorProfile(req, res, next) {
+    try {
+      const userId = req.user.sub;
+      const ip = req.ip || req.socket.remoteAddress;
+      const user = await authService.completeDoctorProfile(userId, req.body, ip);
+
+      res.status(200).json({
+        success: true,
+        data: user,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 };
 

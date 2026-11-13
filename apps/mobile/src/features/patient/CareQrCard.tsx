@@ -40,7 +40,8 @@ export const CareQrCard: React.FC<CareQrCardProps> = ({ careQr, isLoading }) => 
       )}
 
       <Text style={styles.footnote}>
-        Doctors scan with the GetMyHospital Doctor app — not for hospital bed holds (use Search & hold there).
+        Show this green Care QR to your doctor (Doctor app). Do not show the ABHA card QR for
+        referrals. Open this screen once so your code refreshes.
       </Text>
     </View>
   );

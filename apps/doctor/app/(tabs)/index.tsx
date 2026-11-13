@@ -14,14 +14,26 @@ export default function DoctorHome() {
       <Text style={styles.kicker}>GETMYHOSPITAL · DOCTOR</Text>
       <Text style={styles.hello}>Dr. {user?.name?.split(' ')[0] || 'Doctor'}</Text>
       <Text style={styles.sub}>
-        {user?.doctorSpecialty || 'Clinician'} · Ask patients: “Show me your Care QR”
+        {[user?.doctorSpecialty, user?.doctorQualification].filter(Boolean).join(' · ') ||
+          'Complete your profile'}{' '}
+        · Ask patients: “Show me your Care QR”
       </Text>
+
+      {!user?.doctorProfileComplete ? (
+        <Pressable style={styles.primary} onPress={() => router.push('/(tabs)/profile')}>
+          <ShieldCheck color={colors.forest} size={28} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.primaryTitle}>Complete your profile</Text>
+            <Text style={styles.primarySub}>Specialty, qualification, license & clinic</Text>
+          </View>
+        </Pressable>
+      ) : null}
 
       <Pressable style={styles.primary} onPress={() => router.push('/(tabs)/scan')}>
         <QrCode color={colors.forest} size={28} />
         <View style={{ flex: 1 }}>
           <Text style={styles.primaryTitle}>Scan patient Care QR</Text>
-          <Text style={styles.primarySub}>Open full profile, insurance & refer</Text>
+          <Text style={styles.primarySub}>Green Care QR only — not ABHA card</Text>
         </View>
       </Pressable>
 

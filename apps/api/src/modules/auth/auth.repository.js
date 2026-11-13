@@ -25,9 +25,48 @@ export const authRepository = {
               address_line, city_name, pin_code, emergency_contact_name, emergency_contact_phone,
               allergies, medical_notes, preferred_language, profile_completed_at,
               doctor_specialty, doctor_license_no,
+              doctor_qualification, doctor_degrees, doctor_experience_years, doctor_bio,
+              doctor_phone, doctor_clinic_name, doctor_consultation_fee, doctor_profile_complete,
               patient_qr_token, patient_qr_payload, patient_qr_image_url
        FROM users WHERE id = $1`,
       [id]
+    );
+    return rows[0] || null;
+  },
+
+  async updateDoctorProfile(db = pool, userId, profile) {
+    const { rows } = await db.query(
+      `UPDATE users SET
+         full_name = COALESCE($2, full_name),
+         name = COALESCE($2, name),
+         doctor_specialty = $3,
+         doctor_qualification = $4,
+         doctor_degrees = COALESCE($5, doctor_degrees),
+         doctor_license_no = COALESCE($6, doctor_license_no),
+         doctor_experience_years = COALESCE($7, doctor_experience_years),
+         doctor_bio = COALESCE($8, doctor_bio),
+         doctor_phone = COALESCE($9, doctor_phone),
+         doctor_clinic_name = COALESCE($10, doctor_clinic_name),
+         doctor_consultation_fee = COALESCE($11, doctor_consultation_fee),
+         hospital_id = COALESCE($12, hospital_id),
+         doctor_profile_complete = TRUE,
+         updated_at = NOW()
+       WHERE id = $1 AND role = 'DOCTOR'
+       RETURNING *`,
+      [
+        userId,
+        profile.fullName || null,
+        profile.doctorSpecialty,
+        profile.doctorQualification,
+        profile.doctorDegrees || null,
+        profile.doctorLicenseNo || null,
+        profile.doctorExperienceYears ?? null,
+        profile.doctorBio || null,
+        profile.doctorPhone || null,
+        profile.doctorClinicName || null,
+        profile.doctorConsultationFee ?? null,
+        profile.hospitalId || null,
+      ]
     );
     return rows[0] || null;
   },

@@ -3,6 +3,11 @@ import { pool } from '../../infra/db.js';
 
 export const referralsRepository = {
   async findPatientByQr(db = pool, { patientId, token }) {
+    const { isUuid } = await import('../patients/patient-qr.js');
+    const id = isUuid(patientId) ? String(patientId).trim() : null;
+    const tok = isUuid(token) ? String(token).trim() : null;
+    if (!id && !tok) return null;
+
     const { rows } = await db.query(
       `SELECT id, google_sub, email, name, picture_url, abha_photo_url, mobile_phone, role, hospital_id, status,
               profile_complete, full_name, date_of_birth, gender, blood_group, age_years,
@@ -13,18 +18,27 @@ export const referralsRepository = {
        WHERE role = 'PATIENT'
          AND status = 'ACTIVE'
          AND (
-           ($1::uuid IS NOT NULL AND id = $1)
-           OR ($2::uuid IS NOT NULL AND patient_qr_token = $2)
-           OR ($2::uuid IS NOT NULL AND id = $2)
+           ($1::uuid IS NOT NULL AND id = $1::uuid)
+           OR ($2::uuid IS NOT NULL AND patient_qr_token = $2::uuid)
+           OR ($2::uuid IS NOT NULL AND id = $2::uuid)
+           OR ($1::uuid IS NOT NULL AND patient_qr_token = $1::uuid)
          )
        LIMIT 1`,
-      [patientId || null, token || null]
+      [id, tok]
     );
     return rows[0] || null;
   },
 
   async ensurePatientQr(db = pool, user) {
-    if (user.patient_qr_token && user.patient_qr_payload && user.patient_qr_image_url) {
+    const payload = String(user.patient_qr_payload || '');
+    // Rebuild legacy bulky JSON QRs → compact GMH1 (much more reliable to scan)
+    const isCompact = payload.startsWith('GMH1:');
+    if (
+      user.patient_qr_token &&
+      user.patient_qr_payload &&
+      user.patient_qr_image_url &&
+      isCompact
+    ) {
       return user;
     }
     const { buildPatientQrBundle } = await import('../patients/patient-qr.js');
@@ -32,9 +46,6 @@ export const referralsRepository = {
     const { qrPayload, qrImageUrl } = buildPatientQrBundle({
       patientId: user.id,
       qrToken: token,
-      name: user.full_name || user.name,
-      bloodGroup: user.blood_group,
-      cityName: user.city_name,
     });
     const { rows } = await db.query(
       `UPDATE users

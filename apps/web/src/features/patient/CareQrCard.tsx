@@ -52,8 +52,8 @@ function MotionHint() {
       </p>
       <ul className="text-xs text-muted space-y-1.5 list-disc pl-4">
         <li>Opens your profile, insurance, and ABHA (if shared).</li>
+        <li>Doctors must scan this Care QR — not your ABHA card QR.</li>
         <li>Referrals appear under My bed requests when a hold is created.</li>
-        <li>Not for self-booking — use Find free beds for your own hold.</li>
       </ul>
     </div>
   );

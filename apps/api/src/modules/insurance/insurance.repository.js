@@ -123,13 +123,15 @@ export const insuranceRepository = {
   async listDoctorsDirectory(db = pool, { limit = 40 } = {}) {
     const { rows } = await db.query(
       `SELECT u.id, u.name, u.email, u.picture_url, u.doctor_specialty, u.doctor_license_no,
+              u.doctor_qualification, u.doctor_degrees, u.doctor_experience_years, u.doctor_bio,
+              u.doctor_phone, u.doctor_clinic_name, u.doctor_consultation_fee, u.doctor_profile_complete,
               u.hospital_id, h.name AS hospital_name, h.address AS hospital_address,
               h.city AS hospital_city, h.phone AS hospital_phone,
               h.latitude, h.longitude, h.rating_avg, h.photo_url AS hospital_photo
        FROM users u
        LEFT JOIN hospitals h ON h.id = u.hospital_id
        WHERE u.role = 'DOCTOR' AND u.status = 'ACTIVE'
-       ORDER BY u.doctor_specialty NULLS LAST, u.name ASC
+       ORDER BY u.doctor_profile_complete DESC, u.doctor_specialty NULLS LAST, u.name ASC
        LIMIT $1`,
       [Math.min(Math.max(limit, 1), 100)]
     );
