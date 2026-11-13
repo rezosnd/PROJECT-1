@@ -17,7 +17,9 @@ export default function ReferralsScreen() {
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />
+        }
         ListEmptyComponent={
           <Text style={styles.empty}>{isLoading ? 'Loading…' : 'No referrals yet. Scan a Care QR.'}</Text>
         }

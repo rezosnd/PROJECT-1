@@ -1,13 +1,14 @@
 {
   "name": "cityhealth-doctor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "build:apk": "eas build --platform android --profile apk --non-interactive"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.56.2",

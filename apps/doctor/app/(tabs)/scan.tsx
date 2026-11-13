@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,13 @@ import {
   Alert,
   SafeAreaView,
   ActivityIndicator,
+  Platform,
+  Linking,
+  AppState,
+  type AppStateStatus,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { referralsApi } from '../../src/lib/api/referrals.api';
 import { useScannedPatientStore } from '../../src/store/scanned-patient-store';
@@ -25,7 +29,6 @@ function normalizeQrRaw(raw: string): string {
   } catch {
     /* keep */
   }
-  // If paste is a qrserver image URL, extract data=
   if (/create-qr-code|[?&]data=/i.test(text)) {
     try {
       const u = new URL(text);
@@ -53,6 +56,63 @@ export default function ScanScreen() {
   const [busy, setBusy] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [mode, setMode] = useState<'camera' | 'paste'>('camera');
+  const [cameraKey, setCameraKey] = useState(0);
+  const [torch, setTorch] = useState(false);
+  const [isFocused, setIsFocused] = useState(true);
+  const appState = useRef<AppStateStatus>((AppState.currentState as AppStateStatus) || 'active');
+
+  // Remount camera when this tab is focused — fixes black / frozen preview
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      setScanned(false);
+      setCameraKey((k) => k + 1);
+      return () => {
+        setIsFocused(false);
+        setTorch(false);
+      };
+    }, [])
+  );
+
+  useEffect(() => {
+    if (isFocused && mode === 'camera' && permission?.granted) {
+      setScanned(false);
+      setCameraKey((k) => k + 1);
+    } else if (!isFocused) {
+      setTorch(false);
+    }
+  }, [mode, permission?.granted]);
+
+  useEffect(() => {
+    const onChange = (next: AppStateStatus) => {
+      const prev = appState.current;
+      if (prev?.match(/inactive|background/) && next === 'active') {
+        if (isFocused && mode === 'camera' && permission?.granted) {
+          setCameraKey((k) => k + 1);
+          setScanned(false);
+        }
+      }
+      appState.current = next;
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
+  }, [isFocused, mode, permission?.granted]);
+
+  const askPermission = useCallback(async () => {
+    const res = await requestPermission();
+    if (!res.granted) {
+      Alert.alert(
+        'Camera blocked',
+        'Enable camera for GetMyHospital Doctor in system settings to scan Care QR.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+      return;
+    }
+    setCameraKey((k) => k + 1);
+  }, [requestPermission]);
 
   const resolvePatient = async (payload: string) => {
     const normalized = normalizeQrRaw(payload);
@@ -62,7 +122,6 @@ export default function ScanScreen() {
       const patient = await referralsApi.scan(normalized);
       setPatient(patient);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Only pass id — large JSON in route params was truncating → “patient not found”
       router.push({
         pathname: '/patient/[id]',
         params: { id: patient.id },
@@ -74,10 +133,13 @@ export default function ScanScreen() {
         err?.response?.data?.error?.message || err.message || 'Invalid Care QR'
       );
       setScanned(false);
+      setCameraKey((k) => k + 1);
     } finally {
       setBusy(false);
     }
   };
+
+  const cameraActive = Boolean(isFocused && mode === 'camera' && permission?.granted && !busy);
 
   if (!permission) {
     return (
@@ -90,9 +152,13 @@ export default function ScanScreen() {
   if (!permission.granted && mode === 'camera') {
     return (
       <SafeAreaView style={styles.root}>
-        <Text style={styles.title}>Camera access</Text>
-        <Text style={styles.sub}>Needed to scan the patient’s Care QR from their profile.</Text>
-        <Pressable style={styles.btn} onPress={requestPermission}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Camera access</Text>
+          <Text style={styles.sub}>
+            Needed to scan the patient’s green Care QR from their GetMyHospital profile.
+          </Text>
+        </View>
+        <Pressable style={styles.btn} onPress={askPermission}>
           <Text style={styles.btnText}>Allow camera</Text>
         </Pressable>
         <Pressable onPress={() => setMode('paste')} style={{ marginTop: 16 }}>
@@ -104,44 +170,83 @@ export default function ScanScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <Text style={styles.title}>Scan Care QR</Text>
-      <Text style={styles.sub}>
-        Patient must show Profile → Care QR (green card) — not the ABHA card QR.
-      </Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Scan Care QR</Text>
+        <Text style={styles.sub}>
+          Point at the patient’s green Care QR (Profile) — not the ABHA card.
+        </Text>
 
-      <View style={styles.tabs}>
-        <Pressable
-          style={[styles.tab, mode === 'camera' && styles.tabOn]}
-          onPress={() => {
-            setMode('camera');
-            setScanned(false);
-          }}
-        >
-          <Text style={[styles.tabText, mode === 'camera' && styles.tabTextOn]}>Camera</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.tab, mode === 'paste' && styles.tabOn]}
-          onPress={() => setMode('paste')}
-        >
-          <Text style={[styles.tabText, mode === 'paste' && styles.tabTextOn]}>Paste</Text>
-        </Pressable>
+        <View style={styles.tabs}>
+          <Pressable
+            style={[styles.tab, mode === 'camera' && styles.tabOn]}
+            onPress={() => {
+              setMode('camera');
+              setScanned(false);
+              setCameraKey((k) => k + 1);
+            }}
+          >
+            <Text style={[styles.tabText, mode === 'camera' && styles.tabTextOn]}>Camera</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tab, mode === 'paste' && styles.tabOn]}
+            onPress={() => {
+              setMode('paste');
+              setTorch(false);
+            }}
+          >
+            <Text style={[styles.tabText, mode === 'paste' && styles.tabTextOn]}>Paste</Text>
+          </Pressable>
+        </View>
       </View>
 
       {mode === 'camera' ? (
         <View style={styles.camWrap}>
-          <CameraView
-            style={StyleSheet.absoluteFillObject}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onBarcodeScanned={
-              scanned || busy
-                ? undefined
-                : ({ data }) => {
-                    setScanned(true);
-                    void resolvePatient(data);
-                  }
-            }
-          />
-          <View style={styles.frame} />
+          {cameraActive ? (
+            <CameraView
+              key={`cam-${cameraKey}`}
+              style={styles.camera}
+              facing="back"
+              mode="picture"
+              active={cameraActive}
+              enableTorch={torch}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              onBarcodeScanned={
+                scanned || busy
+                  ? undefined
+                  : ({ data }) => {
+                      setScanned(true);
+                      void resolvePatient(data);
+                    }
+              }
+            />
+          ) : (
+            <View style={[styles.camera, styles.cameraPlaceholder]}>
+              <ActivityIndicator color={colors.lime} />
+              <Text style={styles.placeholderText}>Starting camera…</Text>
+            </View>
+          )}
+
+          <View pointerEvents="none" style={styles.frame} />
+
+          <View style={styles.camControls}>
+            <Pressable
+              style={styles.chip}
+              onPress={() => setTorch((t) => !t)}
+              disabled={!cameraActive}
+            >
+              <Text style={styles.chipText}>{torch ? 'Torch on' : 'Torch'}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.chip}
+              onPress={() => {
+                setScanned(false);
+                setCameraKey((k) => k + 1);
+              }}
+            >
+              <Text style={styles.chipText}>Refresh camera</Text>
+            </Pressable>
+          </View>
+
           {busy && (
             <View style={styles.overlay}>
               <ActivityIndicator color={colors.lime} size="large" />
@@ -149,7 +254,13 @@ export default function ScanScreen() {
             </View>
           )}
           {scanned && !busy ? (
-            <Pressable style={styles.rescan} onPress={() => setScanned(false)}>
+            <Pressable
+              style={styles.rescan}
+              onPress={() => {
+                setScanned(false);
+                setCameraKey((k) => k + 1);
+              }}
+            >
               <Text style={styles.rescanText}>Tap to scan again</Text>
             </Pressable>
           ) : null}
@@ -164,11 +275,7 @@ export default function ScanScreen() {
             value={manual}
             onChangeText={setManual}
           />
-          <Pressable
-            style={styles.btn}
-            onPress={() => resolvePatient(manual)}
-            disabled={busy}
-          >
+          <Pressable style={styles.btn} onPress={() => resolvePatient(manual)} disabled={busy}>
             {busy ? (
               <ActivityIndicator color={colors.forest} />
             ) : (
@@ -182,11 +289,12 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background, padding: 20 },
+  root: { flex: 1, backgroundColor: colors.background },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: { ...typography.display, fontSize: 24, color: colors.ink },
-  sub: { color: colors.muted, marginTop: 6, marginBottom: 16 },
-  tabs: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  sub: { color: colors.muted, marginTop: 6, marginBottom: 12, lineHeight: 20 },
+  tabs: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   tab: {
     flex: 1,
     paddingVertical: 10,
@@ -201,23 +309,54 @@ const styles = StyleSheet.create({
   tabTextOn: { color: colors.lime },
   camWrap: {
     flex: 1,
+    marginHorizontal: 16,
+    marginBottom: Platform.OS === 'ios' ? 8 : 16,
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#000',
-    minHeight: 360,
+    minHeight: 320,
+    position: 'relative',
   },
+  camera: {
+    ...StyleSheet.absoluteFill,
+    width: '100%',
+    height: '100%',
+  },
+  cameraPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0B3D1A',
+  },
+  placeholderText: { color: 'rgba(255,255,255,0.8)', marginTop: 10, fontWeight: '600' },
   frame: {
     position: 'absolute',
-    top: '22%',
+    top: '20%',
     left: '12%',
     right: '12%',
-    bottom: '22%',
+    bottom: '28%',
     borderWidth: 3,
     borderColor: colors.lime,
     borderRadius: 18,
   },
+  camControls: {
+    position: 'absolute',
+    top: 14,
+    right: 12,
+    left: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  chip: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(168,224,23,0.5)',
+  },
+  chipText: { color: colors.lime, fontWeight: '800', fontSize: 12 },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -232,7 +371,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   rescanText: { fontWeight: '800', color: colors.forest },
-  pasteBox: { gap: 12 },
+  pasteBox: { paddingHorizontal: 20, gap: 12 },
   input: {
     minHeight: 140,
     backgroundColor: '#fff',
@@ -248,6 +387,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: 'center',
+    marginHorizontal: 20,
   },
   btnText: { fontWeight: '800', color: colors.forest, fontSize: 16 },
   link: { color: colors.lime, fontWeight: '700', textAlign: 'center' },
